@@ -1,0 +1,16 @@
+{
+  "name": "@wa/webhook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@wa/core": "workspace:*",
+    "@wa/db": "workspace:*",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.0.0"
+  }
+}

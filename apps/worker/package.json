@@ -1,0 +1,19 @@
+{
+  "name": "@wa/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "channel:add": "tsx src/scripts/channel-add.ts",
+    "channel:list": "tsx src/scripts/channel-list.ts",
+    "send:test": "tsx src/scripts/send-test.ts"
+  },
+  "dependencies": {
+    "@wa/core": "workspace:*",
+    "@wa/db": "workspace:*",
+    "bullmq": "^5.21.0",
+    "dotenv": "^16.4.5"
+  }
+}

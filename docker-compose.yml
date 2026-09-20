@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wa
+      POSTGRES_PASSWORD: wa_dev_password
+      POSTGRES_DB: wa_platform
+    # Bound to localhost only, and off the default port: chatwoot and wa_bridge
+    # already run their own Postgres/Redis on this machine.
+    ports: ['127.0.0.1:5435:5432']
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wa -d wa_platform']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports: ['127.0.0.1:6381:6379']
+    volumes: ['redisdata:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # MinIO no longer publishes to Docker Hub; quay.io is the official registry.
+  # Tags are pinned because "latest" here has not moved since Sep 2025.
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: wa_minio
+      MINIO_ROOT_PASSWORD: wa_minio_dev_password
+    ports: ['127.0.0.1:9000:9000', '127.0.0.1:9001:9001']
+    volumes: ['miniodata:/data']
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Creates the media bucket once MinIO is up, then exits.
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 wa_minio wa_minio_dev_password &&
+      mc mb --ignore-existing local/wa-media &&
+      echo 'bucket ready'
+      "
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

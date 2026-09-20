@@ -1,0 +1,164 @@
+import { Worker, UnrecoverableError, type Job } from 'bullmq'
+import { prisma, Prisma, ChannelStatus, Direction, MessageStatus } from '@wa/db'
+import {
+  workerOptions,
+  credentialsFor,
+  isWindowOpen,
+  logger,
+  outboundQueue,
+  outboundQueueName,
+  providerFor,
+  ProviderError,
+  WhatsAppValidationError,
+  RE_ENGAGEMENT_CODE,
+  type OutboundMessage,
+} from '@wa/core'
+
+const log = logger.child({ worker: 'outbound' })
+
+export interface SendJob {
+  channelId: string
+  conversationId: string
+  to: string
+  message: OutboundMessage
+  /** "user:<id>" | "flow:<id>" | "campaign:<id>" | "system" */
+  sentBy: string
+  sentByUserId?: string
+}
+
+/** Queues an outbound message on its channel's own lane. */
+export async function enqueueSend(job: SendJob) {
+  return outboundQueue(job.channelId).add('send', job)
+}
+
+/**
+ * One worker per channel.
+ *
+ * Separate queues plus a per-channel rate limiter is what keeps a 50k campaign
+ * on one number from delaying a live reply on another - a single shared queue
+ * would serialize them behind each other no matter how the jobs are
+ * prioritized.
+ */
+const workers = new Map<string, Worker>()
+
+export async function startOutboundWorkers() {
+  const channels = await prisma.channel.findMany({
+    where: { status: ChannelStatus.CONNECTED },
+    select: { id: true, name: true, throughputPerSec: true },
+  })
+
+  for (const c of channels) attachWorker(c.id, c.throughputPerSec)
+  log.info({ count: channels.length }, 'outbound workers started')
+  return [...workers.values()]
+}
+
+export function attachWorker(channelId: string, throughputPerSec: number) {
+  if (workers.has(channelId)) return workers.get(channelId)!
+
+  const worker = new Worker<SendJob>(
+    outboundQueueName(channelId),
+    processSend,
+    workerOptions({ concurrency: 5, limiter: { max: throughputPerSec, duration: 1_000 } }),
+  )
+
+  worker.on('failed', (job, err) => {
+    log.error({ channelId, jobId: job?.id, err: err.message }, 'send failed')
+  })
+
+  workers.set(channelId, worker)
+  return worker
+}
+
+async function processSend(job: Job<SendJob>) {
+  const { channelId, conversationId, to, message, sentBy, sentByUserId } = job.data
+
+  const channel = await prisma.channel.findUnique({ where: { id: channelId } })
+  if (!channel) throw new UnrecoverableError(`channel ${channelId} no longer exists`)
+
+  if (channel.sendingPaused) {
+    // Kill switch or circuit breaker. Throwing a normal error keeps the job in
+    // the queue so it drains once the channel is unpaused.
+    throw new Error(`channel ${channelId} is paused: ${channel.pausedReason ?? 'no reason given'}`)
+  }
+
+  // Free-form sends are only legal inside the 24h window. Checking here rather
+  // than letting Meta reject it saves a wasted API call and gives the caller a
+  // message that actually says what to do instead.
+  if (message.kind !== 'template') {
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { windowExpiresAt: true },
+    })
+    if (!isWindowOpen(conversation?.windowExpiresAt)) {
+      throw new UnrecoverableError(
+        `24h window closed for conversation ${conversationId}; send an approved template instead`,
+      )
+    }
+  }
+
+  const provider = providerFor(channel)
+  const creds = credentialsFor(channel)
+
+  let result
+  try {
+    result = await provider.send(creds, to, message)
+  } catch (err) {
+    await recordFailure(conversationId, message, sentBy, sentByUserId, err)
+
+    if (err instanceof WhatsAppValidationError) {
+      throw new UnrecoverableError(`invalid payload: ${err.message}`)
+    }
+    if (err instanceof ProviderError) {
+      if (err.code === String(RE_ENGAGEMENT_CODE)) {
+        throw new UnrecoverableError('Meta rejected the send: 24h window closed, a template is required')
+      }
+      if (!err.retryable) throw new UnrecoverableError(`${err.code ?? 'error'}: ${err.message}`)
+    }
+    throw err
+  }
+
+  await prisma.message.create({
+    data: {
+      conversationId,
+      direction: Direction.OUT,
+      waMessageId: result.waMessageId,
+      type: message.kind,
+      payload: message as unknown as Prisma.InputJsonValue,
+      status: MessageStatus.SENT,
+      sentBy,
+      sentByUserId,
+      sentAt: new Date(),
+    },
+  })
+
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { lastMessageAt: new Date() },
+  })
+
+  log.info({ channelId, to, kind: message.kind, waMessageId: result.waMessageId }, 'message sent')
+  return result
+}
+
+async function recordFailure(
+  conversationId: string,
+  message: OutboundMessage,
+  sentBy: string,
+  sentByUserId: string | undefined,
+  err: unknown,
+) {
+  const isProviderErr = err instanceof ProviderError
+  await prisma.message.create({
+    data: {
+      conversationId,
+      direction: Direction.OUT,
+      type: message.kind,
+      payload: message as unknown as Prisma.InputJsonValue,
+      status: MessageStatus.FAILED,
+      errorCode: isProviderErr ? err.code : 'INTERNAL',
+      errorMessage: err instanceof Error ? err.message : String(err),
+      sentBy,
+      sentByUserId,
+    },
+  })
+}

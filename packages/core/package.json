@@ -1,0 +1,19 @@
+{
+  "name": "@wa/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@wa/db": "workspace:*",
+    "bullmq": "^5.21.0",
+    "ioredis": "^5.4.1",
+    "pino": "^9.4.0",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  }
+}

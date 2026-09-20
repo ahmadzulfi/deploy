@@ -1,0 +1,545 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum Provider {
+  CLOUD_API
+  BAILEYS
+}
+
+enum ChannelStatus {
+  CONNECTED
+  DISCONNECTED
+  FLAGGED
+  PAUSED
+}
+
+enum QualityRating {
+  GREEN
+  YELLOW
+  RED
+  UNKNOWN
+}
+
+enum OptInStatus {
+  UNKNOWN
+  OPTED_IN
+  OPTED_OUT
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum Direction {
+  IN
+  OUT
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum TemplateStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  PAUSED
+  DISABLED
+}
+
+enum FlowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SessionStatus {
+  ACTIVE
+  WAITING
+  COMPLETED
+  EXPIRED
+  FAILED
+}
+
+enum TriggerType {
+  KEYWORD
+  EXACT
+  REGEX
+  NEW_CONVERSATION
+  BUTTON_PAYLOAD
+  API
+  SCHEDULE
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  SUPERVISOR
+  AGENT
+  VIEWER
+}
+
+// ============================================================
+// Org & access control
+// ============================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("Asia/Jakarta")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  channels  Channel[]
+  contacts  Contact[]
+  flows     Flow[]
+  campaigns Campaign[]
+  apiKeys   ApiKey[]
+  auditLogs AuditLog[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  orgId     String
+  email     String   @unique
+  name      String
+  role      Role     @default(AGENT)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // No rows = access to every channel in the org.
+  // One or more rows = scoped to exactly those channels.
+  channelAccess ChannelAccess[]
+  conversations Conversation[]  @relation("Assignee")
+  messages      Message[]       @relation("SentByUser")
+  auditLogs     AuditLog[]
+
+  @@index([orgId])
+}
+
+model ChannelAccess {
+  userId    String
+  channelId String
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channelId])
+}
+
+// ============================================================
+// Channels - one row per WhatsApp number
+// ============================================================
+
+model Channel {
+  id       String   @id @default(cuid())
+  orgId    String
+  name     String
+  provider Provider @default(CLOUD_API)
+
+  // Cloud API identifiers. Meta routes inbound webhooks by phoneNumberId,
+  // which is why it must be unique and indexed.
+  wabaId        String?
+  phoneNumberId String? @unique
+  displayPhone  String?
+
+  // AES-256-GCM ciphertext. Never log it, never return it over the API.
+  accessTokenEnc String?
+
+  status           ChannelStatus @default(DISCONNECTED)
+  qualityRating    QualityRating @default(UNKNOWN)
+  messagingTier    String        @default("TIER_250")
+  throughputPerSec Int           @default(80)
+
+  // Flipped by the circuit breaker when the error rate spikes, and by the
+  // operator kill switch. Send workers refuse to drain a paused channel.
+  sendingPaused   Boolean   @default(false)
+  pausedReason    String?
+  lastHealthCheck DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org           Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  access        ChannelAccess[]
+  conversations Conversation[]
+  templates     Template[]
+  triggers      Trigger[]
+  campaigns     Campaign[]
+  flowSessions  FlowSession[]
+  webhookEvents WebhookEvent[]
+
+  @@index([orgId])
+  @@index([wabaId])
+}
+
+// ============================================================
+// Contacts
+// ============================================================
+
+model Contact {
+  id    String  @id @default(cuid())
+  orgId String
+  waId  String // E.164 without the leading '+', exactly as Meta sends it
+  name  String?
+
+  attributes Json     @default("{}")
+  tags       String[] @default([])
+
+  optInStatus OptInStatus @default(UNKNOWN)
+  optInSource String?
+  optInAt     DateTime?
+  optOutAt    DateTime?
+
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  org           Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  flowSessions  FlowSession[]
+  recipients    CampaignRecipient[]
+
+  @@unique([orgId, waId])
+  @@index([orgId, optInStatus])
+  @@index([tags])
+}
+
+// ============================================================
+// Conversations & messages
+// ============================================================
+
+model Conversation {
+  id        String @id @default(cuid())
+  channelId String
+  contactId String
+
+  status     ConversationStatus @default(OPEN)
+  assigneeId String?
+
+  // End of the 24h customer service window. Past this, free-form sends fail
+  // and only an approved template will go through.
+  windowExpiresAt DateTime?
+
+  // True once a human agent takes over. The flow engine skips these entirely.
+  botPaused Boolean @default(false)
+
+  lastMessageAt DateTime?
+  unreadCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  channel      Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignee     User?         @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages     Message[]
+  flowSessions FlowSession[]
+
+  @@unique([channelId, contactId])
+  @@index([channelId, status, lastMessageAt])
+  @@index([assigneeId, status])
+}
+
+model Message {
+  id             String @id @default(cuid())
+  conversationId String
+
+  direction Direction
+
+  // Meta's message id. This unique constraint is the webhook dedupe guarantee.
+  waMessageId String? @unique
+
+  type    String // text | image | interactive | template | ...
+  payload Json
+
+  status       MessageStatus @default(QUEUED)
+  errorCode    String?
+  errorMessage String?
+
+  // Provenance: "user:<id>" | "flow:<id>" | "campaign:<id>" | "system"
+  sentBy       String?
+  sentByUserId String?
+
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sentByUser   User?        @relation("SentByUser", fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([status])
+}
+
+// ============================================================
+// Templates (local mirror of Meta's template registry)
+// ============================================================
+
+model Template {
+  id        String @id @default(cuid())
+  channelId String
+  wabaId    String
+
+  name     String
+  language String
+  category String // MARKETING | UTILITY | AUTHENTICATION
+
+  components      Json
+  metaTemplateId  String?
+  metaStatus      TemplateStatus @default(DRAFT)
+  rejectionReason String?
+  syncedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@unique([wabaId, name, language])
+  @@index([channelId, metaStatus])
+}
+
+// ============================================================
+// Flows
+// ============================================================
+
+model Flow {
+  id                 String     @id @default(cuid())
+  orgId              String
+  name               String
+  description        String?
+  status             FlowStatus @default(DRAFT)
+  publishedVersionId String?    @unique
+
+  // Working copy the editor autosaves into. Publishing snapshots it into a
+  // FlowVersion; the engine never reads this field.
+  draftGraph Json @default("{\"nodes\":[],\"edges\":[]}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org              Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  versions         FlowVersion[] @relation("FlowVersions")
+  publishedVersion FlowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+  triggers         Trigger[]
+
+  @@index([orgId, status])
+}
+
+model FlowVersion {
+  id      String @id @default(cuid())
+  flowId  String
+  version Int
+
+  // Immutable snapshot: { nodes: [...], edges: [...] }
+  graph Json
+
+  publishedAt DateTime @default(now())
+  publishedBy String?
+
+  flow         Flow          @relation("FlowVersions", fields: [flowId], references: [id], onDelete: Cascade)
+  publishedFor Flow?         @relation("PublishedVersion")
+  sessions     FlowSession[]
+
+  @@unique([flowId, version])
+}
+
+model FlowSession {
+  id String @id @default(cuid())
+
+  // Pinned to a version, not a flow. Publishing mid-conversation must not
+  // strand anyone on a node that no longer exists.
+  flowVersionId String
+
+  contactId      String
+  channelId      String
+  conversationId String?
+
+  currentNodeId String?
+  variables     Json          @default("{}")
+  status        SessionStatus @default(ACTIVE)
+
+  // Budget against runaway graphs; the engine fails the session past the cap.
+  stepCount Int       @default(0)
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flowVersion  FlowVersion   @relation(fields: [flowVersionId], references: [id], onDelete: Cascade)
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel      Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, status])
+  @@index([conversationId, status])
+  @@index([status, expiresAt])
+}
+
+model Trigger {
+  id     String @id @default(cuid())
+  flowId String
+
+  // null = applies to every channel in the org
+  channelId String?
+
+  type     TriggerType
+  config   Json        @default("{}")
+  priority Int         @default(0)
+  enabled  Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  flow    Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, enabled, priority])
+}
+
+// ============================================================
+// Campaigns
+// ============================================================
+
+model Campaign {
+  id         String @id @default(cuid())
+  orgId      String
+  channelId  String
+  templateId String
+
+  name           String
+  audienceQuery  Json           @default("{}")
+  variableMap    Json           @default("{}")
+  scheduleAt     DateTime?
+  throttlePerMin Int            @default(60)
+  status         CampaignStatus @default(DRAFT)
+
+  totalCount   Int @default(0)
+  sentCount    Int @default(0)
+  failedCount  Int @default(0)
+  skippedCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org        Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  channel    Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  template   Template            @relation(fields: [templateId], references: [id])
+  recipients CampaignRecipient[]
+
+  @@index([orgId, status])
+}
+
+model CampaignRecipient {
+  id         String @id @default(cuid())
+  campaignId String
+  contactId  String
+
+  status    RecipientStatus @default(PENDING)
+  messageId String?
+  error     String?
+  sentAt    DateTime?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId, status])
+}
+
+// ============================================================
+// Ops
+// ============================================================
+
+model WebhookEvent {
+  id String @id @default(cuid())
+
+  // Null when a payload arrives before its channel is registered. Keeping the
+  // row anyway makes that misconfiguration visible instead of silent.
+  channelId String?
+
+  rawPayload  Json
+  signatureOk Boolean   @default(false)
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, createdAt])
+  @@index([processedAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  orgId        String
+  actorId      String?
+  action       String
+  resourceType String
+  resourceId   String?
+  diff         Json?
+  ip           String?
+  createdAt    DateTime @default(now())
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actor User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@index([resourceType, resourceId])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  orgId      String
+  name       String
+  hashedKey  String    @unique
+  scopes     String[]  @default([])
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}

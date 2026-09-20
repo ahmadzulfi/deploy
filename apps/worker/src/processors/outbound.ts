@@ -8,6 +8,7 @@ import {
   outboundQueue,
   outboundQueueName,
   providerFor,
+  redis,
   ProviderError,
   WhatsAppValidationError,
   RE_ENGAGEMENT_CODE,
@@ -19,6 +20,8 @@ const log = logger.child({ worker: 'outbound' })
 export interface SendJob {
   channelId: string
   conversationId: string
+  /** Position in this conversation's outbound order; see enqueueSend. */
+  seq?: number
   to: string
   message: OutboundMessage
   /** "user:<id>" | "flow:<id>" | "campaign:<id>" | "system" */
@@ -26,9 +29,39 @@ export interface SendJob {
   sentByUserId?: string
 }
 
-/** Queues an outbound message on its channel's own lane. */
+/**
+ * Keys that order one conversation's outbound messages.
+ *
+ * The worker runs several jobs at once so a broadcast is not bottlenecked on
+ * round-trip latency, but that lets two messages for the same contact race -
+ * and a flow that sends an answer then a follow-up prompt would arrive
+ * backwards. Each message takes a ticket on enqueue and waits its turn on the
+ * way out; conversations still run fully in parallel with each other.
+ */
+const seqKey = (conversationId: string) => `wa:seq:${conversationId}`
+const doneKey = (conversationId: string) => `wa:done:${conversationId}`
+
+/** Conversations go quiet; the counters should not outlive them. */
+const ORDER_TTL_S = 7 * 24 * 3600
+
+/** Queues an outbound message on its channel's own lane, in order. */
 export async function enqueueSend(job: SendJob) {
-  return outboundQueue(job.channelId).add('send', job)
+  const key = seqKey(job.conversationId)
+  const seq = await redis().incr(key)
+  await redis().expire(key, ORDER_TTL_S)
+
+  return outboundQueue(job.channelId).add('send', { ...job, seq })
+}
+
+/**
+ * Marks this message's turn as over, whether it was sent or permanently
+ * failed. Skipping this on failure would stall every later message in the
+ * conversation behind a ticket that never clears.
+ */
+async function releaseTurn(conversationId: string) {
+  const key = doneKey(conversationId)
+  await redis().incr(key)
+  await redis().expire(key, ORDER_TTL_S)
 }
 
 /**
@@ -82,6 +115,16 @@ async function processSend(job: Job<SendJob>, token?: string) {
   const channel = await prisma.channel.findUnique({ where: { id: channelId } })
   if (!channel) throw new UnrecoverableError(`channel ${channelId} no longer exists`)
 
+  // Wait for this message's turn. Re-delaying costs no retry attempt, so a
+  // long burst does not burn through the job's attempts while queueing.
+  if (job.data.seq !== undefined) {
+    const done = Number((await redis().get(doneKey(conversationId))) ?? 0)
+    if (job.data.seq > done + 1) {
+      await job.moveToDelayed(Date.now() + 150, token)
+      throw new DelayedError()
+    }
+  }
+
   if (channel.sendingPaused) {
     // Kill switch or circuit breaker. Re-delay instead of throwing: a thrown
     // error consumes a retry attempt, and five of those expire in about half
@@ -116,6 +159,12 @@ async function processSend(job: Job<SendJob>, token?: string) {
   } catch (err) {
     await recordFailure(conversationId, message, sentBy, sentByUserId, err)
 
+    const terminal =
+      err instanceof WhatsAppValidationError ||
+      (err instanceof ProviderError && !err.retryable)
+
+    if (terminal) await releaseTurn(conversationId)
+
     if (err instanceof WhatsAppValidationError) {
       throw new UnrecoverableError(`invalid payload: ${err.message}`)
     }
@@ -146,6 +195,8 @@ async function processSend(job: Job<SendJob>, token?: string) {
     where: { id: conversationId },
     data: { lastMessageAt: new Date() },
   })
+
+  await releaseTurn(conversationId)
 
   log.info({ channelId, to, kind: message.kind, waMessageId: result.waMessageId }, 'message sent')
   return result

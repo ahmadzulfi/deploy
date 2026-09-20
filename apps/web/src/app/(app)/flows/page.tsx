@@ -1,8 +1,8 @@
-import Link from 'next/link'
 import { prisma, FlowStatus } from '@wa/db'
 import { requireUser } from '@/lib/auth'
 import { createFlow } from '@/lib/actions/flows'
-import { cn, shortTime } from '@/lib/utils'
+import { FlowRow } from '@/components/flow-row'
+import { shortTime } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +29,8 @@ export default async function FlowsPage() {
         </div>
         <p className="mb-5 text-xs text-fg-muted">
           Percakapan otomatis. Menerbitkan flow membuat versi baru — percakapan yang sedang
-          berjalan tetap memakai versi lamanya sampai selesai.
+          berjalan tetap memakai versi lamanya sampai selesai. Saklar di kanan mematikan flow
+          tanpa membatalkan penerbitannya; pakai itu kalau dua flow berebut kata kunci yang sama.
         </p>
 
         <div className="overflow-hidden rounded-lg border bg-surface">
@@ -40,35 +41,17 @@ export default async function FlowsPage() {
           )}
 
           {flows.map((f, i) => (
-            <Link
+            <FlowRow
               key={f.id}
-              href={`/flows/${f.id}`}
-              className={cn('flex items-center gap-4 p-4 hover:bg-muted', i > 0 && 'border-t')}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm text-fg">{f.name}</div>
-                <div className="mt-0.5 text-xs text-fg-muted">
-                  Diubah {shortTime(f.updatedAt)}
-                </div>
-              </div>
-
-              <div className="w-28 shrink-0">
-                {f.publishedVersion ? (
-                  <span className="rounded bg-ok-bg px-1.5 py-px text-[10px] text-ok">
-                    live v{f.publishedVersion.version}
-                  </span>
-                ) : (
-                  <span className="rounded bg-muted px-1.5 py-px text-[10px] text-fg-muted">
-                    draf
-                  </span>
-                )}
-              </div>
-
-              <div className="hidden w-20 shrink-0 sm:block">
-                <div className="text-[10px] text-fg-muted">Trigger</div>
-                <div className="mt-0.5 text-xs text-fg">{f._count.triggers}</div>
-              </div>
-            </Link>
+              id={f.id}
+              name={f.name}
+              updatedAt={shortTime(f.updatedAt)}
+              version={f.publishedVersion?.version ?? null}
+              enabled={f.enabled}
+              triggerCount={f._count.triggers}
+              canEdit={canEdit}
+              bordered={i > 0}
+            />
           ))}
         </div>
 

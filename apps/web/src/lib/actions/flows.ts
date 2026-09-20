@@ -104,6 +104,39 @@ export async function renameFlow(flowId: string, name: string) {
   revalidatePath('/flows')
 }
 
+/**
+ * Turns a published flow on or off without unpublishing it.
+ *
+ * Conversations already in progress keep running on the version they started
+ * with - stopping them mid-sentence would leave contacts waiting for a reply
+ * that never comes.
+ */
+export async function toggleFlowEnabled(flowId: string) {
+  const user = await requireRole('SUPERVISOR')
+
+  const flow = await prisma.flow.findUnique({
+    where: { id: flowId },
+    select: { orgId: true, enabled: true, name: true },
+  })
+  if (!flow || flow.orgId !== user.orgId) return
+
+  await prisma.flow.update({ where: { id: flowId }, data: { enabled: !flow.enabled } })
+
+  await prisma.auditLog.create({
+    data: {
+      orgId: user.orgId,
+      actorId: user.id,
+      action: flow.enabled ? 'flow.disable' : 'flow.enable',
+      resourceType: 'Flow',
+      resourceId: flowId,
+      diff: { name: flow.name },
+    },
+  })
+
+  revalidatePath('/flows')
+  revalidatePath(`/flows/${flowId}`)
+}
+
 /** Stops the engine from starting new runs without deleting anything. */
 export async function archiveFlow(flowId: string) {
   const user = await requireRole('SUPERVISOR')

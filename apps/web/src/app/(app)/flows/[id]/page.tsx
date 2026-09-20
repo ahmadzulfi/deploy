@@ -20,8 +20,16 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-11 shrink-0 items-center border-b bg-surface px-4">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-4">
         <span className="text-sm text-fg">{flow.name}</span>
+        {!flow.enabled && (
+          <span
+            className="rounded bg-warn-bg px-1.5 py-px text-[10px] text-warn"
+            title="Flow ini tidak menjawab pesan masuk. Aktifkan lagi dari daftar Flow."
+          >
+            nonaktif
+          </span>
+        )}
       </div>
       <div className="min-h-0 flex-1">
         <FlowEditor

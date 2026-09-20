@@ -107,6 +107,9 @@ async function start(signal: InboundSignal, conversation: Conversation) {
       orgId: conversation.channel.orgId,
       status: FlowStatus.PUBLISHED,
       publishedVersionId: { not: null },
+      // A disabled flow keeps its published version but stops answering.
+      // Sessions already running finish on the version they started with.
+      enabled: true,
     },
     include: { publishedVersion: true },
     orderBy: { updatedAt: 'desc' },

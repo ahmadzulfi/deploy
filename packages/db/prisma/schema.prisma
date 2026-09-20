@@ -410,6 +410,12 @@ model Flow {
   status             FlowStatus @default(DRAFT)
   publishedVersionId String?    @unique
 
+  /// Off switch that survives publishing. A flow can be published and still
+  /// deliberately idle - useful when two flows share a keyword and only one
+  /// should answer. Separate from `status` because "sudah terbit tapi
+  /// dimatikan" is a real state that DRAFT would misdescribe.
+  enabled Boolean @default(true)
+
   // Working copy the editor autosaves into. Publishing snapshots it into a
   // FlowVersion; the engine never reads this field.
   draftGraph Json @default("{\"nodes\":[],\"edges\":[]}")

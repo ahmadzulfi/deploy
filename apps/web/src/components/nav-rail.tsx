@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/flows', label: 'Flow', icon: IconFlow },
   { href: '/broadcast', label: 'Broadcast', icon: IconSend, soon: true },
   { href: '/channels', label: 'Nomor', icon: IconPhone },
+  { href: '/settings', label: 'Pengaturan', icon: IconSettings },
 ]
 
 export function NavRail() {
@@ -89,6 +90,15 @@ function IconSend() {
   return (
     <svg {...svg}>
       <path d="M4 12 20 4l-8 16-2-6-6-2Z" />
+    </svg>
+  )
+}
+
+function IconSettings() {
+  return (
+    <svg {...svg}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4V3.8a2 2 0 1 1 4 0V4a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1Z" />
     </svg>
   )
 }

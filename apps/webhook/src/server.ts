@@ -1,6 +1,13 @@
 import Fastify, { type FastifyRequest } from 'fastify'
 import { prisma } from '@wa/db'
-import { env, logger, inboundQueue, verifyMetaSignature, normalizeCloudApiWebhook } from '@wa/core'
+import {
+  env,
+  logger,
+  inboundQueue,
+  metaSettings,
+  verifyMetaSignature,
+  normalizeCloudApiWebhook,
+} from '@wa/core'
 
 /**
  * Webhook receiver. Deliberately the dumbest service in the system.
@@ -40,7 +47,9 @@ app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }))
 /** Meta's subscription handshake. Called once when you save the webhook URL. */
 app.get('/webhooks/whatsapp', async (req, reply) => {
   const q = req.query as Record<string, string | undefined>
-  if (q['hub.mode'] === 'subscribe' && q['hub.verify_token'] === env().WEBHOOK_VERIFY_TOKEN) {
+  const { verifyToken } = await metaSettings()
+
+  if (q['hub.mode'] === 'subscribe' && verifyToken && q['hub.verify_token'] === verifyToken) {
     app.log.info('webhook verification handshake succeeded')
     return reply.code(200).type('text/plain').send(q['hub.challenge'] ?? '')
   }
@@ -49,10 +58,19 @@ app.get('/webhooks/whatsapp', async (req, reply) => {
 })
 
 app.post('/webhooks/whatsapp', async (req, reply) => {
+  const { appSecret } = await metaSettings()
+
+  if (!appSecret) {
+    // Refusing beats accepting unverified payloads: without a secret every
+    // request would be indistinguishable from a forged one.
+    app.log.error('META app secret belum diatur - webhook ditolak')
+    return reply.code(503).send()
+  }
+
   const signatureOk = verifyMetaSignature(
     req.rawBody ?? Buffer.alloc(0),
     req.headers['x-hub-signature-256'] as string | undefined,
-    env().META_APP_SECRET,
+    appSecret,
   )
 
   if (!signatureOk) {

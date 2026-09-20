@@ -122,6 +122,14 @@ model Organization {
   id        String   @id @default(cuid())
   name      String
   timezone  String   @default("Asia/Jakarta")
+
+  // Meta app-level settings, editable from the dashboard instead of .env.
+  // The secret is AES-256-GCM ciphertext; ENCRYPTION_KEY itself cannot live
+  // here, since it is what protects this column.
+  metaAppSecretEnc    String?
+  metaGraphVersion    String  @default("v21.0")
+  webhookVerifyToken  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

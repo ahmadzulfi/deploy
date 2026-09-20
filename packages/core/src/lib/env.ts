@@ -10,9 +10,13 @@ const schema = z.object({
   // The App ID is deliberately absent: nothing here needs it. Webhook
   // signatures use the app secret, and every Graph call is authenticated by
   // the channel's own token. Add it back only if Embedded Signup lands.
-  META_APP_SECRET: z.string().min(1),
+  //
+  // The secret and verify token are optional because they now live in the
+  // database, editable from the settings page; these remain as a fallback for
+  // installs that have not moved them yet.
+  META_APP_SECRET: z.string().min(1).optional(),
   META_GRAPH_VERSION: z.string().default('v21.0'),
-  WEBHOOK_VERIFY_TOKEN: z.string().min(1),
+  WEBHOOK_VERIFY_TOKEN: z.string().min(1).optional(),
 
   WEBHOOK_PORT: z.coerce.number().default(3001),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),

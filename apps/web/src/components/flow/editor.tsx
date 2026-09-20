@@ -5,6 +5,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
@@ -223,6 +224,14 @@ function Canvas({
             fitView
             defaultEdgeOptions={{ animated: false, style: { strokeWidth: 1.5 } }}
           >
+            {nodes.length > 1 && edges.length === 0 && (
+              <Panel position="top-center">
+                <p className="rounded-md border bg-surface px-3 py-1.5 text-[11px] text-fg-muted shadow-xs">
+                  Tarik dari titik biru di tepi node ke tepi atas node tujuan untuk
+                  menghubungkannya.
+                </p>
+              </Panel>
+            )}
             <Background gap={16} size={1} />
             <Controls showInteractive={false} />
             <MiniMap pannable zoomable className="!bg-muted" />

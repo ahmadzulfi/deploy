@@ -6,6 +6,14 @@ import { NODE_LABELS } from '@wa/core/flow'
 import { cn } from '@/lib/utils'
 
 /**
+ * Connection points. A handle nobody can find is a handle that does not
+ * exist, so these are accent-ringed and grow on hover rather than blending
+ * into the card the way a plain white dot did.
+ */
+const handleClass =
+  '!size-3 !border-2 !border-accent !bg-surface transition-all hover:!size-4 hover:!bg-accent-bg'
+
+/**
  * One node on the canvas.
  *
  * A buttons node renders one output handle per button, aligned with the button
@@ -28,7 +36,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
       )}
     >
       {nodeData.kind !== 'trigger' && (
-        <Handle type="target" position={Position.Top} className="!size-2 !border !bg-surface" />
+        <Handle type="target" position={Position.Top} className={handleClass} />
       )}
 
       <div
@@ -48,11 +56,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
 
       {outputs.length > 0 &&
         (outputs.length === 1 && outputs[0]!.id === null ? (
-          <Handle
-            type="source"
-            position={Position.Bottom}
-            className="!size-2 !border !bg-surface"
-          />
+          <Handle type="source" position={Position.Bottom} className={handleClass} />
         ) : (
           <div className="border-t">
             {outputs.map((h, i) => (
@@ -66,7 +70,7 @@ export function NodeCard({ id, data, selected }: NodeProps) {
                   type="source"
                   position={Position.Right}
                   style={{ top: '50%' }}
-                  className="!size-2 !border !bg-surface"
+                  className={handleClass}
                 />
                 {i < outputs.length - 1 && (
                   <span className="absolute inset-x-2.5 bottom-0 border-b" />

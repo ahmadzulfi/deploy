@@ -1,14 +1,11 @@
 import { Worker, type Job } from 'bullmq'
 import { prisma, Prisma, FlowStatus, OptInStatus, SessionStatus, type Channel, type Contact } from '@wa/db'
 import {
-  QUEUE,
-  flowQueue,
   flowGraphSchema,
   logger,
   matchTrigger,
   nextNodeId,
   runFlow,
-  workerOptions,
   type EngineEffects,
   type EngineInput,
   type FlowContext,
@@ -16,6 +13,7 @@ import {
   type InboundSignal,
   type SessionState,
 } from '@wa/core'
+import { QUEUE, flowQueue, workerOptions } from '@wa/core/queues'
 import { enqueueSend } from './outbound.js'
 
 const log = logger.child({ worker: 'flow' })

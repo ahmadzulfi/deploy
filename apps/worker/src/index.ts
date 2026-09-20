@@ -1,5 +1,6 @@
 import { prisma } from '@wa/db'
-import { closeQueues, env, logger } from '@wa/core'
+import { env, logger } from '@wa/core'
+import { closeQueues } from '@wa/core/queues'
 import { startInboundWorker } from './processors/inbound.js'
 import { startOutboundWorkers } from './processors/outbound.js'
 import { startFlowWorker } from './processors/flow.js'

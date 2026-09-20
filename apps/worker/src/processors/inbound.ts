@@ -1,13 +1,12 @@
 import { Worker, type Job } from 'bullmq'
 import { prisma, Prisma, Direction, MessageStatus, OptInStatus } from '@wa/db'
 import {
-  QUEUE,
-  workerOptions,
   logger,
   normalizeCloudApiWebhook,
   windowExpiryFrom,
   type NormalizedEvent,
 } from '@wa/core'
+import { QUEUE, workerOptions } from '@wa/core/queues'
 import { enqueueInbound } from './flow.js'
 
 const log = logger.child({ worker: 'inbound' })

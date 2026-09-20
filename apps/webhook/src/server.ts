@@ -3,12 +3,12 @@ import { prisma } from '@wa/db'
 import {
   env,
   logger,
-  inboundQueue,
   metaSettings,
   connectionSecrets,
   verifyMetaSignature,
   normalizeCloudApiWebhook,
 } from '@wa/core'
+import { inboundQueue } from '@wa/core/queues'
 
 /**
  * Webhook receiver. Deliberately the dumbest service in the system.

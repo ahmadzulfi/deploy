@@ -1,19 +1,16 @@
 import { DelayedError, Worker, UnrecoverableError, type Job } from 'bullmq'
 import { prisma, Prisma, ChannelStatus, Direction, MessageStatus } from '@wa/db'
 import {
-  workerOptions,
   credentialsFor,
   isWindowOpen,
   logger,
-  outboundQueue,
-  outboundQueueName,
   providerFor,
-  redis,
   ProviderError,
   WhatsAppValidationError,
   RE_ENGAGEMENT_CODE,
   type OutboundMessage,
 } from '@wa/core'
+import { workerOptions, outboundQueue, outboundQueueName, redis } from '@wa/core/queues'
 
 const log = logger.child({ worker: 'outbound' })
 

@@ -19,6 +19,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./limits": "./src/providers/limits.ts",
-    "./flow": "./src/flow/index.ts"
+    "./flow": "./src/flow/index.ts",
+    "./queues": "./src/lib/queues.ts"
   }
 }

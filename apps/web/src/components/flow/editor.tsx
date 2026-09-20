@@ -221,7 +221,6 @@ function Canvas({
             onPaneClick={() => setSelectedId(null)}
             nodeTypes={nodeTypes}
             fitView
-            proOptions={{ hideAttribution: true }}
             defaultEdgeOptions={{ animated: false, style: { strokeWidth: 1.5 } }}
           >
             <Background gap={16} size={1} />

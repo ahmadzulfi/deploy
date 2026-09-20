@@ -8,6 +8,7 @@ import {
   windowExpiryFrom,
   type NormalizedEvent,
 } from '@wa/core'
+import { enqueueInbound } from './flow.js'
 
 const log = logger.child({ worker: 'inbound' })
 
@@ -172,8 +173,13 @@ async function ingestMessage(channelId: string, orgId: string, e: Extract<Normal
     'inbound message stored',
   )
 
-  // Fase 4: enqueue a flow tick here once the engine exists.
-  // await flowQueue.add('tick', { conversationId: conversation.id, waMessageId: e.waMessageId })
+  await enqueueInbound(conversation.id, {
+    messageType: e.message.type,
+    text: e.message.type === 'text' ? e.message.body : undefined,
+    replyId: e.interactiveReplyId,
+    // A conversation with only this message in it is the contact's first.
+    isNewConversation: conversation.createdAt.getTime() === conversation.updatedAt.getTime(),
+  })
 }
 
 async function maybeOptOut(contactId: string, body: string) {

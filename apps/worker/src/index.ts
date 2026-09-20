@@ -2,17 +2,19 @@ import { prisma } from '@wa/db'
 import { closeQueues, env, logger } from '@wa/core'
 import { startInboundWorker } from './processors/inbound.js'
 import { startOutboundWorkers } from './processors/outbound.js'
+import { startFlowWorker } from './processors/flow.js'
 
 async function main() {
   env() // fail fast on missing config
 
   const inbound = startInboundWorker()
+  const flow = startFlowWorker()
   const outbound = await startOutboundWorkers()
   logger.info('worker service ready')
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'draining workers')
-    await Promise.all([inbound.close(), ...outbound.map((w) => w.close())])
+    await Promise.all([inbound.close(), flow.close(), ...outbound.map((w) => w.close())])
     await closeQueues()
     await prisma.$disconnect()
     process.exit(0)

@@ -1,2 +1,5 @@
 export * from './schema.js'
 export * from './validate.js'
+export * from './runtime.js'
+export * from './match.js'
+export * from './engine.js'

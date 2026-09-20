@@ -1,4 +1,4 @@
-import { Worker, UnrecoverableError, type Job } from 'bullmq'
+import { DelayedError, Worker, UnrecoverableError, type Job } from 'bullmq'
 import { prisma, Prisma, ChannelStatus, Direction, MessageStatus } from '@wa/db'
 import {
   workerOptions,
@@ -62,6 +62,10 @@ export function attachWorker(channelId: string, throughputPerSec: number) {
   )
 
   worker.on('failed', (job, err) => {
+    // A DelayedError is how a paused channel re-queues itself; BullMQ still
+    // routes it through this event, and logging it as a failure would make
+    // an idle kill switch look like an outage.
+    if (err instanceof DelayedError || err?.name === 'DelayedError') return
     log.error({ channelId, jobId: job?.id, err: err.message }, 'send failed')
   })
 
@@ -69,16 +73,23 @@ export function attachWorker(channelId: string, throughputPerSec: number) {
   return worker
 }
 
-async function processSend(job: Job<SendJob>) {
+/** How long a job waits before re-checking a paused channel. */
+const PAUSE_RECHECK_MS = 30_000
+
+async function processSend(job: Job<SendJob>, token?: string) {
   const { channelId, conversationId, to, message, sentBy, sentByUserId } = job.data
 
   const channel = await prisma.channel.findUnique({ where: { id: channelId } })
   if (!channel) throw new UnrecoverableError(`channel ${channelId} no longer exists`)
 
   if (channel.sendingPaused) {
-    // Kill switch or circuit breaker. Throwing a normal error keeps the job in
-    // the queue so it drains once the channel is unpaused.
-    throw new Error(`channel ${channelId} is paused: ${channel.pausedReason ?? 'no reason given'}`)
+    // Kill switch or circuit breaker. Re-delay instead of throwing: a thrown
+    // error consumes a retry attempt, and five of those expire in about half
+    // a minute - a channel paused any longer than that would silently drop
+    // every message queued behind it. moveToDelayed costs no attempt.
+    log.debug({ channelId, jobId: job.id }, 'channel dijeda, job ditunda')
+    await job.moveToDelayed(Date.now() + PAUSE_RECHECK_MS, token)
+    throw new DelayedError()
   }
 
   // Free-form sends are only legal inside the 24h window. Checking here rather

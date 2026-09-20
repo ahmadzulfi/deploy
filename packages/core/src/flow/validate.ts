@@ -147,6 +147,15 @@ function checkNode(node: FlowNode): FlowIssue[] {
       if (!d.body.trim()) {
         out.push({ severity: 'error', nodeId: node.id, message: 'Isi pesan tombol masih kosong.' })
       }
+      // Interactive bodies cap at 1024, a quarter of a plain text message.
+      // A long menu with a button attached is the usual way to hit this.
+      if (d.body.length > WA_LIMITS.interactive.bodyMax) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `Isi pesan ${d.body.length} karakter, maksimum ${WA_LIMITS.interactive.bodyMax} untuk pesan bertombol. Pecah jadi node Kirim teks lalu node tombol.`,
+        })
+      }
       if (d.buttons.length > WA_LIMITS.buttons.max) {
         out.push({
           severity: 'error',
@@ -176,6 +185,17 @@ function checkNode(node: FlowNode): FlowIssue[] {
     }
 
     case 'sendList': {
+      if (d.body.length > WA_LIMITS.interactive.bodyMax) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `Isi pesan ${d.body.length} karakter, maksimum ${WA_LIMITS.interactive.bodyMax} untuk pesan list.`,
+        })
+      }
+      if (!d.buttonText.trim()) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Teks tombol pembuka masih kosong.' })
+      }
+
       const rows = d.sections.reduce((n, s) => n + s.rows.length, 0)
       if (rows === 0) {
         out.push({ severity: 'error', nodeId: node.id, message: 'List belum punya baris.' })

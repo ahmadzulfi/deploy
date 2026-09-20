@@ -266,6 +266,16 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
       const rows = data.sections.reduce((n, s) => n + s.rows.length, 0)
       return (
         <>
+          <Field label="Judul" hint="Opsional. Tampil tebal di atas isi pesan.">
+            <input
+              className={input}
+              value={data.header ?? ''}
+              maxLength={WA_LIMITS.interactive.headerTextMax}
+              onChange={(e) => set({ header: e.target.value || undefined })}
+              placeholder="Menu Utama"
+            />
+          </Field>
+
           <Field label="Isi pesan">
             <textarea
               rows={3}
@@ -276,12 +286,22 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
             <Counter value={data.body.length} max={WA_LIMITS.interactive.bodyMax} />
           </Field>
 
-          <Field label="Teks tombol pembuka">
+          <Field label="Footer" hint="Opsional.">
+            <input
+              className={input}
+              value={data.footer ?? ''}
+              maxLength={WA_LIMITS.interactive.footerMax}
+              onChange={(e) => set({ footer: e.target.value || undefined })}
+            />
+          </Field>
+
+          <Field label="Teks tombol pembuka" hint="Yang tertulis di tombol pembuka daftar.">
             <input
               className={input}
               value={data.buttonText}
               maxLength={WA_LIMITS.list.buttonTextMax}
               onChange={(e) => set({ buttonText: e.target.value })}
+              placeholder="Pilih Menu"
             />
           </Field>
 

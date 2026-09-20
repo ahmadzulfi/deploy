@@ -291,3 +291,42 @@ describe('draft storage', () => {
     assert.ok(msgs.some((m) => /Jeda harus minimal 1 detik/.test(m)))
   })
 })
+
+describe('interactive body length', () => {
+  test('a long menu with a button attached is blocked, with the fix named', () => {
+    const g = graph(
+      [trigger, node('b', { kind: 'sendButtons', body: 'x'.repeat(1025), buttons: [{ id: 'a', title: 'Menu' }] })],
+      [{ id: 'e1', source: 't', target: 'b' }],
+    )
+    const msg = errors(g).find((i) => /1025 karakter/.test(i.message))
+    assert.ok(msg, 'should flag the over-length body')
+    assert.match(msg!.message, /Pecah jadi node Kirim teks/)
+  })
+
+  test('the same text is fine in a plain text node, which allows 4096', () => {
+    const g = graph(
+      [trigger, node('s', { kind: 'sendText', body: 'x'.repeat(1025) }), end],
+      [
+        { id: 'e1', source: 't', target: 's' },
+        { id: 'e2', source: 's', target: 'e' },
+      ],
+    )
+    assert.deepEqual(errors(g), [])
+  })
+
+  test('a list needs its opening button text', () => {
+    const g = graph(
+      [
+        trigger,
+        node('l', {
+          kind: 'sendList',
+          body: 'pilih',
+          buttonText: '',
+          sections: [{ title: 'A', rows: [{ id: 'r', title: 'R' }] }],
+        }),
+      ],
+      [{ id: 'e1', source: 't', target: 'l' }],
+    )
+    assert.ok(errors(g).some((i) => /Teks tombol pembuka masih kosong/.test(i.message)))
+  })
+})

@@ -71,16 +71,14 @@ export function FlowRow({
               : 'Aktifkan kembali. Flow akan menjawab pesan masuk yang cocok.'
           }
           className={cn(
-            'relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-50',
-            enabled ? 'bg-ok' : 'bg-border',
+            // Flex instead of an absolutely positioned knob: the knob had no
+            // left offset, so its resting place was whatever the layout
+            // happened to give it.
+            'flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors disabled:opacity-50',
+            enabled ? 'justify-end bg-ok' : 'justify-start bg-border',
           )}
         >
-          <span
-            className={cn(
-              'absolute top-0.5 size-4 rounded-full bg-surface transition-transform',
-              enabled ? 'translate-x-4' : 'translate-x-0.5',
-            )}
-          />
+          <span className="size-4 rounded-full bg-surface shadow-sm" />
         </button>
       )}
     </div>

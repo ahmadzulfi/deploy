@@ -11,7 +11,10 @@ export default async function FlowsPage() {
 
   const flows = await prisma.flow.findMany({
     where: { orgId: user.orgId, status: { not: FlowStatus.ARCHIVED } },
-    orderBy: { updatedAt: 'desc' },
+    // Stable order. Sorting by updatedAt made a row jump to the top the
+    // moment its switch was flipped, so it looked like a different flow had
+    // been toggled.
+    orderBy: { createdAt: 'asc' },
     include: {
       publishedVersion: { select: { version: true, publishedAt: true } },
       _count: { select: { triggers: true } },

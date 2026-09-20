@@ -5,6 +5,7 @@ import {
   logger,
   inboundQueue,
   metaSettings,
+  connectionSecrets,
   verifyMetaSignature,
   normalizeCloudApiWebhook,
 } from '@wa/core'
@@ -57,6 +58,44 @@ app.get('/webhooks/whatsapp', async (req, reply) => {
   return reply.code(403).send()
 })
 
+/**
+ * Per-connection handshake. Meta calls this when the user saves the callback
+ * URL for their own app.
+ */
+app.get('/webhooks/whatsapp/:connectionId', async (req, reply) => {
+  const { connectionId } = req.params as { connectionId: string }
+  const q = req.query as Record<string, string | undefined>
+
+  const conn = await connectionSecrets(connectionId)
+  if (!conn) return reply.code(404).send()
+
+  if (q['hub.mode'] === 'subscribe' && q['hub.verify_token'] === conn.verifyToken) {
+    app.log.info({ connectionId, name: conn.name }, 'handshake koneksi berhasil')
+    return reply.code(200).type('text/plain').send(q['hub.challenge'] ?? '')
+  }
+  app.log.warn({ connectionId }, 'handshake koneksi ditolak')
+  return reply.code(403).send()
+})
+
+app.post('/webhooks/whatsapp/:connectionId', async (req, reply) => {
+  const { connectionId } = req.params as { connectionId: string }
+
+  const conn = await connectionSecrets(connectionId)
+  if (!conn) return reply.code(404).send()
+
+  const signatureOk = verifyMetaSignature(
+    req.rawBody ?? Buffer.alloc(0),
+    req.headers['x-hub-signature-256'] as string | undefined,
+    conn.appSecret,
+  )
+  if (!signatureOk) {
+    app.log.warn({ connectionId, ip: req.ip }, 'rejected webhook with bad signature')
+    return reply.code(401).send()
+  }
+
+  return ingest(req, reply)
+})
+
 app.post('/webhooks/whatsapp', async (req, reply) => {
   const { appSecret } = await metaSettings()
 
@@ -80,6 +119,10 @@ app.post('/webhooks/whatsapp', async (req, reply) => {
     return reply.code(401).send()
   }
 
+  return ingest(req, reply)
+})
+
+async function ingest(req: FastifyRequest, reply: import('fastify').FastifyReply) {
   const payload = req.body as unknown
   const events = normalizeCloudApiWebhook(payload)
 
@@ -123,7 +166,7 @@ app.post('/webhooks/whatsapp', async (req, reply) => {
   )
 
   return reply.code(200).send()
-})
+}
 
 async function main() {
   env() // fail fast on missing config

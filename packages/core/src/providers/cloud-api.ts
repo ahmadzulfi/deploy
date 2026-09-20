@@ -171,6 +171,37 @@ export class CloudApiProvider implements ChannelProvider {
     return out
   }
 
+  /**
+   * Every phone number registered under a WABA.
+   *
+   * This is what makes connecting an account self-service: the user supplies
+   * the WABA id and a token, and the platform discovers the numbers rather
+   * than making them copy a phone number id per line.
+   */
+  async listPhoneNumbers(creds: ChannelCredentials) {
+    const res = await this.call<{
+      data?: {
+        id: string
+        display_phone_number: string
+        verified_name?: string
+        quality_rating?: string
+        messaging_limit_tier?: string
+        code_verification_status?: string
+      }[]
+    }>(
+      creds,
+      `/${creds.wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,quality_rating,messaging_limit_tier,code_verification_status&limit=100`,
+    )
+
+    return (res.data ?? []).map((n) => ({
+      phoneNumberId: n.id,
+      displayPhone: n.display_phone_number,
+      verifiedName: n.verified_name ?? null,
+      qualityRating: n.quality_rating ?? 'UNKNOWN',
+      messagingTier: n.messaging_limit_tier ?? 'TIER_250',
+    }))
+  }
+
   async subscribeApp(creds: ChannelCredentials): Promise<void> {
     await this.call(creds, `/${creds.wabaId}/subscribed_apps`, { method: 'POST' })
   }

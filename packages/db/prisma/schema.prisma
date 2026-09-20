@@ -138,8 +138,9 @@ model Organization {
   contacts  Contact[]
   flows     Flow[]
   campaigns Campaign[]
-  apiKeys   ApiKey[]
-  auditLogs AuditLog[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  connections WabaConnection[]
 }
 
 model User {
@@ -187,6 +188,10 @@ model Channel {
   name     String
   provider Provider @default(CLOUD_API)
 
+  /// Null for numbers registered before connections existed; those keep
+  /// using their own stored token.
+  connectionId String?
+
   // Cloud API identifiers. Meta routes inbound webhooks by phoneNumberId,
   // which is why it must be unique and indexed.
   wabaId        String?
@@ -211,6 +216,7 @@ model Channel {
   updatedAt DateTime @updatedAt
 
   org           Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  connection    WabaConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
   access        ChannelAccess[]
   conversations Conversation[]
   templates     Template[]
@@ -221,6 +227,47 @@ model Channel {
 
   @@index([orgId])
   @@index([wabaId])
+  @@index([connectionId])
+}
+
+
+/// One connected WhatsApp Business Account, with the credentials of the Meta
+/// App it lives under.
+///
+/// The credentials sit here rather than on the organization because different
+/// users connect WABAs from different Meta Apps, each with its own secret. A
+/// webhook cannot know which secret to verify against until it knows which
+/// connection sent it, so every connection gets its own callback path.
+model WabaConnection {
+  id    String @id @default(cuid())
+  orgId String
+  name  String
+
+  metaAppId String?
+  wabaId    String
+
+  /// AES-256-GCM. The Meta App secret, used to verify inbound signatures.
+  appSecretEnc String
+
+  /// AES-256-GCM. System User token - what the dashboard calls the API key.
+  accessTokenEnc String
+
+  /// Checked during Meta's subscription handshake for this connection only.
+  verifyToken String
+
+  graphVersion String        @default("v21.0")
+  status       ChannelStatus @default(DISCONNECTED)
+  lastSyncAt   DateTime?
+  lastError    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  channels Channel[]
+
+  @@unique([orgId, wabaId])
+  @@index([orgId])
 }
 
 // ============================================================

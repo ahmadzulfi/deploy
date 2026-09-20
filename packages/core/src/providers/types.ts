@@ -112,6 +112,16 @@ export interface ChannelProvider {
   /** Resolves a Meta media id into a short-lived download URL. */
   getMediaUrl(creds: ChannelCredentials, mediaId: string): Promise<{ url: string; mimeType: string; sha256: string }>
   listTemplates(creds: ChannelCredentials): Promise<RemoteTemplate[]>
+  /** Every phone number registered under the WABA. */
+  listPhoneNumbers(creds: ChannelCredentials): Promise<
+    {
+      phoneNumberId: string
+      displayPhone: string
+      verifiedName: string | null
+      qualityRating: string
+      messagingTier: string
+    }[]
+  >
   /** Subscribes this Meta App to the WABA's webhooks. Idempotent. */
   subscribeApp(creds: ChannelCredentials): Promise<void>
   getPhoneNumberHealth(creds: ChannelCredentials): Promise<{

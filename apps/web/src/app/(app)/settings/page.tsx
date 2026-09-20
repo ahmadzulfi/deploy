@@ -1,6 +1,7 @@
 import { prisma } from '@wa/db'
 import { metaSettings } from '@wa/core'
 import { requireUser } from '@/lib/auth'
+import { Connections } from '@/components/settings/connections'
 import { MetaSettingsForm } from '@/components/settings/meta-form'
 import { ApiKeys } from '@/components/settings/api-keys'
 import { cn, shortTime } from '@/lib/utils'
@@ -11,14 +12,24 @@ export default async function SettingsPage() {
   const user = await requireUser()
   const canManage = user.role === 'OWNER' || user.role === 'ADMIN'
 
-  const [settings, org, keys] = await Promise.all([
+  const [settings, org, keys, connections] = await Promise.all([
     metaSettings(user.orgId),
     prisma.organization.findUnique({ where: { id: user.orgId } }),
     prisma.apiKey.findMany({
       where: { orgId: user.orgId, revokedAt: null },
       orderBy: { createdAt: 'desc' },
     }),
+    prisma.wabaConnection.findMany({
+      where: { orgId: user.orgId },
+      orderBy: { createdAt: 'asc' },
+      include: { _count: { select: { channels: true } } },
+    }),
   ])
+
+  // The webhook receiver lives on its own port, so the callback URL cannot be
+  // derived from this request. Shown as a template the user completes with
+  // their tunnel or domain.
+  const origin = process.env.PUBLIC_WEBHOOK_ORIGIN ?? 'https://<tunnel-kamu>'
 
   return (
     <div className="h-full overflow-y-auto">
@@ -31,9 +42,37 @@ export default async function SettingsPage() {
         </div>
 
         <section>
-          <h2 className="text-sm text-fg">Integrasi Meta</h2>
+          <h2 className="text-sm text-fg">Akun WhatsApp Business</h2>
           <p className="mt-1 mb-3 text-xs text-fg-muted">
-            Dipakai untuk memverifikasi tanda tangan setiap webhook yang masuk.
+            Tiap WABA membawa kredensial Meta App-nya sendiri, jadi punya callback URL
+            sendiri — webhook tidak bisa tahu secret mana yang harus dipakai sebelum tahu
+            koneksi mana yang mengirim.
+          </p>
+
+          <Connections
+            canManage={canManage}
+            origin={origin}
+            rows={connections.map((c) => ({
+              id: c.id,
+              name: c.name,
+              wabaId: c.wabaId,
+              metaAppId: c.metaAppId,
+              verifyToken: c.verifyToken,
+              status: c.status,
+              graphVersion: c.graphVersion,
+              channelCount: c._count.channels,
+              lastSyncAt: c.lastSyncAt ? shortTime(c.lastSyncAt) : null,
+              lastError: c.lastError,
+            }))}
+          />
+        </section>
+
+        <section>
+          <h2 className="text-sm text-fg">Integrasi Meta (lama)</h2>
+          <p className="mt-1 mb-3 text-xs text-fg-muted">
+            Dipakai oleh callback lama <code className="font-mono">/webhooks/whatsapp</code>,
+            untuk instalasi yang dikonfigurasi sebelum koneksi per-WABA ada. Koneksi baru
+            tidak memakainya.
           </p>
 
           <MetaSettingsForm

@@ -19,7 +19,9 @@
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.4",
     "zod": "^3.23.8",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@xyflow/react": "^12.3.5",
+    "nanoid": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

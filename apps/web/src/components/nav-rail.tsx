@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 const ITEMS = [
   { href: '/inbox', label: 'Inbox', icon: IconMessage },
   { href: '/contacts', label: 'Kontak', icon: IconUsers, soon: true },
-  { href: '/flows', label: 'Flow', icon: IconFlow, soon: true },
+  { href: '/flows', label: 'Flow', icon: IconFlow },
   { href: '/broadcast', label: 'Broadcast', icon: IconSend, soon: true },
   { href: '/channels', label: 'Nomor', icon: IconPhone },
 ]

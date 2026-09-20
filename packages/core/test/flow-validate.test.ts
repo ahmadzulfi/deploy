@@ -330,3 +330,21 @@ describe('interactive body length', () => {
     assert.ok(errors(g).some((i) => /Teks tombol pembuka masih kosong/.test(i.message)))
   })
 })
+
+describe('terminal nodes', () => {
+  test('handover may end a branch, like End — the engine halts there', () => {
+    const g = graph(
+      [trigger, node('h', { kind: 'handover', message: 'Saya sambungkan ke tim.' })],
+      [{ id: 'e1', source: 't', target: 'h' }],
+    )
+    assert.deepEqual(errors(g), [])
+  })
+
+  test('other nodes still must lead somewhere', () => {
+    const g = graph(
+      [trigger, node('s', { kind: 'sendText', body: 'halo' })],
+      [{ id: 'e1', source: 't', target: 's' }],
+    )
+    assert.ok(errors(g).some((i) => i.nodeId === 's' && /tidak terhubung/.test(i.message)))
+  })
+})

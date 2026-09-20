@@ -49,7 +49,10 @@ export function validateFlow(graph: FlowGraph): FlowIssue[] {
   for (const node of graph.nodes) {
     issues.push(...checkNode(node))
 
-    if (node.data.kind === 'end') continue
+    // Handover ends the run as surely as End does - the engine halts and the
+    // conversation belongs to an agent from then on - so requiring an outgoing
+    // edge would reject a perfectly correct flow.
+    if (node.data.kind === 'end' || node.data.kind === 'handover') continue
 
     const handles = handlesOf(node)
     const wired = outgoing.get(node.id) ?? new Set()

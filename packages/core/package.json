@@ -15,5 +15,9 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./limits": "./src/providers/limits.ts"
   }
 }

@@ -139,6 +139,9 @@ model User {
   orgId     String
   email     String   @unique
   name      String
+  // bcrypt. Null = account provisioned but no password set yet, which cannot
+  // sign in - safer than seeding a default everyone forgets to change.
+  passwordHash String?
   role      Role     @default(AGENT)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

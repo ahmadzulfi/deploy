@@ -102,9 +102,87 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
         </Field>
       )
 
+    case 'sendMedia':
+      return (
+        <>
+          <Field label="Jenis media">
+            <select
+              className={input}
+              value={data.media}
+              onChange={(e) => set({ media: e.target.value as typeof data.media })}
+            >
+              <option value="image">Gambar</option>
+              <option value="video">Video</option>
+              <option value="document">Dokumen</option>
+              <option value="audio">Audio</option>
+            </select>
+          </Field>
+
+          <Field label="Sumber">
+            <select
+              className={input}
+              value={data.source}
+              onChange={(e) => set({ source: e.target.value as typeof data.source })}
+            >
+              <option value="link">URL publik</option>
+              <option value="id">Media ID dari Meta</option>
+            </select>
+          </Field>
+
+          <Field
+            label={data.source === 'link' ? 'URL file' : 'Media ID'}
+            hint={
+              data.source === 'link'
+                ? 'Meta yang mengunduh file ini, jadi URL-nya harus https dan bisa diakses publik — localhost tidak bisa.'
+                : 'ID dari endpoint upload Meta. Berlaku 30 hari dan tidak butuh hosting publik.'
+            }
+          >
+            <input
+              className={cn(input, 'font-mono')}
+              value={data.value}
+              onChange={(e) => set({ value: e.target.value })}
+              placeholder={data.source === 'link' ? 'https://.../banner.jpg' : '1234567890'}
+            />
+          </Field>
+
+          {data.media === 'document' && (
+            <Field label="Nama file" hint="Yang dilihat penerima saat mengunduh.">
+              <input
+                className={input}
+                value={data.filename ?? ''}
+                onChange={(e) => set({ filename: e.target.value || undefined })}
+                placeholder="brosur.pdf"
+              />
+            </Field>
+          )}
+
+          {data.media !== 'audio' && (
+            <Field label="Caption" hint="Teks di bawah media. Boleh memuat {{variabel}}.">
+              <textarea
+                rows={5}
+                className={area}
+                value={data.caption}
+                onChange={(e) => set({ caption: e.target.value })}
+                placeholder="*Selamat datang {{contact.name}}!*"
+              />
+              <Counter value={data.caption.length} max={WA_LIMITS.interactive.bodyMax} />
+            </Field>
+          )}
+        </>
+      )
+
     case 'sendButtons':
       return (
         <>
+          <Field label="Gambar header" hint="Opsional. URL https publik, muncul di atas pesan.">
+            <input
+              className={cn(input, 'font-mono')}
+              value={data.headerImage ?? ''}
+              onChange={(e) => set({ headerImage: e.target.value || undefined })}
+              placeholder="https://.../banner.jpg"
+            />
+          </Field>
+
           <Field label="Isi pesan">
             <textarea
               rows={4}

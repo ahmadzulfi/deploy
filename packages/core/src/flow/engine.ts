@@ -12,8 +12,16 @@ import type { FlowGraph, FlowNode } from './schema.js'
 
 export interface EngineEffects {
   sendText(body: string): Promise<void>
+  sendMedia(p: {
+    media: 'image' | 'video' | 'document' | 'audio'
+    source: 'link' | 'id'
+    value: string
+    caption?: string
+    filename?: string
+  }): Promise<void>
   sendButtons(p: {
     header?: string
+    headerImage?: string
     body: string
     footer?: string
     buttons: { id: string; title: string }[]
@@ -188,9 +196,20 @@ async function execute(
       await fx.sendText(interpolate(d.body, ctx))
       return go()
 
+    case 'sendMedia':
+      await fx.sendMedia({
+        media: d.media,
+        source: d.source,
+        value: interpolate(d.value, ctx),
+        caption: d.caption ? interpolate(d.caption, ctx) : undefined,
+        filename: d.filename,
+      })
+      return go()
+
     case 'sendButtons':
       await fx.sendButtons({
         header: d.header ? interpolate(d.header, ctx) : undefined,
+        headerImage: d.headerImage ? interpolate(d.headerImage, ctx) : undefined,
         body: interpolate(d.body, ctx),
         footer: d.footer ? interpolate(d.footer, ctx) : undefined,
         buttons: d.buttons.map((b) => ({ id: b.id, title: interpolate(b.title, ctx) })),

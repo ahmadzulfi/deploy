@@ -25,7 +25,8 @@ function spy() {
   const calls: string[] = []
   const fx: EngineEffects = {
     async sendText(b) { calls.push(`text:${b}`) },
-    async sendButtons(p) { calls.push(`buttons:${p.body}[${p.buttons.map((b) => b.id).join('|')}]`) },
+    async sendMedia(p) { calls.push(`media:${p.media}:${p.source}:${p.value}:${p.caption ?? ''}`) },
+    async sendButtons(p) { calls.push(`buttons:${p.headerImage ? p.headerImage + ':' : ''}${p.body}[${p.buttons.map((b) => b.id).join('|')}]`) },
     async sendList(p) { calls.push(`list:${p.body}`) },
     async sendTemplate(p) { calls.push(`template:${p.name}(${p.bodyParams.join(',')})`) },
     async changeTags(a, t) { calls.push(`tags:${a}:${t.join(',')}`) },
@@ -321,5 +322,65 @@ describe('logic and guards', () => {
     const { calls, fx } = spy()
     await runFlow(g, state, { kind: 'start', startNodeId: 't' }, ctx, fx)
     assert.deepEqual(calls, ['tags:add:tertarik', 'assign:auto'])
+  })
+})
+
+describe('media messages', () => {
+  const withMedia = (data: FlowNode['data']): FlowGraph => ({
+    nodes: [
+      node('t', { kind: 'trigger', match: 'api', values: [], caseSensitive: false }),
+      node('m', data),
+      node('e', { kind: 'end' }),
+    ],
+    edges: [edge('1', 't', 'm'), edge('2', 'm', 'e')],
+  })
+
+  test('an image carries its caption, with variables filled in', async () => {
+    const { calls, fx } = spy()
+    const g = withMedia({
+      kind: 'sendMedia',
+      media: 'image',
+      source: 'link',
+      value: 'https://cdn.contoh.id/banner.jpg',
+      caption: 'Selamat datang {{contact.name}}!',
+    })
+
+    await runFlow(g, state, { kind: 'start', startNodeId: 't' }, ctx, fx)
+    assert.deepEqual(calls, ['media:image:link:https://cdn.contoh.id/banner.jpg:Selamat datang Ahmad!'])
+  })
+
+  test('a media id is passed through instead of a link', async () => {
+    const { calls, fx } = spy()
+    const g = withMedia({ kind: 'sendMedia', media: 'image', source: 'id', value: '998877', caption: '' })
+
+    await runFlow(g, state, { kind: 'start', startNodeId: 't' }, ctx, fx)
+    assert.deepEqual(calls, ['media:image:id:998877:'])
+  })
+
+  test('the flow continues after sending media', async () => {
+    const { fx } = spy()
+    const g = withMedia({ kind: 'sendMedia', media: 'image', source: 'link', value: 'https://x/y.jpg', caption: '' })
+
+    const r = await runFlow(g, state, { kind: 'start', startNodeId: 't' }, ctx, fx)
+    assert.deepEqual(r.outcome, { status: 'completed' })
+  })
+
+  test('a buttons node can carry an image header', async () => {
+    const { calls, fx } = spy()
+    const g: FlowGraph = {
+      nodes: [
+        node('t', { kind: 'trigger', match: 'api', values: [], caseSensitive: false }),
+        node('b', {
+          kind: 'sendButtons',
+          headerImage: 'https://cdn.contoh.id/head.jpg',
+          body: 'Pilih layanan:',
+          buttons: [{ id: 'a', title: 'Info' }],
+        }),
+      ],
+      edges: [edge('1', 't', 'b')],
+    }
+
+    await runFlow(g, state, { kind: 'start', startNodeId: 't' }, ctx, fx)
+    assert.deepEqual(calls, ['buttons:https://cdn.contoh.id/head.jpg:Pilih layanan:[a]'])
   })
 })

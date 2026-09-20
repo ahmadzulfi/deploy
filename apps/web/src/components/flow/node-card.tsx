@@ -98,6 +98,10 @@ function Summary({ data }: { data: FlowNode['data'] }) {
     }
     case 'sendText':
       return data.body ? text(data.body) : muted('Pesan kosong')
+    case 'sendMedia':
+      return data.value
+        ? text(`${data.media}${data.caption ? ` — ${data.caption}` : ''}`)
+        : muted(`${data.media}: belum ada sumber`)
     case 'sendButtons':
       return data.body ? text(data.body) : muted('Pesan kosong')
     case 'sendList':

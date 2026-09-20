@@ -278,7 +278,30 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
 
   return {
     sendText: (body) => send({ kind: 'text', body }),
-    sendButtons: (p) => send({ kind: 'buttons', ...p, header: p.header ? { type: 'text', text: p.header } : undefined }),
+
+    sendMedia: (p) =>
+      send({
+        kind: p.media,
+        // Meta takes either a public link it fetches, or an id from its own
+        // upload endpoint - never both.
+        ...(p.source === 'id' ? { mediaId: p.value } : { link: p.value }),
+        // Audio carries no caption; WhatsApp silently drops it.
+        ...(p.media === 'audio' ? {} : { caption: p.caption }),
+        ...(p.media === 'document' && p.filename ? { filename: p.filename } : {}),
+      } as Parameters<typeof enqueueSend>[0]['message']),
+
+    sendButtons: (p) =>
+      send({
+        kind: 'buttons',
+        body: p.body,
+        footer: p.footer,
+        buttons: p.buttons,
+        header: p.headerImage
+          ? { type: 'image', link: p.headerImage }
+          : p.header
+            ? { type: 'text', text: p.header }
+            : undefined,
+      }),
     sendList: (p) => send({ kind: 'list', ...p }),
     sendTemplate: (p) =>
       send({

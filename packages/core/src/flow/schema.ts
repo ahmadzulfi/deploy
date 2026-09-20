@@ -20,6 +20,7 @@ import { z } from 'zod'
 export const NODE_KINDS = [
   'trigger',
   'sendText',
+  'sendMedia',
   'sendButtons',
   'sendList',
   'sendTemplate',
@@ -50,6 +51,21 @@ const sendTextData = z.object({
   body: z.string(),
 })
 
+const sendMediaData = z.object({
+  kind: z.literal('sendMedia'),
+  media: z.enum(['image', 'video', 'document', 'audio']),
+  /**
+   * Either a publicly reachable URL that Meta can fetch, or a media id from
+   * Meta's own upload endpoint. An id avoids needing public hosting at all,
+   * which is why both are allowed.
+   */
+  source: z.enum(['link', 'id']).default('link'),
+  value: z.string(),
+  caption: z.string().default(''),
+  /** Shown as the file name for documents. */
+  filename: z.string().optional(),
+})
+
 const button = z.object({
   id: z.string(),
   title: z.string(),
@@ -58,6 +74,8 @@ const button = z.object({
 const sendButtonsData = z.object({
   kind: z.literal('sendButtons'),
   header: z.string().optional(),
+  /** Image shown above the body. Meta allows one media header per message. */
+  headerImage: z.string().optional(),
   body: z.string(),
   footer: z.string().optional(),
   buttons: z.array(button),
@@ -145,6 +163,7 @@ const endData = z.object({
 export const nodeDataSchema = z.discriminatedUnion('kind', [
   triggerData,
   sendTextData,
+  sendMediaData,
   sendButtonsData,
   sendListData,
   sendTemplateData,

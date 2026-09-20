@@ -112,6 +112,37 @@ function checkNode(node: FlowNode): FlowIssue[] {
       }
       break
 
+    case 'sendMedia':
+      if (!d.value.trim()) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: d.source === 'link' ? 'URL media masih kosong.' : 'Media ID masih kosong.',
+        })
+      } else if (d.source === 'link' && !/^https:\/\//.test(d.value.trim())) {
+        // Meta fetches the file itself and refuses plain http.
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'URL media harus https dan bisa diakses publik oleh Meta.',
+        })
+      }
+      if (d.caption.length > WA_LIMITS.interactive.bodyMax) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `Caption ${d.caption.length} karakter, maksimum ${WA_LIMITS.interactive.bodyMax}.`,
+        })
+      }
+      if (d.media === 'audio' && d.caption.trim()) {
+        out.push({
+          severity: 'warning',
+          nodeId: node.id,
+          message: 'WhatsApp mengabaikan caption pada pesan audio.',
+        })
+      }
+      break
+
     case 'sendButtons': {
       if (!d.body.trim()) {
         out.push({ severity: 'error', nodeId: node.id, message: 'Isi pesan tombol masih kosong.' })
@@ -314,6 +345,7 @@ export function label(node: FlowNode) {
 export const NODE_LABELS: Record<string, string> = {
   trigger: 'Trigger',
   sendText: 'Kirim teks',
+  sendMedia: 'Kirim media',
   sendButtons: 'Kirim tombol',
   sendList: 'Kirim list',
   sendTemplate: 'Kirim template',

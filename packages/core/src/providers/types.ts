@@ -43,6 +43,27 @@ export type OutboundMessage =
     }
   | { kind: 'cta_url'; header?: string; body: string; footer?: string; displayText: string; url: string }
   | {
+      kind: 'flow'
+      header?: string
+      body: string
+      footer?: string
+      /** Label on the button that opens the form. */
+      cta: string
+      metaFlowId: string
+      /** Screen the form opens on, as named in the Flow JSON. */
+      screen: string
+      /**
+       * Our own correlation id, echoed back with the submitted answers. The
+       * webhook carries no node or session reference of its own, so without
+       * this a reply cannot be matched to the run that asked for it.
+       */
+      flowToken: string
+      /** Seeded into the screen's `data` before it renders. */
+      prefill?: Record<string, unknown>
+      /** DRAFT flows only reach people with access to the WABA. */
+      mode?: 'draft' | 'published'
+    }
+  | {
       kind: 'template'
       name: string
       language: string
@@ -75,6 +96,11 @@ export type NormalizedEvent =
         | { type: 'button'; payload: string; text: string }
         | { type: 'image' | 'video' | 'audio' | 'document' | 'sticker'; mediaId: string; mimeType?: string; caption?: string; filename?: string }
         | { type: 'location'; latitude: number; longitude: number; name?: string; address?: string }
+        /**
+         * A submitted WhatsApp Flows form. `flowToken` is the one we sent with
+         * the form, which is how an answer finds the request that asked for it.
+         */
+        | { type: 'form_reply'; flowToken?: string; response: Record<string, unknown> }
         | { type: 'unsupported'; raw: unknown }
     }
   | {
@@ -111,6 +137,16 @@ export interface ChannelProvider {
   markRead(creds: ChannelCredentials, waMessageId: string): Promise<void>
   /** Resolves a Meta media id into a short-lived download URL. */
   getMediaUrl(creds: ChannelCredentials, mediaId: string): Promise<{ url: string; mimeType: string; sha256: string }>
+  /**
+   * Downloads media behind a URL from getMediaUrl. Those URLs demand the
+   * channel's token, so a browser cannot load them directly.
+   */
+  downloadMedia(creds: ChannelCredentials, url: string): Promise<Response>
+  /**
+   * Uploads a file to Meta and returns its media id. The id only works for
+   * sends from this same phone number.
+   */
+  uploadMedia(creds: ChannelCredentials, file: { data: Uint8Array; mimeType: string; filename: string }): Promise<{ mediaId: string }>
   listTemplates(creds: ChannelCredentials): Promise<RemoteTemplate[]>
   /** Every phone number registered under the WABA. */
   listPhoneNumbers(creds: ChannelCredentials): Promise<
@@ -140,6 +176,51 @@ export interface RemoteTemplate {
   status: string
   components: unknown[]
   rejectionReason?: string
+}
+
+// ---------- WhatsApp Flows (native in-chat forms) ----------
+
+/** Meta's fixed list; a value outside it is rejected at create time. */
+export const FLOW_CATEGORIES = [
+  'SIGN_UP',
+  'SIGN_IN',
+  'APPOINTMENT_BOOKING',
+  'LEAD_GENERATION',
+  'SHOPPING',
+  'CONTACT_US',
+  'CUSTOMER_SUPPORT',
+  'SURVEY',
+  'OTHER',
+] as const
+
+export type FlowCategory = (typeof FLOW_CATEGORIES)[number]
+
+/**
+ * DRAFT can be edited and deleted; PUBLISHED can be neither, only deprecated.
+ * BLOCKED and THROTTLED only happen to flows with a data endpoint.
+ */
+export type RemoteFlowStatus = 'DRAFT' | 'PUBLISHED' | 'DEPRECATED' | 'BLOCKED' | 'THROTTLED'
+
+/**
+ * Meta accepts a Flow JSON with problems and reports them here rather than
+ * failing the upload, so a create that "succeeded" can still be unsendable.
+ */
+export interface FlowValidationError {
+  error: string
+  errorType?: string
+  message: string
+  lineStart?: number
+  lineEnd?: number
+  columnStart?: number
+  columnEnd?: number
+}
+
+export interface RemoteFlow {
+  metaFlowId: string
+  name: string
+  status: RemoteFlowStatus
+  categories: string[]
+  validationErrors: FlowValidationError[]
 }
 
 export class ProviderError extends Error {

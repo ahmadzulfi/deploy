@@ -24,13 +24,24 @@ import { NodeCard } from './node-card'
 import { Inspector } from './inspector'
 import { PALETTE, defaultData } from './defaults'
 import { cn } from '@/lib/utils'
+import { TemplatesProvider, type TemplateOption } from './templates-context'
 
 const nodeTypes = { wa: NodeCard }
 
-export function FlowEditor(props: { flowId: string; initial: FlowGraph; publishedVersion: number | null }) {
+export function FlowEditor({
+  templates,
+  ...props
+}: {
+  flowId: string
+  initial: FlowGraph
+  publishedVersion: number | null
+  templates: TemplateOption[]
+}) {
   return (
     <ReactFlowProvider>
-      <Canvas {...props} />
+      <TemplatesProvider value={templates}>
+        <Canvas {...props} />
+      </TemplatesProvider>
     </ReactFlowProvider>
   )
 }
@@ -204,7 +215,7 @@ function Canvas({
                   setPublishState(res.ok ? { version: res.version } : { issues: res.issues })
                 })
               }
-              className="h-7 rounded-md bg-fg px-2.5 text-white hover:opacity-90 disabled:opacity-40"
+              className="h-7 rounded-md bg-fg px-2.5 text-on-fg hover:opacity-90 disabled:opacity-40"
             >
               {publishing ? 'Menerbitkan…' : 'Terbitkan'}
             </button>

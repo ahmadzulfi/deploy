@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@fastify/multipart": "^9.4.0",
     "@wa/core": "workspace:*",
     "@wa/db": "workspace:*",
     "dotenv": "^16.4.5",
-    "fastify": "^5.0.0"
+    "fastify": "^5.0.0",
+    "zod": "^3.23.8"
   }
 }

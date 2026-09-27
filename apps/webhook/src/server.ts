@@ -9,6 +9,7 @@ import {
   normalizeCloudApiWebhook,
 } from '@wa/core'
 import { inboundQueue } from '@wa/core/queues'
+import { apiRoutes } from './api.js'
 
 /**
  * Webhook receiver. Deliberately the dumbest service in the system.
@@ -44,6 +45,10 @@ app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req: Fastif
 })
 
 app.get('/health', async () => ({ ok: true, ts: new Date().toISOString() }))
+
+// Its own encapsulated scope, so the API key hook and JSON error handler
+// never touch Meta's webhook routes.
+void app.register(apiRoutes, { prefix: '/api/v1' })
 
 /** Meta's subscription handshake. Called once when you save the webhook URL. */
 app.get('/webhooks/whatsapp', async (req, reply) => {

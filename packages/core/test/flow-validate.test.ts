@@ -238,6 +238,17 @@ describe('node fields', () => {
     assert.ok(errors(g).some((i) => /Regex tidak valid/.test(i.message)))
   })
 
+  test('a zero wait is an error, since it would give up before the contact can type', () => {
+    const g = graph(
+      [
+        trigger,
+        node('w', { kind: 'waitReply', saveAs: 'jawab', expect: 'any', maxRetries: 0, timeoutMinutes: 0 }),
+      ],
+      [{ id: 'e1', source: 't', target: 'w' }],
+    )
+    assert.ok(errors(g).some((i) => /minimal 1 menit/.test(i.message)))
+  })
+
   test('an invalid variable name on waitReply is an error', () => {
     const g = graph(
       [

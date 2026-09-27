@@ -33,7 +33,7 @@ export interface EngineEffects {
     buttonText: string
     sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]
   }): Promise<void>
-  sendTemplate(p: { name: string; language: string; bodyParams: string[] }): Promise<void>
+  sendTemplate(p: { name: string; language: string; bodyParams: string[]; headerParam?: string }): Promise<void>
   changeTags(action: 'add' | 'remove', tags: string[]): Promise<void>
   assign(userId: string | null, note?: string): Promise<void>
   handover(): Promise<void>
@@ -61,7 +61,17 @@ export type EngineOutcome =
   | { status: 'sleeping'; seconds: number }
   | { status: 'completed' }
   | { status: 'handedOver' }
+  /** Parked too long with no usable answer; the session is dropped. */
+  | { status: 'expired' }
   | { status: 'failed'; error: string }
+
+/**
+ * How long a session may sit parked on buttons or a list before it is
+ * dropped. Nothing else frees it: those nodes answer only to a tapped reply
+ * id, so a contact who types instead of tapping would otherwise stay parked
+ * forever, with every later message swallowed by the dead session.
+ */
+export const IDLE_TIMEOUT_MINUTES = 10
 
 /** Per-tick ceiling. A graph that spins hits this instead of the contact. */
 export const MAX_STEPS_PER_TICK = 50
@@ -133,7 +143,10 @@ async function resumeFrom(
   }
 
   if (input.kind === 'timeout') {
-    if (node.data.kind !== 'waitReply') return { outcome: { status: 'waiting' } }
+    // Only waitReply has a branch for "no answer". Anywhere else the wait is
+    // over for good, and ending the session is what lets the contact's next
+    // message start a flow from the trigger again.
+    if (node.data.kind !== 'waitReply') return { outcome: { status: 'expired' } }
     return { cursor: nextNodeId(graph, node.id, 'timeout') }
   }
 
@@ -239,6 +252,7 @@ async function execute(
         name: d.templateName,
         language: d.language,
         bodyParams: d.bodyParams.map((p) => interpolate(p, ctx)),
+        headerParam: d.headerParam ? interpolate(d.headerParam, ctx) : undefined,
       })
       return go()
 

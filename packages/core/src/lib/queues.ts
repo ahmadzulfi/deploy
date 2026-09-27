@@ -1,5 +1,6 @@
 import { Queue, type QueueOptions, type WorkerOptions } from 'bullmq'
 import IORedis from 'ioredis'
+import type { OutboundMessage } from '../providers/types.js'
 
 /**
  * Redis key namespace. BullMQ rejects ':' inside a queue *name* and inside a
@@ -80,6 +81,55 @@ export function outboundQueueName(channelId: string) {
 
 export function outboundQueue(channelId: string): Queue {
   return getQueue(outboundQueueName(channelId))
+}
+
+export interface SendJob {
+  channelId: string
+  conversationId: string
+  /** Position in this conversation's outbound order; see enqueueSend. */
+  seq?: number
+  to: string
+  message: OutboundMessage
+  /** "user:<id>" | "flow:<id>" | "campaign:<id>" | "api:<keyId>" | "system" */
+  sentBy: string
+  sentByUserId?: string
+  /**
+   * A Message row created before enqueueing, which the worker updates in
+   * place instead of creating its own. Set by the public API so a request
+   * has one row whose status can be looked up from the moment it is queued.
+   */
+  messageId?: string
+  /** The public API's id for this send, echoed on message.sent / message.failed. */
+  requestId?: string
+}
+
+/**
+ * Keys that order one conversation's outbound messages.
+ *
+ * The worker runs several jobs at once so a broadcast is not bottlenecked on
+ * round-trip latency, but that lets two messages for the same contact race -
+ * and a flow that sends an answer then a follow-up prompt would arrive
+ * backwards. Each message takes a ticket on enqueue and waits its turn on the
+ * way out; conversations still run fully in parallel with each other.
+ */
+export const seqKey = (conversationId: string) => `wa:seq:${conversationId}`
+export const doneKey = (conversationId: string) => `wa:done:${conversationId}`
+
+/** Conversations go quiet; the counters should not outlive them. */
+export const ORDER_TTL_S = 7 * 24 * 3600
+
+/**
+ * Queues an outbound message on its channel's own lane, in order.
+ *
+ * Lives here rather than in the worker because the public API enqueues too,
+ * and both must take tickets from the same counter.
+ */
+export async function enqueueSend(job: SendJob) {
+  const key = seqKey(job.conversationId)
+  const seq = await redis().incr(key)
+  await redis().expire(key, ORDER_TTL_S)
+
+  return outboundQueue(job.channelId).add('send', { ...job, seq })
 }
 
 export async function closeQueues() {

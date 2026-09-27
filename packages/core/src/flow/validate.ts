@@ -227,6 +227,15 @@ function checkNode(node: FlowNode): FlowIssue[] {
           message: `"${d.saveAs}" bukan nama variabel yang valid.`,
         })
       }
+      // 0 reads as "wait forever" but schedules a timeout due immediately,
+      // so the node gives up before the contact can type a word.
+      if (d.timeoutMinutes < 1) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'Batas tunggu harus minimal 1 menit.',
+        })
+      }
       break
 
     case 'condition':

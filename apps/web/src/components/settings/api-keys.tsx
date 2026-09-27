@@ -9,11 +9,21 @@ interface Key {
   id: string
   name: string
   scopes: string[]
+  /** Names of the numbers the key is limited to; empty = every number. */
+  channels: string[]
   createdAt: string
   lastUsedAt: string | null
 }
 
-export function ApiKeys({ canManage, keys }: { canManage: boolean; keys: Key[] }) {
+export function ApiKeys({
+  canManage,
+  keys,
+  channels,
+}: {
+  canManage: boolean
+  keys: Key[]
+  channels: { id: string; name: string }[]
+}) {
   const [state, action] = useActionState<ApiKeyState, FormData>(createApiKey, {})
   const [open, setOpen] = useState(false)
   const [pending, start] = useTransition()
@@ -35,6 +45,9 @@ export function ApiKeys({ canManage, keys }: { canManage: boolean; keys: Key[] }
                     {s}
                   </span>
                 ))}
+              </div>
+              <div className="mt-0.5 text-[10px] text-fg-muted">
+                {k.channels.length ? `Hanya: ${k.channels.join(', ')}` : 'Semua nomor'}
               </div>
             </div>
 
@@ -92,6 +105,23 @@ export function ApiKeys({ canManage, keys }: { canManage: boolean; keys: Key[] }
               </div>
             </fieldset>
 
+            {channels.length > 1 && (
+              <fieldset className="mt-3">
+                <legend className="text-xs text-fg">Nomor</legend>
+                <p className="mt-0.5 text-[11px] text-fg-muted">
+                  Kosongkan semua untuk mengizinkan setiap nomor, termasuk yang ditambahkan nanti.
+                </p>
+                <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+                  {channels.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 text-[11px] text-fg">
+                      <input type="checkbox" name="channel" value={c.id} />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
             {state.error && <p className="mt-3 text-xs text-danger">{state.error}</p>}
 
             <div className="mt-4 flex gap-2">
@@ -122,7 +152,7 @@ function Submit() {
   return (
     <button
       disabled={pending}
-      className="h-9 rounded-md bg-fg px-3 text-sm text-white hover:opacity-90 disabled:opacity-50"
+      className="h-9 rounded-md bg-fg px-3 text-sm text-on-fg hover:opacity-90 disabled:opacity-50"
     >
       {pending ? 'Membuat…' : 'Buat kunci'}
     </button>

@@ -1,0 +1,24 @@
+{
+  "title": "API",
+  "icon": "Plug",
+  "pages": [
+    "index",
+    "---Channel---",
+    "daftar-channel",
+    "---Pesan---",
+    "kirim-pesan",
+    "status-pesan",
+    "unggah-media",
+    "---Template---",
+    "daftar-template",
+    "---Kontak---",
+    "ambil-kontak",
+    "simpan-kontak",
+    "riwayat-pesan",
+    "---Flow---",
+    "daftar-flow",
+    "picu-flow",
+    "---Webhook---",
+    "webhook-keluar"
+  ]
+}

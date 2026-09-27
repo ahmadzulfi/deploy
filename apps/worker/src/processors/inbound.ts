@@ -1,8 +1,12 @@
 import { Worker, type Job } from 'bullmq'
 import { prisma, Prisma, Direction, MessageStatus, OptInStatus } from '@wa/db'
 import {
+  applyTemplateStatusUpdate,
+  emitEvent,
   logger,
+  messageEventData,
   normalizeCloudApiWebhook,
+  recordRecipientOutcome,
   windowExpiryFrom,
   type NormalizedEvent,
 } from '@wa/core'
@@ -47,6 +51,10 @@ export function startInboundWorker() {
 
 async function handleEvent(e: NormalizedEvent) {
   if (e.kind === 'account_update') {
+    if (e.event === 'message_template_status_update') {
+      log.info({ wabaId: e.wabaId, result: await applyTemplateStatusUpdate(e.raw) }, 'status template diperbarui')
+      return
+    }
     log.info({ event: e.event, wabaId: e.wabaId }, 'account update')
     return
   }
@@ -60,14 +68,14 @@ async function handleEvent(e: NormalizedEvent) {
   }
 
   if (e.kind === 'status') {
-    await applyStatus(e)
+    await applyStatus(channel.orgId, e)
     return
   }
 
-  await ingestMessage(channel.id, channel.orgId, e)
+  await ingestMessage(channel, e)
 }
 
-async function applyStatus(e: Extract<NormalizedEvent, { kind: 'status' }>) {
+async function applyStatus(orgId: string, e: Extract<NormalizedEvent, { kind: 'status' }>) {
   const status = {
     sent: MessageStatus.SENT,
     delivered: MessageStatus.DELIVERED,
@@ -84,14 +92,16 @@ async function applyStatus(e: Extract<NormalizedEvent, { kind: 'status' }>) {
           ? { readAt: e.timestamp }
           : {}
 
+  let message
   try {
-    await prisma.message.update({
+    message = await prisma.message.update({
       where: { waMessageId: e.waMessageId },
       data: {
         status,
         ...timestampField,
         ...(e.status === 'failed' ? { errorCode: e.errorCode, errorMessage: e.errorMessage } : {}),
       },
+      include: { conversation: { include: { channel: true, contact: true } } },
     })
   } catch (err) {
     // A status callback can beat our own INSERT for the outbound message, or
@@ -102,9 +112,26 @@ async function applyStatus(e: Extract<NormalizedEvent, { kind: 'status' }>) {
     }
     throw err
   }
+
+  await recordRecipientOutcome(message)
+
+  // 'sent' is not re-announced: message.sent already went out when Meta
+  // accepted the send, and a second one would look like a duplicate.
+  if (e.status !== 'sent') {
+    await emitEvent(
+      orgId,
+      `message.${e.status}` as const,
+      messageEventData(message, message.conversation, { statusAt: e.timestamp.toISOString() }),
+    )
+  }
 }
 
-async function ingestMessage(channelId: string, orgId: string, e: Extract<NormalizedEvent, { kind: 'message' }>) {
+async function ingestMessage(
+  channel: { id: string; orgId: string; name: string; displayPhone: string | null },
+  e: Extract<NormalizedEvent, { kind: 'message' }>,
+) {
+  const channelId = channel.id
+  const orgId = channel.orgId
   const contact = await prisma.contact.upsert({
     where: { orgId_waId: { orgId, waId: e.from } },
     create: {
@@ -140,8 +167,9 @@ async function ingestMessage(channelId: string, orgId: string, e: Extract<Normal
     },
   })
 
+  let message
   try {
-    await prisma.message.create({
+    message = await prisma.message.create({
       data: {
         conversationId: conversation.id,
         direction: Direction.IN,
@@ -171,6 +199,8 @@ async function ingestMessage(channelId: string, orgId: string, e: Extract<Normal
     { channelId, from: e.from, type: e.message.type, conversationId: conversation.id },
     'inbound message stored',
   )
+
+  await emitEvent(orgId, 'message.received', messageEventData(message, { id: conversation.id, channel, contact }))
 
   await enqueueInbound(conversation.id, {
     messageType: e.message.type,

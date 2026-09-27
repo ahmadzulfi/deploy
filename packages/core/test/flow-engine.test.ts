@@ -143,6 +143,19 @@ describe('running a flow', () => {
     assert.equal(r.state.currentNodeId, 'b')
   })
 
+  test('a timeout at a buttons node expires the session instead of parking it forever', async () => {
+    const { calls, fx } = spy()
+    const s = (await runFlow(greet, state, { kind: 'start', startNodeId: 't' }, ctx, fx)).state
+    calls.length = 0
+
+    const r = await runFlow(greet, s, { kind: 'timeout' }, ctx, fx)
+
+    // Nothing is sent; the point is only that the session stops being live so
+    // the contact's next message can fire a trigger again.
+    assert.deepEqual(calls, [])
+    assert.deepEqual(r.outcome, { status: 'expired' })
+  })
+
   test('an unwired branch parks the session rather than ending it', async () => {
     const partial: FlowGraph = { ...greet, edges: greet.edges.filter((e) => e.sourceHandle !== 'btn_cs') }
     const { calls, fx } = spy()

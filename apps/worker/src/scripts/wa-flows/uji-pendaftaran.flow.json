@@ -1,0 +1,62 @@
+{
+  "version": "7.0",
+  "screens": [
+    {
+      "id": "PENDAFTARAN",
+      "title": "Daftar Member",
+      "terminal": true,
+      "success": true,
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Gabung Member Wa Mantap"
+          },
+          {
+            "type": "TextBody",
+            "text": "Isi data di bawah ini untuk mendaftar. Data Wargi hanya dipakai untuk keperluan layanan."
+          },
+          {
+            "type": "TextInput",
+            "name": "nama",
+            "label": "Nama lengkap",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "email",
+            "label": "Email",
+            "input-type": "email",
+            "required": true
+          },
+          {
+            "type": "OptIn",
+            "name": "setuju_syarat",
+            "label": "Saya setuju dengan syarat dan ketentuan",
+            "required": true
+          },
+          {
+            "type": "OptIn",
+            "name": "terima_promo",
+            "label": "Kirimi saya info layanan dan promo"
+          },
+          {
+            "type": "Footer",
+            "label": "Lanjutkan",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "nama": "${form.nama}",
+                "email": "${form.email}",
+                "setuju_syarat": "${form.setuju_syarat}",
+                "terima_promo": "${form.terima_promo}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

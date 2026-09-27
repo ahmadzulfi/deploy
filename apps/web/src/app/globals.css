@@ -1,28 +1,192 @@
 @import 'tailwindcss';
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
 
 /*
- * Neutral palette. Colour is reserved for meaning: green/amber/red carry the
- * 24h window state and channel quality rating, and nothing else competes with
- * them. An agent stares at this screen all day - the chrome should recede.
+ * Design system: a navy ramp and an orange ramp, Poppins throughout.
+ *
+ * Components never use the ramps directly - only the semantic tokens below
+ * (bg, surface, fg, accent, …). That is what lets dark mode be a second set of
+ * values for the same names instead of a second set of class names.
+ *
+ * Roles:
+ *  - Navy carries the interface: text, primary buttons, links, the nav rail.
+ *  - Orange is the brand accent, used sparingly: the logo, the one action
+ *    that starts sending to many people, the second chart series. Never for
+ *    ordinary buttons, where it would compete with the status colours.
+ *  - Status colours are not in the brand ramps and were picked to stay apart
+ *    from the orange: danger is crimson, not red, because orange-800 is itself
+ *    nearly red (every pair measured; ΔE ≥ 15 against the brand orange).
  */
 @theme {
-  --color-bg: oklch(0.985 0 0);
-  --color-surface: oklch(1 0 0);
-  --color-muted: oklch(0.968 0 0);
-  --color-border: oklch(0.922 0 0);
-  --color-fg: oklch(0.205 0 0);
-  --color-fg-muted: oklch(0.556 0 0);
-  --color-accent: oklch(0.55 0.13 250);
-  --color-accent-bg: oklch(0.955 0.02 250);
-  --color-ok: oklch(0.58 0.14 152);
-  --color-ok-bg: oklch(0.96 0.03 152);
-  --color-warn: oklch(0.65 0.14 75);
-  --color-warn-bg: oklch(0.96 0.04 75);
-  --color-danger: oklch(0.58 0.19 25);
-  --color-danger-bg: oklch(0.96 0.03 25);
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Brand ramps, exactly as the design system defines them. */
+  --color-navy-100: #f0f4f9;
+  --color-navy-200: #d9e3f1;
+  --color-navy-300: #b0c4e1;
+  --color-navy-400: #86a3d1;
+  --color-navy-500: #587dbe;
+  --color-navy-600: #4a6ba3;
+  --color-navy-700: #3d5888;
+  --color-navy-800: #2f466d;
+  --color-navy-900: #223352;
+  --color-navy-1000: #141f32;
+
+  --color-orange-100: #fff2ee;
+  --color-orange-200: #ffe0d6;
+  --color-orange-300: #ffc6b4;
+  --color-orange-400: #ffa78b;
+  --color-orange-500: #ff8e6b;
+  --color-orange-600: #ff6f43;
+  --color-orange-700: #f35222;
+  --color-orange-800: #cb3c14;
+  --color-orange-900: #a32f0f;
+  --color-orange-1000: #6e1f08;
+
+  /* Semantic tokens, light values. Contrast on surface in comments (WCAG). */
+  --color-bg: var(--color-navy-100);
+  --color-surface: #ffffff;
+  --color-muted: #e9eff7;
+  --color-border: var(--color-navy-200);
+  --color-fg: var(--color-navy-1000); /* 16.5:1 */
+  --color-fg-muted: #5b6b86; /* 5.4:1 */
+  --color-on-fg: #ffffff;
+  --color-accent: var(--color-navy-600); /* 5.4:1 */
+  --color-accent-bg: var(--color-navy-200);
+  --color-on-accent: #ffffff;
+
+  --color-brand: var(--color-orange-800); /* white on it 5.0:1 */
+  --color-brand-bg: var(--color-orange-100);
+  --color-on-brand: #ffffff;
+
+  --color-ok: #17744a;
+  --color-ok-bg: #e3f3ea;
+  --color-warn: #7a5d00;
+  --color-warn-bg: #fbf2d0;
+  --color-danger: #9b1958;
+  --color-danger-bg: #fbe7f0;
+
+  /* The nav rail wears the design system's navy header in both modes. */
+  --color-rail: var(--color-navy-1000);
+  --color-rail-fg: var(--color-navy-300);
+  --color-rail-active: var(--color-navy-900);
+  --color-rail-active-fg: #ffffff;
+
+  /*
+   * Chart series, in fixed order - slot 1 is always the first series, never
+   * picked by rank. navy-500 + orange-700 pass colour-blind separation on
+   * both the light and the dark surface (CVD ΔE 21.4), so they do not change
+   * between modes.
+   */
+  --color-series-1: var(--color-navy-500);
+  --color-series-2: var(--color-orange-700);
+  /* "Failed" in a chart is a state, so it takes the danger colour. */
+  --color-critical: var(--color-danger);
+  --color-grid: #e4ebf4;
+  --color-axis: var(--color-navy-300);
+
+  /* WhatsApp-like preview of a template: chat wallpaper and message bubble. */
+  --color-chat-bg: #ebe5dd;
+  --color-chat-pattern: #dcd3c7;
+  --color-bubble: #ffffff;
+
+  /* Type scale from the design system. */
+  --text-h1: 3rem;
+  --text-h1--line-height: 1.1;
+  --text-h1--font-weight: 700;
+  --text-h2: 2.25rem;
+  --text-h2--line-height: 1.15;
+  --text-h2--font-weight: 600;
+  --text-h3: 1.75rem;
+  --text-h3--line-height: 1.2;
+  --text-h3--font-weight: 500;
+  --text-h4: 1.375rem;
+  --text-h4--line-height: 1.3;
+  --text-h4--font-weight: 400;
+  --text-h5: 1.125rem;
+  --text-h5--line-height: 1.35;
+  --text-h5--font-weight: 400;
 }
 
+/*
+ * Dark values for the same tokens. Declared twice: once for the OS setting
+ * (unless the user picked light), once for an explicit pick of dark - so the
+ * in-app choice wins in both directions.
+ */
 @layer base {
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-bg: #0d1523;
+    --color-surface: var(--color-navy-1000);
+    --color-muted: #1b2a42;
+    --color-border: #26395a;
+    --color-fg: var(--color-navy-100);
+    --color-fg-muted: #9fb1cf;
+    --color-on-fg: var(--color-navy-1000);
+    --color-accent: var(--color-navy-400);
+    --color-accent-bg: var(--color-navy-900);
+    --color-on-accent: var(--color-navy-1000);
+    --color-brand: var(--color-orange-600);
+    --color-brand-bg: #3a1a10;
+    --color-on-brand: var(--color-navy-1000);
+    --color-ok: #4cc38a;
+    --color-ok-bg: #12301f;
+    --color-warn: #f2c14e;
+    --color-warn-bg: #33280d;
+    --color-danger: #fa75bf;
+    --color-danger-bg: #3a1630;
+    --color-rail: #0d1523;
+    --color-rail-fg: var(--color-navy-400);
+    --color-rail-active: #1b2a42;
+    --color-rail-active-fg: var(--color-navy-100);
+    --color-grid: #1f2e48;
+    --color-axis: #34496d;
+    --color-chat-bg: #0b141a;
+    --color-chat-pattern: #16232c;
+    --color-bubble: #1f2c34;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --color-bg: #0d1523;
+      --color-surface: var(--color-navy-1000);
+      --color-muted: #1b2a42;
+      --color-border: #26395a;
+      --color-fg: var(--color-navy-100);
+      --color-fg-muted: #9fb1cf;
+      --color-on-fg: var(--color-navy-1000);
+      --color-accent: var(--color-navy-400);
+      --color-accent-bg: var(--color-navy-900);
+      --color-on-accent: var(--color-navy-1000);
+      --color-brand: var(--color-orange-600);
+      --color-brand-bg: #3a1a10;
+      --color-on-brand: var(--color-navy-1000);
+      --color-ok: #4cc38a;
+      --color-ok-bg: #12301f;
+      --color-warn: #f2c14e;
+      --color-warn-bg: #33280d;
+      --color-danger: #fa75bf;
+      --color-danger-bg: #3a1630;
+      --color-rail: #0d1523;
+      --color-rail-fg: var(--color-navy-400);
+      --color-rail-active: #1b2a42;
+      --color-rail-active-fg: var(--color-navy-100);
+      --color-grid: #1f2e48;
+      --color-axis: #34496d;
+      --color-chat-bg: #0b141a;
+      --color-chat-pattern: #16232c;
+      --color-bubble: #1f2c34;
+    }
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -33,8 +197,38 @@
   body {
     background: var(--color-bg);
     color: var(--color-fg);
-    font-family:
-      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+  ::selection {
+    background: var(--color-accent-bg);
+    color: var(--color-fg);
+  }
+}
+
+/* The flow editor canvas, drawn by @xyflow, follows the same tokens. */
+.react-flow {
+  --xy-background-color: var(--color-bg);
+  --xy-background-pattern-dots-color: var(--color-axis);
+  --xy-edge-stroke: var(--color-axis);
+  --xy-edge-stroke-selected: var(--color-accent);
+  --xy-connectionline-stroke: var(--color-accent);
+  --xy-edge-label-background-color: var(--color-surface);
+  --xy-edge-label-color: var(--color-fg);
+  --xy-node-background-color: var(--color-surface);
+  --xy-node-color: var(--color-fg);
+  --xy-handle-background-color: var(--color-surface);
+  --xy-handle-border-color: var(--color-accent);
+  --xy-controls-button-background-color: var(--color-surface);
+  --xy-controls-button-background-color-hover: var(--color-muted);
+  --xy-controls-button-color: var(--color-fg);
+  --xy-controls-button-color-hover: var(--color-fg);
+  --xy-controls-button-border-color: var(--color-border);
+  --xy-minimap-background-color: var(--color-surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  --xy-minimap-node-background-color: var(--color-muted);
+  --xy-minimap-node-stroke-color: var(--color-border);
+  --xy-selection-background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --xy-selection-border: 1px dotted var(--color-accent);
+  --xy-attribution-background-color: transparent;
 }

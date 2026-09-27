@@ -18,6 +18,21 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
 
   const parsed = flowGraphSchema.safeParse(flow.draftGraph)
 
+  // A flow is not tied to one number, so offer every approved template in the
+  // org. The same name+language on two WABAs shows once.
+  const rows = await prisma.template.findMany({
+    where: { channel: { orgId: user.orgId }, metaStatus: 'APPROVED', category: { not: 'AUTHENTICATION' } },
+    orderBy: [{ name: 'asc' }, { language: 'asc' }],
+    select: { name: true, language: true, category: true, metaStatus: true, components: true },
+  })
+  const seen = new Set<string>()
+  const templates = rows
+    .filter((t) => {
+      const k = `${t.name}:${t.language}`
+      return seen.has(k) ? false : (seen.add(k), true)
+    })
+    .map((t) => ({ ...t, status: t.metaStatus }))
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-4">
@@ -36,6 +51,7 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
           flowId={flow.id}
           initial={parsed.success ? parsed.data : EMPTY_GRAPH}
           publishedVersion={flow.publishedVersion?.version ?? null}
+          templates={templates}
         />
       </div>
     </div>

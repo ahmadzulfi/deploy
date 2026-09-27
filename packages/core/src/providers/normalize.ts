@@ -97,6 +97,8 @@ interface MetaMessage {
     type?: string
     button_reply?: { id?: string; title?: string }
     list_reply?: { id?: string; title?: string; description?: string }
+    /** A submitted WhatsApp Flows form; the answers are a JSON *string*. */
+    nfm_reply?: { response_json?: string; body?: string; name?: string }
   }
   button?: { payload?: string; text?: string }
   image?: MetaMedia
@@ -139,12 +141,32 @@ function replyIdOf(m: MetaMessage): string | undefined {
   return undefined
 }
 
+/**
+ * Unpacks a Flows submission. Meta nests the answers as a JSON string with
+ * `flow_token` mixed in among them; it is lifted out so the rest is purely
+ * what the contact filled in.
+ */
+function formReply(json: string | undefined): Extract<NormalizedEvent, { kind: 'message' }>['message'] {
+  let parsed: unknown
+  try {
+    parsed = json ? JSON.parse(json) : {}
+  } catch {
+    // Keep the raw text rather than lose the submission to a parse error.
+    return { type: 'form_reply', response: { _raw: json } }
+  }
+  const obj = parsed && typeof parsed === 'object' ? { ...(parsed as Record<string, unknown>) } : {}
+  const token = typeof obj.flow_token === 'string' ? obj.flow_token : undefined
+  delete obj.flow_token
+  return { type: 'form_reply', flowToken: token, response: obj }
+}
+
 function toInboundMessage(m: MetaMessage): Extract<NormalizedEvent, { kind: 'message' }>['message'] {
   switch (m.type) {
     case 'text':
       return { type: 'text', body: m.text?.body ?? '' }
 
     case 'interactive': {
+      if (m.interactive?.type === 'nfm_reply') return formReply(m.interactive.nfm_reply?.response_json)
       const r = m.interactive?.button_reply ?? m.interactive?.list_reply
       return { type: 'interactive', replyId: r?.id ?? '', title: r?.title ?? '' }
     }

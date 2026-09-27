@@ -1,0 +1,1310 @@
+openapi: 3.1.0
+info:
+  title: wa-platform Public API
+  version: '1.0'
+  description: |
+    API untuk sistem lain: mengirim pesan WhatsApp, mengatur kontak, dan memicu flow.
+
+    Buat API key di **Pengaturan → API key** di dashboard. Setiap key punya scope
+    sendiri; key tanpa scope yang dibutuhkan dibalas `403 missing_scope`.
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Lokal (pnpm dev:webhook)
+  - url: '{origin}/api/v1'
+    description: Publik (PUBLIC_WEBHOOK_ORIGIN)
+    variables:
+      origin:
+        default: https://wa.perusahaan.com
+        description: Origin publik service webhook, sama dengan callback Meta.
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Channel
+    description: Nomor WhatsApp yang terdaftar di org.
+  - name: Pesan
+    description: Mengirim pesan keluar.
+  - name: Template
+    description: Template pesan yang disetujui Meta.
+  - name: Kontak
+    description: Data kontak dan riwayat pesannya.
+  - name: Flow
+    description: Menjalankan bot untuk satu kontak.
+
+paths:
+  /channels:
+    get:
+      operationId: daftar-channel
+      tags: [Channel]
+      summary: Daftar channel
+      description: |
+        Daftar nomor WhatsApp di org, beserta `id` yang dipakai sebagai `channelId`
+        di endpoint lain. Semua API key boleh memanggil endpoint ini, apa pun scope-nya.
+      responses:
+        '200':
+          description: Daftar channel, urut dari yang paling lama didaftarkan.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Channel' }
+              example:
+                data:
+                  - id: cm1a2b3c4d5e6f7g8h9i0j1k2
+                    name: CS Utama
+                    phone: +62 811-2345-678
+                    status: connected
+                    sendingPaused: false
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /messages:
+    post:
+      operationId: kirim-pesan
+      tags: [Pesan]
+      summary: Kirim pesan
+      description: |
+        Mengirim satu pesan ke satu nomor. Isi **tepat satu** dari field jenis pesan di
+        bawah — pilih contohnya di panel kanan.
+
+        | Field | Jenis |
+        |---|---|
+        | `text` | Teks biasa |
+        | `image`, `video`, `audio`, `document`, `sticker` | Media |
+        | `location` | Titik lokasi |
+        | `buttons` | Pesan dengan maksimal 3 tombol balasan |
+        | `list` | Menu pilihan, maksimal 10 baris total |
+        | `ctaUrl` | Pesan dengan satu tombol yang membuka link |
+        | `flow` | Formulir WhatsApp Flows |
+        | `template` | Template yang disetujui Meta |
+
+        - **Semua jenis kecuali template** hanya bisa dikirim selama window 24 jam terbuka,
+          yaitu kontak membalas dalam 24 jam terakhir. Di luar itu responsnya
+          `422 window_closed` dan kamu harus mengirim template.
+        - **Template** harus sudah tersinkron dari Meta dan berstatus `APPROVED`. Daftarnya,
+          beserta isian yang dibutuhkan, ada di [`GET /templates`](/docs/api/daftar-template).
+
+        ### Balasan tombol dan formulir
+
+        Saat kontak menekan tombol atau memilih baris daftar, balasannya datang sebagai
+        event `message.received` dengan `type: "interactive"` dan `replyId` = `id` tombol
+        atau baris yang kamu kirim.
+
+        Jawaban **formulir** datang sebagai `message.received` dengan
+        `content.type: "form_reply"`: `response` berisi isian kontak, dan `flowToken` sama
+        dengan yang ada di respons `202` pengiriman formulirnya. Kirim `flowToken` sendiri
+        kalau ingin mengaitkannya ke data di sistemmu; kalau tidak, platform membuatkannya.
+
+        ### Sumber berkas media
+
+        Isi salah satu, `link` atau `mediaId`:
+
+        - `link` harus **https** dan bisa diakses publik — Meta sendiri yang mengunduh
+          berkasnya, jadi `localhost` atau jaringan internal tidak akan sampai.
+        - `mediaId` adalah ID berkas yang sudah diunggah ke Meta. ID ini terikat pada
+          nomor yang mengunggahnya dan gagal dipakai dari nomor lain.
+
+        Kalau Meta gagal mengunduh atau menolak berkasnya, request tetap dibalas `202` —
+        kegagalannya datang belakangan lewat event `message.failed`.
+
+        Media lewat `link` bisa tiba **setelah** pesan yang dikirim sesudahnya, karena Meta
+        mengunduh berkasnya dulu sebelum mengirim.
+
+        Respons `202` berarti pesan masuk antrean, **belum tentu terkirim**. Simpan
+        `requestId`-nya: hasil akhirnya bisa dicek lewat
+        [`GET /messages/{requestId}`](/docs/api/status-pesan), atau ditunggu lewat
+        webhook keluar `message.sent` / `message.failed` yang membawa `requestId` yang sama.
+
+        Pesan dari API tidak menjeda bot, dan urutannya tetap terjaga bersama balasan bot
+        di percakapan yang sama.
+
+        Scope: `messages:send`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendMessage' }
+            examples:
+              teks:
+                summary: Teks
+                value:
+                  to: '6281234567890'
+                  text: Laporan kamu sudah kami terima.
+              gambar:
+                summary: Gambar
+                value:
+                  to: '6281234567890'
+                  image:
+                    link: https://contoh.com/foto-lokasi.jpg
+                    caption: Foto lokasi laporan LAP-0042
+              video:
+                summary: Video
+                value:
+                  to: '6281234567890'
+                  video:
+                    link: https://contoh.com/panduan.mp4
+                    caption: Panduan singkat mengisi laporan
+              audio:
+                summary: Audio
+                value:
+                  to: '6281234567890'
+                  audio:
+                    link: https://contoh.com/pengumuman.ogg
+              dokumen:
+                summary: Dokumen
+                value:
+                  to: '6281234567890'
+                  document:
+                    link: https://contoh.com/laporan.pdf
+                    filename: LAP-0042.pdf
+                    caption: Rekap laporan bulan ini
+              media-id:
+                summary: Gambar (media ID)
+                value:
+                  to: '6281234567890'
+                  image:
+                    mediaId: '1234567890123456'
+              stiker:
+                summary: Stiker
+                value:
+                  to: '6281234567890'
+                  sticker:
+                    mediaId: '1234567890123456'
+              lokasi:
+                summary: Lokasi
+                value:
+                  to: '6281234567890'
+                  location:
+                    latitude: -6.8722
+                    longitude: 107.5425
+                    name: Kantor Kelurahan Cibabat
+                    address: Jl. Kolonel Masturi, Cimahi
+              tombol:
+                summary: Tombol balasan
+                value:
+                  to: '6281234567890'
+                  buttons:
+                    header: Konfirmasi jadwal
+                    body: Posyandu RW 05 besok pukul 08.00. Kamu bisa hadir?
+                    footer: Balas dengan menekan tombol
+                    buttons:
+                      - { id: hadir, title: Hadir }
+                      - { id: tidak_hadir, title: Tidak hadir }
+              daftar:
+                summary: Daftar pilihan
+                value:
+                  to: '6281234567890'
+                  list:
+                    body: Pilih layanan yang kamu butuhkan.
+                    buttonText: Lihat layanan
+                    sections:
+                      - title: Administrasi
+                        rows:
+                          - { id: ktp, title: KTP, description: Buat atau perpanjang KTP }
+                          - { id: kk, title: Kartu Keluarga }
+                      - title: Pengaduan
+                        rows:
+                          - { id: lapor, title: Buat laporan }
+              link:
+                summary: Tombol link
+                value:
+                  to: '6281234567890'
+                  ctaUrl:
+                    body: Status laporan LAP-0042 bisa dicek di sini.
+                    displayText: Cek status
+                    url: https://contoh.com/laporan/LAP-0042
+              formulir:
+                summary: Formulir (WhatsApp Flows)
+                value:
+                  to: '6281234567890'
+                  flow:
+                    body: Isi data pendaftaran posyandu.
+                    cta: Isi formulir
+                    flowId: '1848826199609180'
+                    screen: PENDAFTARAN
+                    flowToken: daftar-lap-0042
+                    data: { nama: Budi }
+              template:
+                summary: Template
+                value:
+                  to: '6281234567890'
+                  name: Budi
+                  template:
+                    name: status_laporan
+                    language: id
+                    params:
+                      body.1: Budi
+                      body.2: LAP-0042
+      responses:
+        '202':
+          description: Masuk antrean.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requestId, conversationId, status]
+                properties:
+                  requestId:
+                    type: string
+                    description: Dipakai untuk `GET /messages/{requestId}`, dan muncul lagi di event `message.sent` / `message.failed`.
+                  conversationId: { type: string }
+                  status: { type: string, const: queued }
+                  flowToken:
+                    type: string
+                    description: Hanya untuk pesan `flow`. Muncul lagi bersama jawaban formulir.
+              example:
+                requestId: req_8xN2qLw4VbT0cRk7YmPzHg
+                conversationId: cm9z8y7x6w5v4u3t2s1r0q9p8
+                status: queued
+        '400':
+          description: |
+            Body tidak valid. Kode yang mungkin: `invalid_request`, `invalid_json`,
+            `channel_required` (lebih dari satu nomor bisa dipakai key ini dan `channelId`
+            kosong), `missing_params` (isian template belum lengkap).
+
+            `invalid_request` juga muncul untuk pelanggaran batas WhatsApp: tombol lebih dari 3,
+            judul tombol lebih dari 20 karakter, lebih dari 10 baris daftar, link bukan https,
+            atau field yang tidak didukung jenis pesannya (misalnya `caption` pada audio).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: missing_params, message: 'Isian template belum lengkap: body.2.' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: '`missing_scope`, atau `channel_forbidden` kalau key ini dibatasi ke nomor lain.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: channel_forbidden, message: API key ini tidak diizinkan memakai nomor CS Utama. }
+        '404':
+          description: '`channel_not_found` atau `template_not_found`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  code: template_not_found
+                  message: Template status_laporan (id) tidak ada di WABA nomor ini. Sinkronkan dulu dari dashboard.
+        '422':
+          description: |
+            Permintaan valid tapi tidak bisa dikirim: `window_closed`,
+            `template_not_approved`, atau `contact_opted_out` (template MARKETING ke
+            kontak yang sudah berhenti berlangganan).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  code: window_closed
+                  message: Window 24 jam untuk kontak ini tertutup (atau belum pernah terbuka). Kirim template.
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /messages/{requestId}:
+    get:
+      operationId: status-pesan
+      tags: [Pesan]
+      summary: Cek status pesan
+      description: |
+        Status terkini pesan yang dikirim lewat `POST /messages`, dicari dengan
+        `requestId` dari respons `202`-nya.
+
+        | `status` | Arti |
+        |---|---|
+        | `queued` | Masih di antrean, belum dikirim ke Meta. Kalau percobaan sebelumnya gagal dan akan diulang, `error` berisi penyebab terakhirnya |
+        | `sent` | Diterima Meta |
+        | `delivered` | Sampai di HP kontak |
+        | `read` | Dibaca kontak (kalau centang biru tidak dimatikan) |
+        | `failed` | Gagal permanen; lihat `error` |
+
+        Status `delivered` dan `read` datang dari Meta, jadi bisa tertunda beberapa detik
+        setelah kejadiannya. Kalau butuh kabar seketika, pakai webhook keluar alih-alih
+        memanggil endpoint ini berulang-ulang.
+
+        Hanya pesan dari `POST /messages` yang punya `requestId`. Pesan dari bot, agen,
+        atau pesan masuk dilihat lewat [riwayat pesan](/docs/api/riwayat-pesan).
+
+        Scope: `messages:read`.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: Nilai `requestId` dari respons `POST /messages`.
+          schema: { type: string }
+          example: req_8xN2qLw4VbT0cRk7YmPzHg
+      responses:
+        '200':
+          description: Pesan ditemukan.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/MessageStatus' }
+              examples:
+                terkirim:
+                  summary: Sampai di HP kontak
+                  value:
+                    data:
+                      messageId: cm0m1n2o3p4q5r6s7t8u9v0w1
+                      waMessageId: wamid.HBgNNjI4MTIzNDU2Nzg5MBUCABIYFjNFQjA
+                      conversationId: cm9z8y7x6w5v4u3t2s1r0q9p8
+                      direction: outbound
+                      type: image
+                      content: { kind: image, link: https://contoh.com/foto-lokasi.jpg, caption: Foto lokasi laporan LAP-0042 }
+                      status: delivered
+                      sentBy: api:cm7k8e9y0a1b2c3d4e5f6g7h8
+                      channel: { id: cm1a2b3c4d5e6f7g8h9i0j1k2, name: CS Utama, phone: +62 811-2345-678 }
+                      contact: { waId: '6281234567890', name: Budi }
+                      timestamp: '2026-09-23T01:02:03.000Z'
+                      requestId: req_8xN2qLw4VbT0cRk7YmPzHg
+                      sentAt: '2026-09-23T01:02:04.000Z'
+                      deliveredAt: '2026-09-23T01:02:06.000Z'
+                      readAt: null
+                gagal:
+                  summary: Gagal
+                  value:
+                    data:
+                      messageId: cm0m1n2o3p4q5r6s7t8u9v0w1
+                      waMessageId: null
+                      conversationId: cm9z8y7x6w5v4u3t2s1r0q9p8
+                      direction: outbound
+                      type: text
+                      content: { kind: text, body: Laporan kamu sudah kami terima. }
+                      status: failed
+                      sentBy: api:cm7k8e9y0a1b2c3d4e5f6g7h8
+                      error: { code: '131047', message: Re-engagement message }
+                      channel: { id: cm1a2b3c4d5e6f7g8h9i0j1k2, name: CS Utama, phone: +62 811-2345-678 }
+                      contact: { waId: '6281234567890', name: Budi }
+                      timestamp: '2026-09-23T01:02:03.000Z'
+                      requestId: req_8xN2qLw4VbT0cRk7YmPzHg
+                      sentAt: null
+                      deliveredAt: null
+                      readAt: null
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '404':
+          description: Tidak ada pesan dengan `requestId` ini di org milik API key.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: message_not_found, message: Pesan dengan requestId ini tidak ditemukan. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /media:
+    post:
+      operationId: unggah-media
+      tags: [Pesan]
+      summary: Unggah media
+      description: |
+        Mengunggah berkas ke Meta dan mengembalikan `mediaId`, untuk dipakai di
+        `image`, `video`, `audio`, `document`, atau `sticker` pada `POST /messages`.
+
+        Berguna kalau berkasnya tidak punya URL https publik — misalnya dibuat oleh
+        sistemmu sendiri, atau tersimpan di jaringan internal.
+
+        `mediaId` **hanya berlaku untuk nomor yang mengunggahnya**. Unggah ke nomor yang
+        sama dengan yang dipakai untuk mengirim.
+
+        | Jenis | Tipe berkas | Maksimal |
+        |---|---|---|
+        | image | `image/jpeg`, `image/png` | 5 MB |
+        | video | `video/mp4`, `video/3gpp` | 16 MB |
+        | audio | `audio/aac`, `audio/amr`, `audio/mpeg`, `audio/mp4`, `audio/ogg` | 16 MB |
+        | sticker | `image/webp` | 500 KB |
+        | document | PDF, TXT, Word, Excel, PowerPoint | 100 MB |
+
+        Scope: `messages:send`.
+      parameters:
+        - name: channelId
+          in: query
+          description: Nomor tujuan unggahan. Boleh kosong kalau hanya satu nomor yang boleh dipakai key ini.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Satu berkas. Jenisnya ditentukan dari tipe MIME berkas.
+      responses:
+        '201':
+          description: Terunggah.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mediaId, channelId, type, mimeType, size]
+                properties:
+                  mediaId: { type: string }
+                  channelId: { type: string }
+                  type: { type: string, enum: [image, video, audio, document, sticker] }
+                  mimeType: { type: string }
+                  filename: { type: [string, 'null'] }
+                  size: { type: integer, description: Ukuran dalam byte. }
+              example:
+                mediaId: '1234567890123456'
+                channelId: cm1a2b3c4d5e6f7g8h9i0j1k2
+                type: document
+                mimeType: application/pdf
+                filename: LAP-0042.pdf
+                size: 184320
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '413':
+          description: Berkas melebihi batas jenisnya (`file_too_large`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: file_too_large, message: 'sticker maksimal 0.5 MB; berkas ini 0.6 MB.' }
+        '415':
+          description: Bukan multipart, atau tipe berkas tidak diterima WhatsApp (`unsupported_media_type`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: unsupported_media_type, message: Tipe text/html tidak diterima WhatsApp. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '502':
+          description: Meta menolak unggahan (`upload_failed`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /templates:
+    get:
+      operationId: daftar-template
+      tags: [Template]
+      summary: Daftar template
+      description: |
+        Template yang bisa dikirim, beserta isian yang dibutuhkan. `params[].key` adalah
+        kunci yang dipakai di `template.params` pada `POST /messages`.
+
+        Template milik WABA, bukan milik nomor: setiap nomor di WABA yang sama bisa
+        mengirim semua template WABA itu. Filter `channelId` karena itu memilih WABA.
+
+        Statusnya diperbarui otomatis saat Meta menyetujui, menolak, atau menjeda template,
+        dan disinkron ulang penuh setiap 6 jam.
+
+        Scope: `templates:read`.
+      parameters:
+        - name: channelId
+          in: query
+          description: Hanya template yang bisa dikirim dari nomor ini.
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [approved, pending, rejected, paused, disabled] }
+      responses:
+        '200':
+          description: Daftar template.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Template' }
+              example:
+                data:
+                  - id: cm3t4e5m6p7l8a9t0e1a2b3c4
+                    name: status_laporan
+                    language: id
+                    category: UTILITY
+                    status: approved
+                    rejectionReason: null
+                    wabaId: '868891459412926'
+                    params:
+                      - { key: body.1, component: body, format: text, example: Budi }
+                      - { key: body.2, component: body, format: text, example: LAP-0042 }
+                    preview:
+                      body: 'Halo {{1}}, laporan {{2}} kamu sudah kami terima.'
+                      buttons: []
+                    syncedAt: '2026-09-23T01:00:00.000Z'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /flows:
+    get:
+      operationId: daftar-flow
+      tags: [Flow]
+      summary: Daftar flow
+      description: |
+        Flow bot di org, untuk mencari `flowId` yang dipakai
+        [`POST /flows/{flowId}/trigger`](/docs/api/picu-flow).
+
+        `triggerable: true` berarti flow itu aktif dan versi terbitnya punya trigger
+        **"Dipicu lewat API"** yang tersambung — hanya flow seperti ini yang bisa dipicu.
+
+        Scope: `flows:read`.
+      responses:
+        '200':
+          description: Daftar flow.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        description: { type: [string, 'null'] }
+                        enabled: { type: boolean }
+                        publishedVersion: { type: [integer, 'null'] }
+                        publishedAt: { type: [string, 'null'], format: date-time }
+                        triggerable: { type: boolean }
+                        updatedAt: { type: string, format: date-time }
+              example:
+                data:
+                  - id: cm5f6l7o8w9i0d1a2b3c4d5e6
+                    name: Notifikasi status laporan
+                    description: null
+                    enabled: true
+                    publishedVersion: 3
+                    publishedAt: '2026-09-22T09:00:00.000Z'
+                    triggerable: true
+                    updatedAt: '2026-09-22T09:00:00.000Z'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /contacts/{waId}:
+    parameters:
+      - $ref: '#/components/parameters/WaId'
+    get:
+      operationId: ambil-kontak
+      tags: [Kontak]
+      summary: Ambil kontak
+      description: 'Scope: `contacts:read`.'
+      responses:
+        '200':
+          description: Kontak ditemukan.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Contact' }
+              example:
+                data:
+                  waId: '6281234567890'
+                  name: Budi
+                  tags: [pelapor, rw-05]
+                  attributes: { nik_terverifikasi: true, kelurahan: Cibabat }
+                  optInStatus: unknown
+                  lastSeenAt: '2026-09-23T01:02:03.000Z'
+                  createdAt: '2026-09-20T08:00:00.000Z'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '404': { $ref: '#/components/responses/ContactNotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: simpan-kontak
+      tags: [Kontak]
+      summary: Simpan kontak
+      description: |
+        Memperbarui kontak, atau membuatnya kalau belum ada.
+
+        - `tags` **mengganti** seluruh daftar tag.
+        - `attributes` **digabung** dengan atribut yang sudah ada. Nilai `null` menghapus kuncinya.
+
+        Atribut bisa dibaca flow sebagai `{{contact.<kunci>}}`.
+
+        Scope: `contacts:write`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactInput' }
+            example:
+              name: Budi
+              tags: [pelapor, rw-05]
+              attributes:
+                nik_terverifikasi: true
+                kelurahan: Cibabat
+                catatan_lama: null
+      responses:
+        '200':
+          description: Kontak sesudah disimpan.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: '#/components/schemas/Contact' }
+              example:
+                data:
+                  waId: '6281234567890'
+                  name: Budi
+                  tags: [pelapor, rw-05]
+                  attributes: { nik_terverifikasi: true, kelurahan: Cibabat }
+                  optInStatus: unknown
+                  lastSeenAt: '2026-09-23T01:02:03.000Z'
+                  createdAt: '2026-09-20T08:00:00.000Z'
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /contacts/{waId}/messages:
+    parameters:
+      - $ref: '#/components/parameters/WaId'
+    get:
+      operationId: riwayat-pesan
+      tags: [Kontak]
+      summary: Riwayat pesan
+      description: |
+        Riwayat pesan kontak, dari yang terbaru. Untuk halaman berikutnya, kirim nilai
+        `nextBefore` dari respons sebelumnya sebagai `before`.
+
+        Setiap item berbentuk sama dengan `data` pada event webhook keluar `message.*`.
+
+        Scope: `messages:read`.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: before
+          in: query
+          description: Waktu ISO. Hanya pesan yang lebih lama dari ini yang dikembalikan.
+          schema: { type: string, format: date-time }
+        - name: channelId
+          in: query
+          description: Batasi ke satu nomor.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Satu halaman riwayat.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, nextBefore]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Message' }
+                  nextBefore:
+                    type: [string, 'null']
+                    format: date-time
+                    description: '`null` kalau tidak ada halaman berikutnya.'
+              example:
+                data:
+                  - messageId: cm0m1n2o3p4q5r6s7t8u9v0w1
+                    waMessageId: wamid.HBgNNjI4MTIzNDU2Nzg5MBUCABIYFjNFQjA
+                    conversationId: cm9z8y7x6w5v4u3t2s1r0q9p8
+                    direction: inbound
+                    type: text
+                    content: { type: text, body: halo }
+                    status: delivered
+                    sentBy: contact
+                    channel: { id: cm1a2b3c4d5e6f7g8h9i0j1k2, name: CS Utama, phone: +62 811-2345-678 }
+                    contact: { waId: '6281234567890', name: Budi }
+                    timestamp: '2026-09-23T01:02:03.000Z'
+                nextBefore: null
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '404': { $ref: '#/components/responses/ContactNotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /flows/{flowId}/trigger:
+    post:
+      operationId: picu-flow
+      tags: [Flow]
+      summary: Picu flow
+      description: |
+        Menjalankan flow untuk satu kontak. Versi terbit flow tersebut harus punya trigger
+        **"Dipicu lewat API"** yang tersambung ke node lain.
+
+        Perhatikan `windowOpen` di respons. Kalau `false`, hanya node **Kirim template**
+        yang akan sampai ke kontak; node kirim lain akan gagal.
+
+        Scope: `flows:trigger`.
+      parameters:
+        - name: flowId
+          in: path
+          required: true
+          description: ID flow, terlihat di URL editor flow di dashboard.
+          schema: { type: string }
+          example: cm5f6l7o8w9i0d1a2b3c4d5e6
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TriggerFlow' }
+            example:
+              to: '6281234567890'
+              variables:
+                nomor_laporan: LAP-0042
+                status: selesai
+              force: false
+      responses:
+        '202':
+          description: Flow masuk antrean.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversationId, status, windowOpen]
+                properties:
+                  conversationId: { type: string }
+                  status: { type: string, const: queued }
+                  windowOpen:
+                    type: boolean
+                    description: '`false` = hanya node Kirim template yang akan sampai.'
+              example:
+                conversationId: cm9z8y7x6w5v4u3t2s1r0q9p8
+                status: queued
+                windowOpen: true
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/MissingScope' }
+        '404':
+          description: '`flow_not_found` atau `channel_not_found`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { code: flow_not_found, message: Flow tidak ditemukan. }
+        '409':
+          description: |
+            - `session_running` — kontak sedang di tengah flow lain. Kirim `"force": true` untuk menghentikannya.
+            - `bot_paused` — percakapan sedang ditangani agen.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  code: session_running
+                  message: 'Kontak ini sedang berada di tengah flow lain. Kirim "force": true untuk menghentikannya.'
+        '422':
+          description: '`flow_not_published`, `flow_disabled`, atau `no_api_trigger`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  code: no_api_trigger
+                  message: Versi terbit flow ini tidak punya trigger "Dipicu lewat API" yang tersambung ke node lain.
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key dari **Pengaturan → API key**, berawalan `wa_`.
+        Header `X-API-Key: wa_…` juga diterima.
+
+  parameters:
+    WaId:
+      name: waId
+      in: path
+      required: true
+      description: Nomor WhatsApp dengan kode negara. `+`, spasi, dan `-` dibuang otomatis; awalan `0` ditolak.
+      schema: { type: string }
+      example: '6281234567890'
+
+  schemas:
+    Phone:
+      type: string
+      description: |
+        Nomor dengan kode negara, 8–15 digit. `+`, spasi, `-`, dan tanda kurung dibuang
+        otomatis. Nomor yang diawali `0` ditolak karena negaranya tidak bisa ditebak.
+      examples: ['6281234567890']
+
+    Channel:
+      type: object
+      required: [id, name, phone, status, sendingPaused]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        phone: { type: [string, 'null'] }
+        status:
+          type: string
+          enum: [connected, disconnected, flagged, paused]
+        sendingPaused:
+          type: boolean
+          description: Kill switch. Selama `true`, pengiriman dari nomor ini ditahan.
+
+    SendMessage:
+      type: object
+      required: [to]
+      properties:
+        to: { $ref: '#/components/schemas/Phone' }
+        channelId:
+          type: string
+          description: Boleh dikosongkan kalau hanya satu nomor terhubung yang boleh dipakai key ini.
+        name:
+          type: string
+          maxLength: 200
+          description: Nama kontak. Hanya dipakai kalau kontaknya baru.
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: Isi pesan teks. Hanya bisa dikirim saat window 24 jam terbuka.
+        image:
+          $ref: '#/components/schemas/ImageMedia'
+        video:
+          $ref: '#/components/schemas/VideoMedia'
+        audio:
+          $ref: '#/components/schemas/AudioMedia'
+        document:
+          $ref: '#/components/schemas/DocumentMedia'
+        sticker:
+          $ref: '#/components/schemas/StickerMedia'
+        location:
+          $ref: '#/components/schemas/Location'
+        buttons:
+          $ref: '#/components/schemas/Buttons'
+        list:
+          $ref: '#/components/schemas/List'
+        ctaUrl:
+          $ref: '#/components/schemas/CtaUrl'
+        flow:
+          $ref: '#/components/schemas/FlowForm'
+        template:
+          type: object
+          required: [name]
+          description: Pesan template. Satu-satunya jenis yang bisa dikirim di luar window 24 jam.
+          properties:
+            name:
+              type: string
+              description: Nama template di Meta.
+            language:
+              type: string
+              default: id
+            params:
+              type: object
+              additionalProperties: { type: string }
+              default: {}
+              description: |
+                Isian template, kuncinya sama dengan isian di dashboard:
+
+                | Kunci | Untuk |
+                |---|---|
+                | `body.1`, `body.2`, … | parameter body berurutan |
+                | `body.<nama>` | parameter body bernama |
+                | `header.1` | variabel header teks |
+                | `header.media` | link gambar/video/dokumen header |
+                | `button.<index>.1` | akhiran URL dinamis |
+                | `button.<index>.code` | kode kupon |
+
+    MediaLink:
+      type: string
+      format: uri
+      description: URL **https** yang bisa diakses publik oleh Meta. Isi ini atau `mediaId`.
+      examples: ['https://contoh.com/berkas.jpg']
+
+    MediaId:
+      type: string
+      description: ID berkas yang sudah diunggah ke Meta, hanya berlaku di nomor yang mengunggahnya. Isi ini atau `link`.
+
+    MediaCaption:
+      type: string
+      minLength: 1
+      maxLength: 1024
+      description: Teks di bawah berkas.
+
+    ImageMedia:
+      type: object
+      description: Gambar. Hanya bisa dikirim saat window 24 jam terbuka.
+      additionalProperties: false
+      properties:
+        link: { $ref: '#/components/schemas/MediaLink' }
+        mediaId: { $ref: '#/components/schemas/MediaId' }
+        caption: { $ref: '#/components/schemas/MediaCaption' }
+
+    VideoMedia:
+      type: object
+      description: Video. Hanya bisa dikirim saat window 24 jam terbuka.
+      additionalProperties: false
+      properties:
+        link: { $ref: '#/components/schemas/MediaLink' }
+        mediaId: { $ref: '#/components/schemas/MediaId' }
+        caption: { $ref: '#/components/schemas/MediaCaption' }
+
+    AudioMedia:
+      type: object
+      description: Audio. WhatsApp tidak menampilkan caption untuk audio, jadi field itu ditolak.
+      additionalProperties: false
+      properties:
+        link: { $ref: '#/components/schemas/MediaLink' }
+        mediaId: { $ref: '#/components/schemas/MediaId' }
+
+    DocumentMedia:
+      type: object
+      description: Dokumen, misalnya PDF. Hanya bisa dikirim saat window 24 jam terbuka.
+      additionalProperties: false
+      properties:
+        link: { $ref: '#/components/schemas/MediaLink' }
+        mediaId: { $ref: '#/components/schemas/MediaId' }
+        caption: { $ref: '#/components/schemas/MediaCaption' }
+        filename:
+          type: string
+          minLength: 1
+          description: Nama berkas yang tampil di WhatsApp penerima.
+
+    StickerMedia:
+      type: object
+      description: Stiker WebP. Tanpa caption.
+      additionalProperties: false
+      properties:
+        link: { $ref: '#/components/schemas/MediaLink' }
+        mediaId: { $ref: '#/components/schemas/MediaId' }
+
+    Location:
+      type: object
+      required: [latitude, longitude]
+      additionalProperties: false
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        name: { type: string, description: Nama tempat. }
+        address: { type: string }
+
+    InteractiveHeader:
+      type: string
+      minLength: 1
+      maxLength: 60
+      description: Teks tebal di atas isi pesan.
+
+    InteractiveBody:
+      type: string
+      minLength: 1
+      maxLength: 1024
+      description: Isi pesan. Pesan interaktif dibatasi 1024 karakter, seperempat pesan teks biasa.
+
+    InteractiveFooter:
+      type: string
+      minLength: 1
+      maxLength: 60
+      description: Teks kecil di bawah isi pesan.
+
+    Buttons:
+      type: object
+      required: [body, buttons]
+      additionalProperties: false
+      description: |
+        Pesan dengan tombol balasan. Kontak yang menekan tombol mengirim balik
+        `id`-nya, yang sampai sebagai `replyId` di event `message.received`.
+      properties:
+        header: { $ref: '#/components/schemas/InteractiveHeader' }
+        headerImage:
+          type: string
+          format: uri
+          description: Gambar di atas isi pesan, sebagai ganti `header`. Harus https.
+        body: { $ref: '#/components/schemas/InteractiveBody' }
+        footer: { $ref: '#/components/schemas/InteractiveFooter' }
+        buttons:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            required: [id, title]
+            additionalProperties: false
+            properties:
+              id: { type: string, maxLength: 256, description: 'Unik dalam satu pesan.' }
+              title: { type: string, maxLength: 20 }
+
+    List:
+      type: object
+      required: [body, buttonText, sections]
+      additionalProperties: false
+      description: |
+        Menu pilihan yang dibuka dengan satu tombol. Maksimal **10 baris dijumlah dari
+        semua section**, bukan per section. Baris yang dipilih sampai sebagai `replyId`.
+      properties:
+        header: { $ref: '#/components/schemas/InteractiveHeader' }
+        body: { $ref: '#/components/schemas/InteractiveBody' }
+        footer: { $ref: '#/components/schemas/InteractiveFooter' }
+        buttonText:
+          type: string
+          maxLength: 20
+          description: Label tombol pembuka menu.
+        sections:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: object
+            required: [title, rows]
+            additionalProperties: false
+            properties:
+              title: { type: string, maxLength: 24 }
+              rows:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  required: [id, title]
+                  additionalProperties: false
+                  properties:
+                    id: { type: string }
+                    title: { type: string, maxLength: 24 }
+                    description: { type: string, maxLength: 72 }
+
+    CtaUrl:
+      type: object
+      required: [body, displayText, url]
+      additionalProperties: false
+      description: Pesan dengan satu tombol yang membuka link, tanpa menampilkan URL panjangnya.
+      properties:
+        header: { $ref: '#/components/schemas/InteractiveHeader' }
+        body: { $ref: '#/components/schemas/InteractiveBody' }
+        footer: { $ref: '#/components/schemas/InteractiveFooter' }
+        displayText: { type: string, description: Label tombol. }
+        url: { type: string, format: uri, description: Harus https. }
+
+    FlowForm:
+      type: object
+      required: [body, cta, flowId, screen]
+      additionalProperties: false
+      description: |
+        Formulir WhatsApp Flows (mode navigate, tanpa endpoint data). Formulirnya dibuat
+        dan diterbitkan di WABA lebih dulu; jawaban kontak datang sebagai `message.received`
+        dengan `content.type: "form_reply"`.
+      properties:
+        header: { $ref: '#/components/schemas/InteractiveHeader' }
+        body: { $ref: '#/components/schemas/InteractiveBody' }
+        footer: { $ref: '#/components/schemas/InteractiveFooter' }
+        cta: { type: string, description: Label tombol pembuka formulir. }
+        flowId: { type: string, description: ID formulir di Meta. }
+        screen: { type: string, description: 'Layar pertama, sesuai nama di Flow JSON.' }
+        flowToken:
+          type: string
+          maxLength: 200
+          description: Kembali bersama jawaban formulir. Dibuatkan platform kalau kosong.
+        data:
+          type: object
+          additionalProperties: true
+          description: Isian awal layar pertama.
+        mode:
+          type: string
+          enum: [published, draft]
+          default: published
+          description: '`draft` hanya sampai ke orang yang punya akses ke WABA; untuk uji coba.'
+
+    Template:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        language: { type: string }
+        category: { type: string, description: 'MARKETING, UTILITY, atau AUTHENTICATION.' }
+        status: { type: string, enum: [draft, pending, approved, rejected, paused, disabled] }
+        rejectionReason: { type: [string, 'null'] }
+        wabaId: { type: string }
+        params:
+          type: array
+          description: Isian yang wajib diberikan saat mengirim template ini.
+          items:
+            type: object
+            properties:
+              key: { type: string, description: 'Kunci di `template.params`.' }
+              component: { type: string, enum: [header, body, button] }
+              format: { type: string, enum: [text, image, video, document, coupon] }
+              example: { type: [string, 'null'], description: Contoh isian dari pengajuan template ke Meta. }
+        preview:
+          type: object
+          description: Teks template dengan placeholder yang belum diisi.
+        syncedAt: { type: [string, 'null'], format: date-time }
+
+    ContactInput:
+      type: object
+      properties:
+        name:
+          type: [string, 'null']
+          maxLength: 200
+        tags:
+          type: array
+          maxItems: 50
+          items: { type: string, minLength: 1, maxLength: 50 }
+          description: Mengganti seluruh daftar tag.
+        attributes:
+          type: object
+          additionalProperties:
+            type: [string, number, boolean, 'null']
+          description: Digabung dengan atribut yang ada. `null` menghapus kunci.
+
+    Contact:
+      type: object
+      required: [waId, name, tags, attributes, optInStatus, lastSeenAt, createdAt]
+      properties:
+        waId: { type: string }
+        name: { type: [string, 'null'] }
+        tags:
+          type: array
+          items: { type: string }
+        attributes:
+          type: object
+          additionalProperties: true
+        optInStatus:
+          type: string
+          enum: [unknown, opted_in, opted_out]
+        lastSeenAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    Message:
+      type: object
+      required: [messageId, waMessageId, conversationId, direction, type, content, status, sentBy, channel, contact, timestamp]
+      properties:
+        messageId: { type: string }
+        waMessageId: { type: [string, 'null'] }
+        conversationId: { type: string }
+        direction:
+          type: string
+          enum: [inbound, outbound]
+        type:
+          type: string
+          description: '`text`, `image`, `interactive`, `template`, dan lain-lain.'
+        content:
+          type: object
+          description: Isi pesan, bentuknya tergantung `type`.
+        status:
+          type: string
+          enum: [queued, sent, delivered, read, failed]
+        sentBy:
+          type: [string, 'null']
+          description: '`contact`, `user:<id>`, `flow:<id>`, `campaign:<id>`, `api:<keyId>`, atau `system`.'
+        error:
+          type: object
+          description: Hanya ada kalau pengiriman gagal.
+          properties:
+            code: { type: [string, 'null'] }
+            message: { type: string }
+        channel:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            phone: { type: [string, 'null'] }
+        contact:
+          type: object
+          properties:
+            waId: { type: string }
+            name: { type: [string, 'null'] }
+        timestamp: { type: string, format: date-time }
+
+    MessageStatus:
+      allOf:
+        - $ref: '#/components/schemas/Message'
+        - type: object
+          required: [requestId, sentAt, deliveredAt, readAt]
+          properties:
+            requestId: { type: string }
+            sentAt:
+              type: [string, 'null']
+              format: date-time
+              description: Kapan Meta menerima pesan.
+            deliveredAt:
+              type: [string, 'null']
+              format: date-time
+            readAt:
+              type: [string, 'null']
+              format: date-time
+
+    TriggerFlow:
+      type: object
+      required: [to]
+      properties:
+        to: { $ref: '#/components/schemas/Phone' }
+        channelId:
+          type: string
+          description: Boleh dikosongkan kalau org hanya punya satu nomor yang terhubung.
+        name:
+          type: string
+          maxLength: 200
+          description: Nama kontak. Hanya dipakai kalau kontaknya baru.
+        variables:
+          type: object
+          additionalProperties:
+            type: [string, number, boolean]
+          default: {}
+          description: Masuk ke sesi flow, bisa dipakai sebagai `{{nama_variabel}}`.
+        force:
+          type: boolean
+          default: false
+          description: Hentikan sesi flow lain yang sedang berjalan untuk kontak ini.
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+  responses:
+    InvalidRequest:
+      description: Body atau parameter tidak valid (`invalid_request`, `invalid_json`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: invalid_request, message: 'to: pakai kode negara (62…), bukan 0 di depan' }
+    Unauthorized:
+      description: Header Authorization kosong, atau API key tidak dikenal / sudah dicabut.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: unauthorized, message: 'Sertakan header Authorization: Bearer <api key>.' }
+    MissingScope:
+      description: API key tidak punya scope untuk endpoint ini.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: missing_scope, message: API key ini tidak punya izin messages:send. }
+    ContactNotFound:
+      description: Kontak tidak ditemukan.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: contact_not_found, message: Kontak tidak ditemukan. }
+    RateLimited:
+      description: Lebih dari 120 request per menit untuk key ini. Lihat header `Retry-After`.
+      headers:
+        Retry-After:
+          description: Detik sampai kuota pulih.
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: rate_limited, message: Maksimum 120 request per menit per API key. }

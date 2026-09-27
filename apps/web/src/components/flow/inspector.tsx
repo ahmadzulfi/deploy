@@ -2,7 +2,9 @@
 
 import { WA_LIMITS } from '@wa/core/limits'
 import { NODE_LABELS, type NodeData } from '@wa/core/flow'
+import { flowTemplateValues, renderTemplate, templateSlots } from '@wa/core/templates'
 import { cn } from '@/lib/utils'
+import { useTemplates } from './templates-context'
 
 const input =
   'h-8 w-full rounded-md border bg-surface px-2 text-[12px] outline-none placeholder:text-fg-muted focus:border-accent'
@@ -41,6 +43,16 @@ export function Inspector({
       </div>
     </aside>
   )
+}
+
+/**
+ * A cleared number input reports '', which Number() turns into 0 — and a 0
+ * here means "give up instantly", not "no limit". Snapping back on blur keeps
+ * a half-typed value from being saved as a node that never waits.
+ */
+const atLeast = (raw: string, min: number) => {
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= min ? n : min
 }
 
 function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => void }) {
@@ -370,33 +382,8 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
     }
 
     case 'sendTemplate':
-      return (
-        <>
-          <Field label="Nama template" hint="Harus sudah disetujui Meta.">
-            <input
-              className={input}
-              value={data.templateName}
-              onChange={(e) => set({ templateName: e.target.value })}
-              placeholder="konfirmasi_pesanan"
-            />
-          </Field>
-          <Field label="Bahasa">
-            <input
-              className={input}
-              value={data.language}
-              onChange={(e) => set({ language: e.target.value })}
-            />
-          </Field>
-          <Field label="Parameter body" hint="Satu per baris, urut. Boleh {{variabel}}.">
-            <textarea
-              rows={3}
-              className={area}
-              value={data.bodyParams.join('\n')}
-              onChange={(e) => set({ bodyParams: e.target.value.split('\n') })}
-            />
-          </Field>
-        </>
-      )
+      return <TemplateFields data={data} set={set} />
+
 
     case 'waitReply':
       return (
@@ -450,6 +437,7 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
               className={input}
               value={data.timeoutMinutes}
               onChange={(e) => set({ timeoutMinutes: Number(e.target.value) })}
+              onBlur={(e) => set({ timeoutMinutes: atLeast(e.target.value, 1) })}
             />
           </Field>
         </>
@@ -525,6 +513,7 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
             className={input}
             value={data.seconds}
             onChange={(e) => set({ seconds: Number(e.target.value) })}
+            onBlur={(e) => set({ seconds: atLeast(e.target.value, 1) })}
           />
         </Field>
       )
@@ -588,6 +577,157 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
         </Field>
       )
   }
+}
+
+const MEDIA_LABEL = { image: 'gambar', video: 'video', document: 'dokumen' } as const
+
+function TemplateFields({
+  data,
+  set,
+}: {
+  data: Extract<NodeData, { kind: 'sendTemplate' }>
+  set: (p: Partial<NodeData>) => void
+}) {
+  const templates = useTemplates()
+  const current = templates.find((t) => t.name === data.templateName && t.language === data.language)
+  const slots = current ? templateSlots(current.components) : []
+  const bodySlots = slots.filter((s) => s.component === 'body')
+  const header = slots.find((s) => s.component === 'header')
+  const buttonSlots = slots.filter((s) => s.component === 'button')
+  const preview = current ? renderTemplate(current.components, flowTemplateValues(current.components, data)) : null
+
+  // Nothing synced yet: keep the old free-text fields so a flow can still be
+  // built, rather than locking the node behind a sync the author may not
+  // have permission to run.
+  if (templates.length === 0) {
+    return (
+      <>
+        <p className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-fg-muted">
+          Belum ada template tersinkron. Buat atau sinkronkan di halaman Template supaya bisa dipilih di sini.
+        </p>
+        <Field label="Nama template" hint="Harus sudah disetujui Meta.">
+          <input
+            className={input}
+            value={data.templateName}
+            onChange={(e) => set({ templateName: e.target.value })}
+            placeholder="konfirmasi_pesanan"
+          />
+        </Field>
+        <Field label="Bahasa">
+          <input className={input} value={data.language} onChange={(e) => set({ language: e.target.value })} />
+        </Field>
+        <Field label="Parameter body" hint="Satu per baris, urut. Boleh {{variabel}}.">
+          <textarea
+            rows={3}
+            className={area}
+            value={data.bodyParams.join('\n')}
+            onChange={(e) => set({ bodyParams: e.target.value.split('\n') })}
+          />
+        </Field>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Field label="Template" hint="Hanya yang sudah disetujui Meta.">
+        <select
+          className={input}
+          value={data.templateName ? `${data.templateName}::${data.language}` : ''}
+          onChange={(e) => {
+            const t = templates.find((t) => `${t.name}::${t.language}` === e.target.value)
+            if (!t) return set({ templateName: '', bodyParams: [], headerParam: '' })
+            const count = templateSlots(t.components).filter((s) => s.component === 'body').length
+            set({
+              templateName: t.name,
+              language: t.language,
+              // Keep what was typed when switching between similar templates.
+              bodyParams: Array.from({ length: count }, (_, i) => data.bodyParams[i] ?? ''),
+              headerParam: '',
+            })
+          }}
+        >
+          <option value="">— pilih template —</option>
+          {data.templateName && !current && (
+            <option value={`${data.templateName}::${data.language}`}>
+              {data.templateName} ({data.language}) — tidak ada di hasil sinkron
+            </option>
+          )}
+          {templates.map((t) => (
+            <option key={`${t.name}::${t.language}`} value={`${t.name}::${t.language}`}>
+              {t.name} ({t.language})
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {data.templateName && !current && (
+        <p className="text-[11px] text-warn">
+          Template ini tidak ada (atau belum disetujui) di hasil sinkron terakhir. Pengiriman kemungkinan ditolak Meta.
+        </p>
+      )}
+
+      {header && (
+        <Field
+          label={header.format === 'text' ? `Header {{${header.name}}}` : `Link ${MEDIA_LABEL[header.format as keyof typeof MEDIA_LABEL]} header`}
+          hint={header.format === 'text' ? 'Boleh {{variabel}}.' : 'URL https publik — Meta yang mengunduhnya.'}
+        >
+          <input
+            className={input}
+            value={data.headerParam}
+            onChange={(e) => set({ headerParam: e.target.value })}
+            placeholder={header.example ?? (header.format === 'text' ? '' : 'https://…')}
+          />
+        </Field>
+      )}
+
+      {bodySlots.map((s, i) => (
+        <Field key={s.key} label={`Body {{${s.name}}}`}>
+          <input
+            className={input}
+            value={data.bodyParams[i] ?? ''}
+            onChange={(e) => {
+              const bodyParams = Array.from({ length: bodySlots.length }, (_, j) => data.bodyParams[j] ?? '')
+              bodyParams[i] = e.target.value
+              set({ bodyParams })
+            }}
+            placeholder={s.example ?? 'teks atau {{variabel}}'}
+          />
+        </Field>
+      ))}
+
+      {buttonSlots.length > 0 && (
+        <p className="text-[11px] text-warn">
+          Template ini punya tombol dengan parameter (URL dinamis / kode kupon) yang belum bisa diisi dari flow.
+        </p>
+      )}
+
+      {preview && <TemplatePreviewBox preview={preview} />}
+    </>
+  )
+}
+
+function TemplatePreviewBox({ preview }: { preview: ReturnType<typeof renderTemplate> }) {
+  return (
+    <div className="rounded-md border bg-bg p-2 text-[11px]">
+      <div className="mb-1 text-[10px] text-fg-muted">Pratinjau</div>
+      {preview.headerMedia && (
+        <div className="mb-1 text-fg-muted italic">[{MEDIA_LABEL[preview.headerMedia]}]</div>
+      )}
+      {preview.header && <div className="mb-1 font-medium text-fg">{preview.header}</div>}
+      <div className="whitespace-pre-wrap text-fg">{preview.body}</div>
+      {preview.footer && <div className="mt-1 text-fg-muted">{preview.footer}</div>}
+      {preview.buttons.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {preview.buttons.map((b, i) => (
+            <div key={i} className="rounded bg-surface px-2 py-0.5 text-center text-accent">
+              {b}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function Field({

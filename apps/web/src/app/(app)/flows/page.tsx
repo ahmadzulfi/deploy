@@ -27,7 +27,7 @@ export default async function FlowsPage() {
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-4xl p-6">
         <div className="mb-1 flex items-baseline justify-between">
-          <h1 className="text-base text-fg">Flow</h1>
+          <h1 className="text-h5 text-fg">Flow</h1>
           <span className="text-xs text-fg-muted">{flows.length} flow</span>
         </div>
         <p className="mb-5 text-xs text-fg-muted">
@@ -65,7 +65,7 @@ export default async function FlowsPage() {
               placeholder="Nama flow baru"
               className="h-9 w-64 rounded-md border bg-surface px-3 text-sm outline-none placeholder:text-fg-muted focus:border-accent"
             />
-            <button className="h-9 rounded-md bg-fg px-3 text-sm text-white hover:opacity-90">
+            <button className="h-9 rounded-md bg-fg px-3 text-sm text-on-fg hover:opacity-90">
               Buat flow
             </button>
           </form>

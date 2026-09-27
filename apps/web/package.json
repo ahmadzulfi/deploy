@@ -9,19 +9,20 @@
     "user:add": "tsx src/scripts/user-add.ts"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.3.0",
     "@wa/core": "workspace:*",
     "@wa/db": "workspace:*",
+    "@xyflow/react": "^12.3.5",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "nanoid": "^5.0.9",
     "next": "^15.1.0",
     "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.5.4",
-    "zod": "^3.23.8",
-    "dotenv": "^16.4.5",
-    "@xyflow/react": "^12.3.5",
-    "nanoid": "^5.0.9"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

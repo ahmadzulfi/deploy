@@ -112,7 +112,7 @@ export function Connections({
         ) : (
           <button
             onClick={() => setOpen(true)}
-            className="mt-3 h-9 rounded-md bg-fg px-3 text-sm text-white hover:opacity-90"
+            className="mt-3 h-9 rounded-md bg-fg px-3 text-sm text-on-fg hover:opacity-90"
           >
             Hubungkan WABA
           </button>
@@ -257,7 +257,7 @@ function Submit() {
   return (
     <button
       disabled={pending}
-      className="h-9 rounded-md bg-fg px-3 text-sm text-white hover:opacity-90 disabled:opacity-50"
+      className="h-9 rounded-md bg-fg px-3 text-sm text-on-fg hover:opacity-90 disabled:opacity-50"
     >
       {pending ? 'Memverifikasi ke Meta…' : 'Verifikasi dan hubungkan'}
     </button>

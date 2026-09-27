@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { WindowBadge } from '@/components/window-badge'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +32,15 @@ export function ConversationRow({
 }) {
   const active = usePathname() === `/inbox/${id}`
 
+  // markRead no longer refreshes the layout, so this row forgets its own
+  // badge once opened. Remembering the count it cleared lets a fresh one
+  // (new messages after a refresh) show again.
+  const [clearedAt, setClearedAt] = useState<number | null>(null)
+  useEffect(() => {
+    if (active && unreadCount > 0) setClearedAt(unreadCount)
+  }, [active, unreadCount])
+  const showUnread = unreadCount > 0 && !active && clearedAt !== unreadCount
+
   return (
     <Link
       href={`/inbox/${id}`}
@@ -50,8 +60,8 @@ export function ConversationRow({
       <div className="mt-1.5 flex items-center gap-1.5">
         <WindowBadge expiresAt={windowExpiresAt} />
         <span className="truncate text-[10px] text-fg-muted">{channelName}</span>
-        {unreadCount > 0 && (
-          <span className="ml-auto shrink-0 rounded-full bg-accent px-1.5 text-[10px] text-white">
+        {showUnread && (
+          <span className="ml-auto shrink-0 rounded-full bg-accent px-1.5 text-[10px] text-on-accent">
             {unreadCount}
           </span>
         )}

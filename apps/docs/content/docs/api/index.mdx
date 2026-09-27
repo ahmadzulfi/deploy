@@ -1,0 +1,114 @@
+---
+title: Public API
+description: Autentikasi, batas, format error, dan daftar endpoint.
+---
+
+Dua arah integrasi dengan sistem lain:
+
+- **Public API** — sistem lain memanggil platform ini: mengirim pesan, mengatur
+  kontak, memicu flow.
+- **[Webhook keluar](/docs/api/webhook-keluar)** — platform ini memberi tahu
+  sistem lain saat ada kejadian.
+
+## Base URL
+
+```text
+<PUBLIC_WEBHOOK_ORIGIN>/api/v1
+```
+
+API ini dilayani service webhook, jadi origin-nya sama dengan callback Meta.
+
+## Autentikasi
+
+Buat API key di **Pengaturan → API key**, lalu kirim di setiap request:
+
+```text
+Authorization: Bearer wa_xxxxxxxx
+```
+
+`X-API-Key: wa_xxxxxxxx` juga diterima.
+
+Tiap key punya scope sendiri; key tanpa scope yang dibutuhkan dibalas **403
+`missing_scope`**. Scope tiap endpoint ada di [tabel di bawah](#endpoint).
+
+Kunci penuh hanya tampil **sekali** saat dibuat — yang disimpan platform hanya
+hash-nya.
+
+### Membatasi key ke nomor tertentu
+
+Saat membuat key, centang nomor yang boleh dipakai. Tanpa centang, key berlaku untuk
+semua nomor, termasuk yang ditambahkan nanti.
+
+Key yang dibatasi hanya **melihat** nomornya sendiri: `GET /channels` tidak
+menampilkan nomor lain, riwayat dan status pesan dari nomor lain dibalas kosong atau
+`404`, dan memakai nomor lain secara eksplisit dibalas **403 `channel_forbidden`**.
+Data kontak (nama, tag, atribut) tetap satu untuk seluruh org.
+
+## Batas
+
+120 request per menit per key, dihitung per menit kalender. Header
+`X-RateLimit-Remaining` menunjukkan sisa kuota, dan `Retry-After` ikut dikirim saat
+kena **429**. Hitungannya disimpan di Redis, jadi tetap berlaku setelah server
+restart, dan semua instance webhook memakai hitungan yang sama.
+
+## Error
+
+Selalu berbentuk:
+
+```json
+{ "error": { "code": "window_closed", "message": "…" } }
+```
+
+## Nomor telepon
+
+Ditulis dengan kode negara, misalnya `6281234567890`. Tanda `+`, spasi, dan `-`
+dibuang otomatis. Nomor yang diawali `0` ditolak, karena negaranya tidak bisa
+ditebak.
+
+## Endpoint
+
+| Endpoint | Scope |
+|---|---|
+| [`GET /channels`](/docs/api/daftar-channel) | — |
+| [`POST /messages`](/docs/api/kirim-pesan) | `messages:send` |
+| [`GET /messages/:requestId`](/docs/api/status-pesan) | `messages:read` |
+| [`POST /media`](/docs/api/unggah-media) | `messages:send` |
+| [`GET /templates`](/docs/api/daftar-template) | `templates:read` |
+| [`GET /contacts/:waId`](/docs/api/ambil-kontak) | `contacts:read` |
+| [`PUT /contacts/:waId`](/docs/api/simpan-kontak) | `contacts:write` |
+| [`GET /contacts/:waId/messages`](/docs/api/riwayat-pesan) | `messages:read` |
+| [`GET /flows`](/docs/api/daftar-flow) | `flows:read` |
+| [`POST /flows/:flowId/trigger`](/docs/api/picu-flow) | `flows:trigger` |
+
+Scope `templates:read` dan `flows:read` baru ditambahkan. Key yang dibuat sebelumnya
+tidak otomatis memilikinya; buat key baru kalau butuh keduanya.
+
+Setiap halaman endpoint punya contoh kode cURL, Python, JavaScript, PHP, Go, dan
+Java, contoh respons per status code, dan tombol untuk mencobanya langsung.
+
+## Mencoba langsung
+
+Di halaman endpoint, pilih server, isi API key di bagian **Authorization**, lalu
+kirim. Request dilewatkan proxy milik situs dokumentasi ini (`/api/proxy`),
+karena service webhook sengaja tidak mengirim header CORS.
+
+Proxy hanya mau meneruskan ke dua origin:
+
+- `http://localhost:3001` — service webhook lokal (`pnpm dev:webhook`)
+- nilai `PUBLIC_WEBHOOK_ORIGIN` di `.env` root
+
+<Callout type="warn">
+Tombol kirim memanggil API sungguhan. `POST /messages` akan benar-benar
+mengirim WhatsApp ke nomor yang kamu isi.
+</Callout>
+
+Setelah mengubah `PUBLIC_WEBHOOK_ORIGIN`, jalankan ulang `pnpm dev:docs`.
+
+## Sumber halaman endpoint
+
+Halaman endpoint di-generate dari `apps/docs/openapi.yaml`. Mengubah perilaku
+`apps/webhook/src/api.ts` berarti mengubah berkas itu juga — halaman, contoh
+kode, dan playground ikut dengan sendirinya.
+
+Berkas itu dibaca sekali saat server docs menyala. Setelah mengubahnya, jalankan
+ulang `pnpm dev:docs`; endpoint baru baru muncul setelah restart.

@@ -1,0 +1,105 @@
+---
+title: Webhook keluar
+description: Event yang dikirim platform ini ke sistem lain, beserta cara memverifikasinya.
+---
+
+Diatur di **Pengaturan → Webhook keluar**. Secret untuk verifikasi ditampilkan
+**sekali** saat endpoint dibuat.
+
+URL-nya harus **https** dan mengarah ke alamat publik. Alamat jaringan internal
+(`10.x`, `192.168.x`, `127.0.0.1`, metadata cloud, dan sejenisnya) ditolak, baik saat
+disimpan maupun di setiap pengiriman — termasuk domain yang DNS-nya belakangan
+diarahkan ke alamat seperti itu. Saat development, `http://localhost` masih diizinkan.
+
+## Event
+
+| Event | Kapan |
+|---|---|
+| `message.received` | Kontak mengirim pesan |
+| `message.sent` | Meta menerima pesan keluar, baik dari bot, agen, API, maupun sistem |
+| `message.delivered` | Pesan sampai di HP kontak |
+| `message.read` | Pesan dibaca kontak (kalau centang biru tidak dimatikan) |
+| `message.failed` | Pengiriman ditolak, atau Meta belakangan melaporkan gagal |
+| `flow.completed` | Flow selesai atau diserahkan ke agen, beserta variabel yang dikumpulkan |
+| `ping` | Hanya dari tombol **Tes** di dashboard |
+
+## Bentuk request
+
+```text
+POST <url kamu>
+Content-Type: application/json
+X-WA-Event: message.received
+X-WA-Delivery: <id unik pengiriman>
+X-WA-Timestamp: 1790000000
+X-WA-Signature: sha256=<hex>
+```
+
+```json
+{
+  "id": "<sama dengan X-WA-Delivery>",
+  "event": "message.received",
+  "createdAt": "2026-09-23T01:02:03.000Z",
+  "data": {
+    "messageId": "cm…",
+    "waMessageId": "wamid…",
+    "conversationId": "cm…",
+    "direction": "inbound",
+    "type": "text",
+    "content": { "type": "text", "body": "halo" },
+    "status": "delivered",
+    "sentBy": "contact",
+    "channel": { "id": "cm…", "name": "CS Utama", "phone": "+62 811…" },
+    "contact": { "waId": "62811…", "name": "Budi" },
+    "timestamp": "2026-09-23T01:02:03.000Z"
+  }
+}
+```
+
+Untuk pesan masuk, `content` bergantung pada `type`. Dua yang paling sering dipakai
+integrasi:
+
+| `type` | `content` |
+|---|---|
+| `interactive` | `{ "replyId": "hadir", "title": "Hadir" }` — tombol atau baris daftar yang dipilih |
+| `form_reply` | `{ "flowToken": "daftar-lap-0042", "response": { "nama": "Budi", … } }` — jawaban formulir |
+
+Event `message.sent` dan `message.failed` untuk pesan dari API juga membawa
+`requestId` — nilai yang sama dengan respons `POST /messages`, dan bisa dipakai di
+[`GET /messages/:requestId`](/docs/api/status-pesan) kalau webhook terlewat. Event `message.failed` membawa `error: { code, message }`.
+
+## Verifikasi tanda tangan
+
+Hitung HMAC-SHA256 dari `<X-WA-Timestamp>.<body mentah>` dengan secret endpoint,
+lalu bandingkan dengan `X-WA-Signature`. Tolak juga request yang timestamp-nya
+terlalu jauh dari sekarang, misalnya lebih dari 5 menit.
+
+```js
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+function verify(rawBody, headers, secret) {
+  const ts = headers['x-wa-timestamp']
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false
+  const expected = 'sha256=' + createHmac('sha256', secret).update(`${ts}.${rawBody}`).digest('hex')
+  const got = headers['x-wa-signature'] ?? ''
+  return got.length === expected.length && timingSafeEqual(Buffer.from(got), Buffer.from(expected))
+}
+```
+
+## Pengiriman ulang
+
+- Respons **2xx** dianggap berhasil. Respons lain, timeout 10 detik, atau error
+  jaringan dianggap gagal.
+- Pengiriman yang gagal diulang setelah **10 dtk, 1 mnt, 5 mnt, 30 mnt, 2 jam,
+  dan 6 jam** — total 7 percobaan dalam sekitar 8 jam. Setelah itu statusnya
+  `failed` dan bisa dikirim ulang manual dari log di dashboard.
+- Redirect tidak diikuti.
+- Event yang sama bisa sampai lebih dari sekali. Pakai `id` untuk membuang
+  duplikat.
+- Urutan kedatangan antar event tidak dijamin. Pakai `timestamp` di `data`.
+
+<Callout type="info">
+Event ditulis sebagai baris outbox (`WebhookDelivery`) di tempat kejadiannya,
+lalu dikuras worker. Karena itu dashboard bisa memunculkan event tanpa koneksi
+antrean, dan penerima yang sedang mati hanya menunda pengiriman, bukan
+menghilangkannya.
+</Callout>

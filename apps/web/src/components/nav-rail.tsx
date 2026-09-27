@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-const ITEMS = [
+const ITEMS: { href: string; label: string; icon: () => React.JSX.Element; soon?: boolean }[] = [
+  { href: '/', label: 'Beranda', icon: IconHome },
   { href: '/inbox', label: 'Inbox', icon: IconMessage },
-  { href: '/contacts', label: 'Kontak', icon: IconUsers, soon: true },
+  { href: '/contacts', label: 'Kontak', icon: IconUsers },
   { href: '/flows', label: 'Flow', icon: IconFlow },
-  { href: '/broadcast', label: 'Broadcast', icon: IconSend, soon: true },
+  { href: '/broadcast', label: 'Broadcast', icon: IconSend },
+  { href: '/templates', label: 'Template', icon: IconTemplate },
   { href: '/channels', label: 'Nomor', icon: IconPhone },
   { href: '/settings', label: 'Pengaturan', icon: IconSettings },
 ]
@@ -17,25 +19,34 @@ export function NavRail() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r bg-muted py-3">
-      <div className="mb-2 flex size-8 items-center justify-center rounded-lg bg-accent-bg text-xs text-accent">
+    // Navy in both modes, like the design system's header; the orange mark is
+    // the one brand moment every page carries.
+    <nav className="flex w-16 shrink-0 flex-col items-center gap-1 bg-rail py-3">
+      <Link
+        href="/"
+        className="mb-3 flex size-9 items-center justify-center rounded-xl bg-brand text-[13px] font-bold tracking-tight text-on-brand"
+        title="WhatsApp Platform"
+      >
         WA
-      </div>
+      </Link>
       {ITEMS.map(({ href, label, icon: Icon, soon }) => {
-        const active = pathname.startsWith(href)
+        // Every path starts with '/', so home only counts on an exact match.
+        const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
         return (
           <Link
             key={href}
             href={soon ? '#' : href}
             aria-disabled={soon}
+            aria-current={active ? 'page' : undefined}
             title={soon ? `${label} — belum tersedia` : label}
             className={cn(
-              'flex size-9 items-center justify-center rounded-md transition-colors',
-              active ? 'bg-surface text-fg shadow-xs' : 'text-fg-muted hover:text-fg',
-              soon && 'cursor-not-allowed opacity-40 hover:text-fg-muted',
+              'relative flex size-10 items-center justify-center rounded-xl transition-colors',
+              active ? 'bg-rail-active text-rail-active-fg' : 'text-rail-fg hover:bg-rail-active/60 hover:text-rail-active-fg',
+              soon && 'cursor-not-allowed opacity-40 hover:text-rail-fg',
             )}
             onClick={soon ? (e) => e.preventDefault() : undefined}
           >
+            {active && <span aria-hidden className="absolute -left-3 h-5 w-1 rounded-r-full bg-brand" />}
             <Icon />
             <span className="sr-only">{label}</span>
           </Link>
@@ -55,6 +66,16 @@ const svg = {
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   'aria-hidden': true,
+}
+
+function IconHome() {
+  return (
+    <svg {...svg}>
+      <path d="M3.5 10.5 12 3.5l8.5 7" />
+      <path d="M5.5 9v10.5h13V9" />
+      <path d="M10 19.5v-5h4v5" />
+    </svg>
+  )
 }
 
 function IconMessage() {
@@ -90,6 +111,15 @@ function IconSend() {
   return (
     <svg {...svg}>
       <path d="M4 12 20 4l-8 16-2-6-6-2Z" />
+    </svg>
+  )
+}
+
+function IconTemplate() {
+  return (
+    <svg {...svg}>
+      <rect x="4.5" y="3" width="15" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
     </svg>
   )
 }

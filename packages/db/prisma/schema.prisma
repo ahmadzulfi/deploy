@@ -106,6 +106,12 @@ enum RecipientStatus {
   SKIPPED
 }
 
+enum DeliveryStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
 enum Role {
   OWNER
   ADMIN
@@ -141,6 +147,7 @@ model Organization {
   apiKeys     ApiKey[]
   auditLogs   AuditLog[]
   connections WabaConnection[]
+  webhookEndpoints WebhookEndpoint[]
 }
 
 model User {
@@ -321,6 +328,11 @@ model Conversation {
   // True once a human agent takes over. The flow engine skips these entirely.
   botPaused Boolean @default(false)
 
+  // When the handover happened, refreshed by every manual reply. An agent who
+  // walks away would otherwise leave the bot muted for this contact forever,
+  // so the worker hands it back once this goes stale.
+  botPausedAt DateTime?
+
   lastMessageAt DateTime?
   unreadCount   Int      @default(0)
   createdAt     DateTime @default(now())
@@ -345,6 +357,12 @@ model Message {
 
   // Meta's message id. This unique constraint is the webhook dedupe guarantee.
   waMessageId String? @unique
+
+  /// Handed back by the public API's POST /messages and looked up by
+  /// GET /messages/:requestId. Only API sends have one: those create their
+  /// row as QUEUED up front, so the status is answerable before the worker
+  /// has touched the job.
+  requestId String? @unique
 
   type    String // text | image | interactive | template | ...
   payload Json
@@ -519,10 +537,26 @@ model Campaign {
   throttlePerMin Int            @default(60)
   status         CampaignStatus @default(DRAFT)
 
+  // Tallies of the recipient rows, rewritten by every runner tick. Cached
+  // here so the list page does not group every campaign's recipients.
   totalCount   Int @default(0)
   sentCount    Int @default(0)
   failedCount  Int @default(0)
   skippedCount Int @default(0)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  /// Why the runner stopped on its own - a template Meta paused, a number
+  /// that was removed. Cleared when someone resumes the campaign.
+  error String?
+
+  /// Claimed at the start of each runner tick. A second tick chain - from a
+  /// resume, or the backstop re-arming a campaign that looked stalled -
+  /// finds it fresh and stands down instead of doubling the send rate.
+  lastTickAt DateTime?
+
+  createdById String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -550,6 +584,8 @@ model CampaignRecipient {
 
   @@unique([campaignId, contactId])
   @@index([campaignId, status])
+  // Send outcomes and Meta status callbacks find the recipient by message.
+  @@index([messageId])
 }
 
 // ============================================================
@@ -599,6 +635,9 @@ model ApiKey {
   name       String
   hashedKey  String    @unique
   scopes     String[]  @default([])
+  /// Numbers this key may send from and read. Empty = every channel in the
+  /// org, which is what keys made before this column existed keep meaning.
+  channelIds String[]  @default([])
   lastUsedAt DateTime?
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
@@ -606,4 +645,63 @@ model ApiKey {
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+}
+
+// ============================================================
+// Outgoing webhooks - events pushed to systems outside this platform
+// ============================================================
+
+/// A URL outside the platform that wants to hear about events.
+model WebhookEndpoint {
+  id    String @id @default(cuid())
+  orgId String
+  name  String
+  url   String
+
+  /// AES-256-GCM. Signs every delivery; the receiver holds the plaintext.
+  secretEnc String
+
+  /// Event names this endpoint subscribes to, e.g. "message.received".
+  events String[]
+  active Boolean  @default(true)
+
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  lastError     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org        Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([orgId])
+}
+
+/// Outbox row: one event bound for one endpoint.
+///
+/// Written in the same place the event happens and drained by the worker,
+/// so the dashboard can raise events without a queue connection, and a
+/// receiver that is down only delays delivery instead of losing it.
+model WebhookDelivery {
+  id         String         @id @default(cuid())
+  endpointId String
+  event      String
+  data       Json
+  status     DeliveryStatus @default(PENDING)
+  attempts   Int            @default(0)
+
+  /// Also serves as the claim lease: a worker pushes it forward before
+  /// sending, so a second worker does not pick the same row.
+  nextAttemptAt DateTime @default(now())
+
+  responseStatus Int?
+  error          String?
+  createdAt      DateTime  @default(now())
+  deliveredAt    DateTime?
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
 }

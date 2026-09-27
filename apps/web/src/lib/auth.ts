@@ -66,6 +66,11 @@ export async function requireUser() {
 
 const RANK: Record<Role, number> = { VIEWER: 0, AGENT: 1, SUPERVISOR: 2, ADMIN: 3, OWNER: 4 }
 
+/** For forms that answer "not allowed" in their state instead of throwing. */
+export function hasRole(user: { role: Role }, min: Role) {
+  return RANK[user.role] >= RANK[min]
+}
+
 export async function requireRole(min: Role) {
   const user = await requireUser()
   if (RANK[user.role] < RANK[min]) throw new Error(`requires ${min} or above`)

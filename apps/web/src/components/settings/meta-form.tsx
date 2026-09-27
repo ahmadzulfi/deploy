@@ -109,7 +109,7 @@ function Submit() {
   return (
     <button
       disabled={pending}
-      className="mt-4 h-9 rounded-md bg-fg px-3 text-sm text-white hover:opacity-90 disabled:opacity-50"
+      className="mt-4 h-9 rounded-md bg-fg px-3 text-sm text-on-fg hover:opacity-90 disabled:opacity-50"
     >
       {pending ? 'Menyimpan…' : 'Simpan'}
     </button>

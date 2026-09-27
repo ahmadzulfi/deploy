@@ -1,7 +1,11 @@
 import { Worker, type Job } from 'bullmq'
 import { prisma, Prisma, FlowStatus, OptInStatus, SessionStatus, type Channel, type Contact } from '@wa/db'
 import {
+  buildTemplateComponents,
+  emitEvent,
   flowGraphSchema,
+  flowTemplateValues,
+  IDLE_TIMEOUT_MINUTES,
   logger,
   matchTrigger,
   nextNodeId,
@@ -23,7 +27,11 @@ export interface FlowJob {
   input:
     | { kind: 'inbound'; messageType: string; text?: string; replyId?: string; isNewConversation?: boolean }
     | { kind: 'resume'; sessionId: string }
-    | { kind: 'timeout'; sessionId: string }
+    // The step the wait began on: a timeout that fires after the session has
+    // moved on is stale and must not drop a wait that is still live.
+    | { kind: 'timeout'; sessionId: string; stepCount?: number }
+    /** Started by the public API on a flow's "Dipicu lewat API" trigger. */
+    | { kind: 'api'; flowId: string; variables: Record<string, string>; force?: boolean }
 }
 
 export function startFlowWorker() {
@@ -58,6 +66,11 @@ async function handle(job: FlowJob) {
     return
   }
 
+  if (job.input.kind === 'api') {
+    await startFromApi(job.input, conversation)
+    return
+  }
+
   const session = await activeSession(job, conversation.id)
 
   if (job.input.kind === 'inbound') {
@@ -85,11 +98,22 @@ type Conversation = Awaited<ReturnType<typeof prisma.conversation.findUnique>> &
 }
 
 async function activeSession(job: FlowJob, conversationId: string) {
-  if (job.input.kind !== 'inbound') {
-    return prisma.flowSession.findFirst({
+  if (job.input.kind === 'resume' || job.input.kind === 'timeout') {
+    const session = await prisma.flowSession.findFirst({
       where: { id: job.input.sessionId, status: SessionStatus.WAITING },
       include: { flowVersion: true },
     })
+    if (
+      session &&
+      job.input.kind === 'timeout' &&
+      job.input.stepCount !== undefined &&
+      job.input.stepCount !== session.stepCount
+    ) {
+      // The contact answered and the flow walked on; this timeout belongs to
+      // a wait that is already over.
+      return null
+    }
+    return session
   }
   return prisma.flowSession.findFirst({
     where: { conversationId, status: SessionStatus.WAITING },
@@ -155,8 +179,60 @@ async function start(signal: InboundSignal, conversation: Conversation) {
   }
 }
 
+/**
+ * Starts one named flow for this conversation at its API trigger.
+ *
+ * The API refuses up front when a session is already running, but a reply
+ * can start one between that check and this job, so it is checked again.
+ */
+async function startFromApi(input: Extract<FlowJob['input'], { kind: 'api' }>, conversation: Conversation) {
+  const flow = await prisma.flow.findFirst({
+    where: { id: input.flowId, orgId: conversation.channel.orgId, enabled: true, status: FlowStatus.PUBLISHED },
+    include: { publishedVersion: true },
+  })
+  const version = flow?.publishedVersion
+  if (!flow || !version) {
+    log.warn({ flowId: input.flowId }, 'flow API tidak ditemukan atau tidak aktif')
+    return
+  }
+
+  const parsed = flowGraphSchema.safeParse(version.graph)
+  const trigger = parsed.success
+    ? parsed.data.nodes.find((n) => n.data.kind === 'trigger' && n.data.match === 'api')
+    : undefined
+  const startNodeId = trigger && parsed.success ? nextNodeId(parsed.data, trigger.id, null) : null
+  if (!trigger || !startNodeId) {
+    log.warn({ flowId: flow.id }, 'flow tidak punya trigger API yang tersambung')
+    return
+  }
+
+  const running = { conversationId: conversation.id, status: { in: [SessionStatus.ACTIVE, SessionStatus.WAITING] } }
+  if (input.force) {
+    await prisma.flowSession.updateMany({ where: running, data: { status: SessionStatus.EXPIRED } })
+  } else if (await prisma.flowSession.count({ where: running })) {
+    log.info({ flowId: flow.id, conversationId: conversation.id }, 'flow API dilewati: sesi lain sedang berjalan')
+    return
+  }
+
+  const session = await prisma.flowSession.create({
+    data: {
+      flowVersionId: version.id,
+      contactId: conversation.contactId,
+      channelId: conversation.channelId,
+      conversationId: conversation.id,
+      currentNodeId: trigger.id,
+      variables: input.variables,
+      status: SessionStatus.ACTIVE,
+    },
+    include: { flowVersion: true },
+  })
+
+  log.info({ flowId: flow.id, sessionId: session.id }, 'flow dimulai lewat API')
+  await tick(session, { kind: 'start', startNodeId }, conversation)
+}
+
 type SessionRow = Awaited<ReturnType<typeof prisma.flowSession.findFirst>> & {
-  flowVersion: { id: string; graph: Prisma.JsonValue }
+  flowVersion: { id: string; flowId: string; graph: Prisma.JsonValue }
 }
 
 async function tick(session: SessionRow, input: EngineInput, conversation: Conversation) {
@@ -198,7 +274,18 @@ async function tick(session: SessionRow, input: EngineInput, conversation: Conve
     case 'waiting':
       await prisma.flowSession.update({
         where: { id: session.id },
-        data: { ...base, status: SessionStatus.WAITING, expiresAt: waitDeadline(graph, result.state) },
+        data: {
+          ...base,
+          status: SessionStatus.WAITING,
+          // A tick that moved nowhere (junk typed at a list, a re-prompt on an
+          // invalid answer) keeps the original deadline: the queued timeout is
+          // keyed by step and does not move either, and a contact must not be
+          // able to hold a session open forever by sending nonsense.
+          expiresAt:
+            result.state.stepCount === session.stepCount
+              ? session.expiresAt
+              : waitDeadline(graph, result.state),
+        },
       })
       await scheduleTimeout(graph, result.state, session.id, conversation.id)
       break
@@ -206,13 +293,27 @@ async function tick(session: SessionRow, input: EngineInput, conversation: Conve
     case 'sleeping':
       await prisma.flowSession.update({
         where: { id: session.id },
-        data: { ...base, status: SessionStatus.WAITING },
+        data: {
+          ...base,
+          status: SessionStatus.WAITING,
+          // Only the queued resume wakes a delay. Recording when it is due
+          // gives the sweeper something to act on if that job never arrives.
+          expiresAt: new Date(Date.now() + result.outcome.seconds * 1000),
+        },
       })
       await flowQueue().add(
         'resume',
         { conversationId: conversation.id, input: { kind: 'resume', sessionId: session.id } } satisfies FlowJob,
         { delay: result.outcome.seconds * 1000, jobId: `resume-${session.id}-${result.state.stepCount}` },
       )
+      break
+
+    case 'expired':
+      await prisma.flowSession.update({
+        where: { id: session.id },
+        data: { ...base, status: SessionStatus.EXPIRED },
+      })
+      log.info({ sessionId: session.id }, 'sesi kedaluwarsa tanpa balasan')
       break
 
     case 'completed':
@@ -222,6 +323,18 @@ async function tick(session: SessionRow, input: EngineInput, conversation: Conve
         data: { ...base, status: SessionStatus.COMPLETED },
       })
       log.info({ sessionId: session.id, status: result.outcome.status }, 'flow selesai')
+      await emitEvent(conversation.channel.orgId, 'flow.completed', {
+        flowId: session.flowVersion.flowId,
+        flowVersionId: session.flowVersion.id,
+        sessionId: session.id,
+        conversationId: conversation.id,
+        outcome: result.outcome.status,
+        // What the flow collected - usually the reason anyone subscribes.
+        variables: result.state.variables,
+        channel: { id: conversation.channel.id, name: conversation.channel.name, phone: conversation.channel.displayPhone },
+        contact: { waId: conversation.contact.waId, name: conversation.contact.name },
+        timestamp: new Date().toISOString(),
+      })
       break
 
     case 'failed':
@@ -234,10 +347,26 @@ async function tick(session: SessionRow, input: EngineInput, conversation: Conve
   }
 }
 
-function waitDeadline(graph: FlowGraph, state: SessionState): Date | null {
+/**
+ * Minutes this node may stay parked before the session is dropped, or null
+ * when the node does not wait for the contact at all.
+ */
+function parkMinutes(graph: FlowGraph, state: SessionState): number | null {
   const node = graph.nodes.find((n) => n.id === state.currentNodeId)
-  if (node?.data.kind !== 'waitReply') return null
-  return new Date(Date.now() + node.data.timeoutMinutes * 60_000)
+  if (!node) return null
+  // A hand-edited 0 would schedule a timeout due immediately, giving up
+  // before the contact can answer. Publishing rejects it; this covers graphs
+  // that got one in some other way.
+  if (node.data.kind === 'waitReply') return Math.max(1, node.data.timeoutMinutes)
+  // Buttons and lists answer only to a tapped reply id, so without a deadline
+  // of their own they park the conversation for good.
+  if (node.data.kind === 'sendButtons' || node.data.kind === 'sendList') return IDLE_TIMEOUT_MINUTES
+  return null
+}
+
+function waitDeadline(graph: FlowGraph, state: SessionState): Date | null {
+  const minutes = parkMinutes(graph, state)
+  return minutes === null ? null : new Date(Date.now() + minutes * 60_000)
 }
 
 async function scheduleTimeout(
@@ -246,14 +375,14 @@ async function scheduleTimeout(
   sessionId: string,
   conversationId: string,
 ) {
-  const node = graph.nodes.find((n) => n.id === state.currentNodeId)
-  if (node?.data.kind !== 'waitReply') return
+  const minutes = parkMinutes(graph, state)
+  if (minutes === null) return
 
   await flowQueue().add(
     'timeout',
-    { conversationId, input: { kind: 'timeout', sessionId } } satisfies FlowJob,
+    { conversationId, input: { kind: 'timeout', sessionId, stepCount: state.stepCount } } satisfies FlowJob,
     {
-      delay: node.data.timeoutMinutes * 60_000,
+      delay: minutes * 60_000,
       // Keyed by step so a re-prompt replaces the pending timeout rather than
       // stacking a second one.
       jobId: `timeout-${sessionId}-${state.stepCount}`,
@@ -304,15 +433,30 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
             : undefined,
       }),
     sendList: (p) => send({ kind: 'list', ...p }),
-    sendTemplate: (p) =>
-      send({
+    async sendTemplate(p) {
+      // The node only stores values in order; the synced definition says
+      // where they go - named parameters, a header, a media link. Without a
+      // synced copy fall back to plain positional body parameters.
+      const template = conversation.channel.wabaId
+        ? await prisma.template.findUnique({
+            where: {
+              wabaId_name_language: { wabaId: conversation.channel.wabaId, name: p.name, language: p.language },
+            },
+            select: { components: true },
+          })
+        : null
+
+      await send({
         kind: 'template',
         name: p.name,
         language: p.language,
-        components: p.bodyParams.length
-          ? [{ type: 'body', parameters: p.bodyParams.map((text) => ({ type: 'text', text })) }]
-          : undefined,
-      }),
+        components: template
+          ? buildTemplateComponents(template.components, flowTemplateValues(template.components, p))
+          : p.bodyParams.length
+            ? [{ type: 'body', parameters: p.bodyParams.map((text) => ({ type: 'text', text })) }]
+            : undefined,
+      })
+    },
 
     async changeTags(action, tags) {
       const current = new Set(conversation.contact.tags)
@@ -334,7 +478,7 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
     async handover() {
       await prisma.conversation.update({
         where: { id: conversation.id },
-        data: { botPaused: true },
+        data: { botPaused: true, botPausedAt: new Date() },
       })
     },
   }

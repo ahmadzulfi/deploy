@@ -11,11 +11,13 @@
     "db:studio": "pnpm --filter @wa/db studio",
     "dev:webhook": "pnpm --filter @wa/webhook dev",
     "dev:worker": "pnpm --filter @wa/worker dev",
+    "dev:web": "pnpm --filter @wa/web dev",
+    "dev:docs": "pnpm --filter @wa/docs dev",
     "channel:add": "pnpm --filter @wa/worker channel:add",
     "channel:list": "pnpm --filter @wa/worker channel:list",
     "send:test": "pnpm --filter @wa/worker send:test",
     "typecheck": "tsc -b --pretty",
-    "test": "pnpm --filter @wa/core test",
+    "test": "pnpm --filter @wa/core --filter @wa/webhook test",
     "webhook:fake": "node tools/fake-webhook.mjs"
   },
   "devDependencies": {

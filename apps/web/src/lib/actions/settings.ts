@@ -1,10 +1,10 @@
 'use server'
 
-import { randomBytes, createHash } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@wa/db'
-import { encrypt, clearMetaSettingsCache } from '@wa/core'
+import { encrypt, clearMetaSettingsCache, hashApiKey, API_SCOPES as CORE_SCOPES } from '@wa/core'
 import { requireRole } from '@/lib/auth'
 
 export type SettingsState = { error?: string; ok?: string }
@@ -61,7 +61,8 @@ export async function saveMetaSettings(
 
 export type ApiKeyState = { error?: string; created?: string }
 
-const SCOPES = ['messages:send', 'messages:read', 'contacts:write', 'flows:trigger'] as const
+// One list, shared with the API that enforces it.
+const SCOPES = CORE_SCOPES
 
 /**
  * Issues an API key for an internal system to call this platform.
@@ -81,14 +82,28 @@ export async function createApiKey(
   const scopes = SCOPES.filter((s) => formData.get(`scope:${s}`) === 'on')
   if (scopes.length === 0) return { error: 'Pilih minimal satu izin.' }
 
+  // None ticked = every number, including ones connected later. Ticked ones
+  // are re-checked against the org so a forged id cannot slip in.
+  const requested = formData.getAll('channel').map(String).filter(Boolean)
+  const channelIds = requested.length
+    ? (
+        await prisma.channel.findMany({
+          where: { orgId: user.orgId, id: { in: requested } },
+          select: { id: true },
+        })
+      ).map((c) => c.id)
+    : []
+  if (requested.length && channelIds.length !== requested.length) return { error: 'Nomor yang dipilih tidak ditemukan.' }
+
   const plain = `wa_${randomBytes(24).toString('base64url')}`
 
   await prisma.apiKey.create({
     data: {
       orgId: user.orgId,
       name,
-      hashedKey: createHash('sha256').update(plain).digest('hex'),
+      hashedKey: hashApiKey(plain),
       scopes: [...scopes],
+      channelIds,
     },
   })
 
@@ -98,7 +113,7 @@ export async function createApiKey(
       actorId: user.id,
       action: 'apikey.create',
       resourceType: 'ApiKey',
-      diff: { name, scopes },
+      diff: { name, scopes, channelIds },
     },
   })
 

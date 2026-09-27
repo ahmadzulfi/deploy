@@ -14,6 +14,7 @@ import {
  *
  *   pnpm send:test --channel <channelId> --to 628123456789 --text "halo"
  *   pnpm send:test --channel <channelId> --to 628123456789 --buttons
+ *   pnpm send:test --channel <channelId> --to 628123456789 --flow <metaFlowId> --draft
  *
  * The --buttons variant is the one worth running, because it exercises the
  * interactive payload the whole flow builder is built on.
@@ -50,18 +51,35 @@ async function main() {
   const channel = await prisma.channel.findUnique({ where: { id: channelId } })
   if (!channel) throw new Error(`channel ${channelId} not found - run "pnpm channel:list"`)
 
-  const message: OutboundMessage = has('buttons')
+  const metaFlowId = arg('flow')
+
+  const message: OutboundMessage = metaFlowId
     ? {
-        kind: 'buttons',
-        body: 'Ini tes tombol dari platform internal. Pilih salah satu:',
+        kind: 'flow',
+        body: 'Ini tes form dari platform internal. Ketuk tombol di bawah untuk membukanya.',
         footer: 'Pesan otomatis',
-        buttons: [
-          { id: 'btn_yes', title: 'Ya, lanjut' },
-          { id: 'btn_no', title: 'Tidak' },
-          { id: 'btn_agent', title: 'Bicara dengan CS' },
-        ],
+        cta: arg('cta') ?? 'Buka Form',
+        metaFlowId,
+        screen: arg('screen') ?? 'PENDAFTARAN',
+        // Correlates the submitted answers back to this send. A real flow run
+        // will put its session id here; a throwaway test only needs it unique.
+        flowToken: `test-${Date.now()}`,
+        // A DRAFT flow only opens for people with access to the WABA, which is
+        // exactly what makes it safe to try before publishing.
+        mode: has('draft') ? 'draft' : 'published',
       }
-    : { kind: 'text', body: arg('text') ?? 'Tes dari platform internal.' }
+    : has('buttons')
+      ? {
+          kind: 'buttons',
+          body: 'Ini tes tombol dari platform internal. Pilih salah satu:',
+          footer: 'Pesan otomatis',
+          buttons: [
+            { id: 'btn_yes', title: 'Ya, lanjut' },
+            { id: 'btn_no', title: 'Tidak' },
+            { id: 'btn_agent', title: 'Bicara dengan CS' },
+          ],
+        }
+      : { kind: 'text', body: arg('text') ?? 'Tes dari platform internal.' }
 
   const provider = providerFor(channel)
 

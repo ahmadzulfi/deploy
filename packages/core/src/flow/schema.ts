@@ -108,6 +108,8 @@ const sendTemplateData = z.object({
   language: z.string().default('id'),
   /** Positional body parameters, each a literal or a {{variable}}. */
   bodyParams: z.array(z.string()).default([]),
+  /** Header variable, or the media link for an image/video/document header. */
+  headerParam: z.string().default(''),
 })
 
 const waitReplyData = z.object({

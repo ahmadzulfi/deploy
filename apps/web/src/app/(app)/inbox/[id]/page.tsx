@@ -5,6 +5,7 @@ import { WindowBadge, windowState } from '@/components/window-badge'
 import { MessageBubble } from '@/components/message-bubble'
 import { Composer } from '@/components/composer'
 import { BotToggle } from '@/components/bot-toggle'
+import { MarkRead } from '@/components/mark-read'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     where: { id },
     include: {
       contact: true,
-      channel: { select: { orgId: true, name: true, sendingPaused: true } },
+      channel: { select: { orgId: true, name: true, sendingPaused: true, wabaId: true } },
       assignee: { select: { name: true } },
       messages: { orderBy: { createdAt: 'asc' }, take: 200 },
     },
@@ -26,8 +27,24 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
 
   const state = windowState(conversation.windowExpiresAt)
 
+  // Templates live on the WABA, so any number under it can send them.
+  // Authentication templates carry one-time codes an agent should never type.
+  const templates = conversation.channel.wabaId
+    ? await prisma.template.findMany({
+        where: {
+          wabaId: conversation.channel.wabaId,
+          metaStatus: 'APPROVED',
+          category: { not: 'AUTHENTICATION' },
+        },
+        orderBy: [{ name: 'asc' }, { language: 'asc' }],
+        select: { id: true, name: true, language: true, category: true, components: true },
+      })
+    : []
+
   return (
     <div className="flex h-full flex-col">
+      <MarkRead conversationId={conversation.id} unreadCount={conversation.unreadCount} />
+
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-surface px-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -60,6 +77,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         windowOpen={state.open}
         readOnly={user.role === 'VIEWER'}
         channelPaused={conversation.channel.sendingPaused}
+        templates={templates}
       />
     </div>
   )

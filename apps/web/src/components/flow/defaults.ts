@@ -26,7 +26,7 @@ export function defaultData(kind: NodeKind): NodeData {
         sections: [{ title: 'Pilihan', rows: [{ id: 'row_1', title: 'Pilihan 1' }] }],
       }
     case 'sendTemplate':
-      return { kind, templateName: '', language: 'id', bodyParams: [] }
+      return { kind, templateName: '', language: 'id', bodyParams: [], headerParam: '' }
     case 'waitReply':
       return { kind, saveAs: 'jawaban', expect: 'any', maxRetries: 2, timeoutMinutes: 60 }
     case 'condition':

@@ -36,6 +36,42 @@ export const WA_LIMITS = {
   customerServiceWindowHours: 24,
 } as const
 
+const MB = 1024 * 1024
+
+/**
+ * File types Meta accepts for upload, and the largest of each.
+ *
+ * Checked before uploading so a wrong file fails with a clear message instead
+ * of Meta's generic "param file is invalid". Stickers must be WebP and are
+ * held to the animated-sticker ceiling; a static one over 100 KB is refused
+ * by Meta itself.
+ */
+export const WA_MEDIA: Record<'image' | 'video' | 'audio' | 'document' | 'sticker', { mimeTypes: string[]; maxBytes: number }> = {
+  image: { mimeTypes: ['image/jpeg', 'image/png'], maxBytes: 5 * MB },
+  video: { mimeTypes: ['video/mp4', 'video/3gpp'], maxBytes: 16 * MB },
+  audio: { mimeTypes: ['audio/aac', 'audio/amr', 'audio/mpeg', 'audio/mp4', 'audio/ogg'], maxBytes: 16 * MB },
+  sticker: { mimeTypes: ['image/webp'], maxBytes: 500 * 1024 },
+  document: {
+    mimeTypes: [
+      'application/pdf',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ],
+    maxBytes: 100 * MB,
+  },
+}
+
+/** Which media kind a MIME type uploads as, or undefined if Meta refuses it. */
+export function mediaKindOf(mimeType: string) {
+  const mime = mimeType.toLowerCase().split(';')[0]!.trim()
+  return (Object.keys(WA_MEDIA) as (keyof typeof WA_MEDIA)[]).find((k) => WA_MEDIA[k].mimeTypes.includes(mime))
+}
+
 export class WhatsAppValidationError extends Error {
   readonly field?: string
 

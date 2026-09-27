@@ -1,31 +1,33 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { sendReply, type SendState } from '@/lib/actions/messages'
 import { WA_LIMITS } from '@wa/core/limits'
+import { TemplatePicker, type InboxTemplate } from './template-picker'
 
 export function Composer({
   conversationId,
   windowOpen,
   readOnly,
   channelPaused,
+  templates,
 }: {
   conversationId: string
   windowOpen: boolean
   readOnly: boolean
   channelPaused: boolean
+  templates: InboxTemplate[]
 }) {
   const [state, action] = useActionState<SendState, FormData>(sendReply, {})
   const formRef = useRef<HTMLFormElement>(null)
+  const [templateMode, setTemplateMode] = useState(false)
 
   const blocked = readOnly
     ? 'Peran kamu hanya bisa membaca.'
     : channelPaused
       ? 'Pengiriman dari nomor ini sedang dijeda.'
-      : !windowOpen
-        ? 'Window 24 jam tertutup — hanya template yang disetujui bisa dikirim.'
-        : null
+      : null
 
   if (blocked) {
     return (
@@ -35,16 +37,49 @@ export function Composer({
     )
   }
 
+  // Past the window a template is the only way to reach the contact, so the
+  // picker replaces the text field instead of hiding behind a button.
+  if (!windowOpen) {
+    return (
+      <div className="max-h-[50vh] shrink-0 space-y-2 overflow-y-auto border-t bg-surface p-3">
+        <p className="text-[11px] text-fg-muted">
+          Window 24 jam tertutup — hanya template yang disetujui bisa dikirim. Window terbuka lagi setelah kontak
+          membalas.
+        </p>
+        <TemplatePicker conversationId={conversationId} templates={templates} />
+      </div>
+    )
+  }
+
+  if (templateMode) {
+    return (
+      <div className="max-h-[50vh] shrink-0 overflow-y-auto border-t bg-surface p-3">
+        <TemplatePicker
+          conversationId={conversationId}
+          templates={templates}
+          onSent={() => setTemplateMode(false)}
+          onCancel={() => setTemplateMode(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <form ref={formRef} action={action} className="shrink-0 border-t bg-surface p-3">
       <input type="hidden" name="conversationId" value={conversationId} />
-      <Field formRef={formRef} />
+      <Field formRef={formRef} onTemplate={() => setTemplateMode(true)} />
       {state.error && <p className="mt-1.5 text-xs text-danger">{state.error}</p>}
     </form>
   )
 }
 
-function Field({ formRef }: { formRef: React.RefObject<HTMLFormElement | null> }) {
+function Field({
+  formRef,
+  onTemplate,
+}: {
+  formRef: React.RefObject<HTMLFormElement | null>
+  onTemplate: () => void
+}) {
   const { pending } = useFormStatus()
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -79,6 +114,15 @@ function Field({ formRef }: { formRef: React.RefObject<HTMLFormElement | null> }
           }
         }}
       />
+      <button
+        type="button"
+        disabled={pending}
+        onClick={onTemplate}
+        className="shrink-0 text-xs text-fg-muted hover:text-fg disabled:opacity-40"
+        title="Kirim template yang disetujui Meta"
+      >
+        Template
+      </button>
       <button
         disabled={pending}
         className="shrink-0 text-xs text-accent hover:opacity-80 disabled:opacity-40"

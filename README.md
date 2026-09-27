@@ -2,7 +2,7 @@
 
 Platform WhatsApp internal: multi-nomor WABA, shared inbox, flow builder drag-and-drop, broadcast.
 
-Repo ini berisi **fase 0 (fondasi) + fase 1 (round-trip pesan)**. Dashboard Next.js dan flow builder menyusul di fase 2 dan 4.
+Fondasi, round-trip pesan, dashboard, flow builder, dan Public API sudah jalan. Sisa yang besar: campaign runner.
 
 ---
 
@@ -13,11 +13,18 @@ packages/db      Prisma schema — seluruh model (channel, contact, conversation
                  message, template, flow, campaign, audit)
 packages/core    ChannelProvider abstraction, CloudApiProvider, webhook
                  normalizer, WhatsApp limits, crypto, queues
-apps/webhook     Fastify receiver — verifikasi signature, simpan raw, enqueue
-apps/worker      Inbound processor, outbound sender (queue per channel), CLI
+apps/webhook     Fastify receiver — verifikasi signature, simpan raw, enqueue,
+                 plus Public API /api/v1
+apps/worker      Inbound processor, outbound sender (queue per channel), flow
+                 engine, sweeper sesi, pengirim webhook keluar, CLI
+apps/web         Dashboard Next.js — inbox, nomor, flow builder, pengaturan
+apps/docs        Referensi Public API (Fumadocs) — `pnpm dev:docs`, buka :5000
 ```
 
-Yang belum: `apps/web` (dashboard + flow builder), flow engine, campaign runner.
+Yang belum: campaign runner, halaman Kontak dan Broadcast di dashboard.
+
+Referensi Public API — endpoint, contoh kode, dan playground — ada di `apps/docs`,
+di-generate dari `apps/docs/openapi.yaml`. Buka http://localhost:5000.
 
 ---
 

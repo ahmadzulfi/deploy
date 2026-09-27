@@ -150,3 +150,36 @@ describe('guards', () => {
     assert.equal(normalizeCloudApiWebhook({}).length, 0)
   })
 })
+
+describe('WhatsApp Flows submissions', () => {
+  const submitted = (responseJson: string) =>
+    normalizeCloudApiWebhook(
+      envelope({
+        metadata: { phone_number_id: 'PN_1' },
+        messages: [
+          {
+            id: 'wamid.FORM',
+            from: '628123',
+            timestamp: TS,
+            type: 'interactive',
+            interactive: { type: 'nfm_reply', nfm_reply: { name: 'flow', body: 'Sent', response_json: responseJson } },
+          },
+        ],
+      }),
+    )[0]
+
+  test('keeps the answers and lifts the flow token out of them', () => {
+    const e = submitted('{"flow_token":"api_abc","nama":"Budi","rw":"05"}')
+    assert.equal(e?.kind, 'message')
+    if (e?.kind !== 'message') return
+    assert.deepEqual(e.message, { type: 'form_reply', flowToken: 'api_abc', response: { nama: 'Budi', rw: '05' } })
+    // Not a button tap: no reply id for a flow trigger to misread.
+    assert.equal(e.interactiveReplyId, undefined)
+  })
+
+  test('keeps an unparseable submission as raw text instead of dropping it', () => {
+    const e = submitted('{not json')
+    if (e?.kind !== 'message') return assert.fail('expected a message')
+    assert.deepEqual(e.message, { type: 'form_reply', response: { _raw: '{not json' } })
+  })
+})

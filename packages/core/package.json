@@ -20,6 +20,9 @@
     ".": "./src/index.ts",
     "./limits": "./src/providers/limits.ts",
     "./flow": "./src/flow/index.ts",
+    "./templates": "./src/templates.ts",
+    "./template-draft": "./src/template-draft.ts",
+    "./contacts-import": "./src/contacts-import.ts",
     "./queues": "./src/lib/queues.ts"
   }
 }

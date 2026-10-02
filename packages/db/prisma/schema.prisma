@@ -148,6 +148,8 @@ model Organization {
   auditLogs   AuditLog[]
   connections WabaConnection[]
   webhookEndpoints WebhookEndpoint[]
+  aiEndpoints      AiEndpoint[]
+  labels           Label[]
 }
 
 model User {
@@ -171,6 +173,7 @@ model User {
   conversations Conversation[]  @relation("Assignee")
   messages      Message[]       @relation("SentByUser")
   auditLogs     AuditLog[]
+  labelsAdded   ConversationLabel[]
 
   @@index([orgId])
 }
@@ -343,6 +346,7 @@ model Conversation {
   assignee     User?         @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   messages     Message[]
   flowSessions FlowSession[]
+  labels       ConversationLabel[]
 
   @@unique([channelId, contactId])
   @@index([channelId, status, lastMessageAt])
@@ -704,4 +708,78 @@ model WebhookDelivery {
 
   @@index([status, nextAttemptAt])
   @@index([endpointId, createdAt])
+}
+
+/// An outside AI service the "Tanya AI" flow node can ask.
+///
+/// Set up once by an admin on the AI page; flows only hold its id, so a new
+/// URL or a rotated API key takes effect without republishing any flow.
+model AiEndpoint {
+  id    String @id @default(cuid())
+  orgId String
+  name  String
+
+  method String @default("POST")
+  /// May hold {{pertanyaan}}, {{nama}}, {{nomor}}.
+  url    String
+  /// AES-256-GCM of "Name: value" lines. Usually carries the API key.
+  headersEnc     String?
+  body           String  @default("")
+  /// How the reply is read, e.g. "{{choices.0.message.content}}".
+  answerTemplate String  @default("")
+  timeoutSeconds Int     @default(20)
+
+  lastUsedAt  DateTime?
+  lastErrorAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  /// Names are what the flow editor's dropdown shows, so two alike would be
+  /// indistinguishable there.
+  @@unique([orgId, name])
+}
+
+// ============================================================
+// Labels - sorting the inbox, never a broadcast audience
+// ============================================================
+
+/// A coloured label agents put on conversations to sort and filter the inbox.
+///
+/// Not a contact tag: tags are groups that broadcasts and flows target, so
+/// marking a chat "Komplain" must not quietly add that person to one.
+model Label {
+  id          String  @id @default(cuid())
+  orgId       String
+  name        String
+  description String?
+  /// A palette key from @wa/core/labels, not a hex value - see LABEL_COLORS.
+  color       String  @default("gray")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org           Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  conversations ConversationLabel[]
+
+  @@unique([orgId, name])
+}
+
+model ConversationLabel {
+  conversationId String
+  labelId        String
+  /// Null when a flow put it there, or the agent's account is gone.
+  addedById      String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  label        Label        @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  addedBy      User?        @relation(fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@id([conversationId, labelId])
+  // The inbox filter goes from a label to its conversations.
+  @@index([labelId])
 }

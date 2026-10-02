@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@wa/db'
-import { requireUser } from '@/lib/auth'
+import { hasRole, requireUser } from '@/lib/auth'
 import { WindowBadge, windowState } from '@/components/window-badge'
 import { MessageBubble } from '@/components/message-bubble'
 import { Composer } from '@/components/composer'
 import { BotToggle } from '@/components/bot-toggle'
 import { MarkRead } from '@/components/mark-read'
+import { LabelPicker } from '@/components/labels/label-picker'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       contact: true,
       channel: { select: { orgId: true, name: true, sendingPaused: true, wabaId: true } },
       assignee: { select: { name: true } },
+      labels: { select: { labelId: true }, orderBy: { createdAt: 'asc' } },
       messages: { orderBy: { createdAt: 'asc' }, take: 200 },
     },
   })
@@ -41,6 +43,12 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       })
     : []
 
+  const labels = await prisma.label.findMany({
+    where: { orgId: user.orgId },
+    select: { id: true, name: true, color: true },
+    orderBy: { name: 'asc' },
+  })
+
   return (
     <div className="flex h-full flex-col">
       <MarkRead conversationId={conversation.id} unreadCount={conversation.unreadCount} />
@@ -60,7 +68,16 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <BotToggle conversationId={conversation.id} paused={conversation.botPaused} />
+        <div className="flex min-w-0 shrink items-center gap-2 pl-3">
+          <LabelPicker
+            conversationId={conversation.id}
+            labels={labels}
+            selected={conversation.labels.map((l) => l.labelId)}
+            readOnly={user.role === 'VIEWER'}
+            canManage={hasRole(user, 'SUPERVISOR')}
+          />
+          <BotToggle conversationId={conversation.id} paused={conversation.botPaused} />
+        </div>
       </header>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-bg p-4">

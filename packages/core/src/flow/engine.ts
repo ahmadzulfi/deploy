@@ -1,5 +1,6 @@
+import { WA_LIMITS } from '../providers/limits.js'
 import { nextNodeId } from './match.js'
-import { compare, interpolate, validateAnswer, type FlowContext } from './runtime.js'
+import { compare, interpolate, resolve, validateAnswer, type FlowContext } from './runtime.js'
 import type { FlowGraph, FlowNode } from './schema.js'
 
 /**
@@ -34,6 +35,23 @@ export interface EngineEffects {
     sections: { title: string; rows: { id: string; title: string; description?: string }[] }[]
   }): Promise<void>
   sendTemplate(p: { name: string; language: string; bodyParams: string[]; headerParam?: string }): Promise<void>
+  /**
+   * Calls an outside API. Resolves with whatever came back, including non-2xx
+   * statuses; rejects only when there was no response at all (network error,
+   * timeout). The engine turns both into the node's "error" branch.
+   */
+  httpRequest(p: {
+    method: 'GET' | 'POST'
+    url: string
+    headers: Record<string, string>
+    body?: string
+    timeoutMs: number
+  }): Promise<{ status: number; data: unknown }>
+  /**
+   * Asks a saved AI endpoint. Resolves with the answer text; rejects when the
+   * endpoint is gone, unreachable, refused, or answered nothing usable.
+   */
+  askAi(p: { endpointId: string; question: string }): Promise<{ answer: string }>
   changeTags(action: 'add' | 'remove', tags: string[]): Promise<void>
   assign(userId: string | null, note?: string): Promise<void>
   handover(): Promise<void>
@@ -72,6 +90,11 @@ export type EngineOutcome =
  * forever, with every later message swallowed by the dead session.
  */
 export const IDLE_TIMEOUT_MINUTES = 10
+
+/** Reply id of the button Tanya AI can put under its answer. */
+export const ASK_AI_END_BUTTON_ID = 'selesai'
+/** Carries that button when the answer itself is too long to hold it. */
+export const ASK_AI_FOLLOW_UP = 'Ada pertanyaan lain? Ketik saja, atau tekan tombol di bawah.'
 
 /** Per-tick ceiling. A graph that spins hits this instead of the contact. */
 export const MAX_STEPS_PER_TICK = 50
@@ -263,7 +286,9 @@ async function execute(
       return { kind: 'halt', outcome: { status: 'sleeping', seconds: d.seconds } }
 
     case 'condition': {
-      const left = ctx.variables[d.variable] ?? undefined
+      // resolve, not a plain lookup, so a condition can test a field inside
+      // a saved API response, e.g. `ai.status`.
+      const left = resolve(d.variable, ctx)
       const hit = compare(left, d.operator, interpolate(d.value, ctx), d.caseSensitive)
       return go(hit ? 'true' : 'false')
     }
@@ -271,6 +296,76 @@ async function execute(
     case 'setVariable':
       state.variables[d.name] = interpolate(d.value, ctx)
       return go()
+
+    case 'httpRequest': {
+      const headers: Record<string, string> = {}
+      for (const line of d.headers.split('\n')) {
+        const at = line.indexOf(':')
+        if (at > 0) headers[line.slice(0, at).trim()] = interpolate(line.slice(at + 1).trim(), ctx)
+      }
+      const body = d.method === 'POST' && d.body.trim() ? interpolate(d.body, ctx, jsonEscape) : undefined
+      if (body !== undefined && !Object.keys(headers).some((h) => h.toLowerCase() === 'content-type')) {
+        headers['Content-Type'] = 'application/json'
+      }
+
+      try {
+        const res = await fx.httpRequest({
+          method: d.method,
+          url: interpolate(d.url, ctx, encodeURIComponent),
+          headers,
+          body,
+          timeoutMs: d.timeoutSeconds * 1000,
+        })
+        state.variables[d.saveAs] = res.data
+        return go(res.status >= 200 && res.status < 300 ? 'success' : 'error')
+      } catch (err) {
+        // Saved so the error branch can tell the contact, or a condition can
+        // tell a timeout from a refusal.
+        state.variables[d.saveAs] = { error: err instanceof Error ? err.message : String(err) }
+        return go('error')
+      }
+    }
+
+    case 'askAi': {
+      const question = interpolate(`{{${d.question}}}`, ctx).trim()
+      // An empty question only earns a "query kosong" refusal; skip the call.
+      if (!question) {
+        state.variables[d.saveAs] = ''
+        return go('error')
+      }
+
+      let answer: string
+      try {
+        answer = (await fx.askAi({ endpointId: d.endpointId, question })).answer
+      } catch {
+        // The worker has logged why and recorded it on the endpoint.
+        state.variables[d.saveAs] = ''
+        return go('error')
+      }
+
+      // Chat models can run long; WhatsApp refuses a text over its limit.
+      const max = WA_LIMITS.text.bodyMax
+      const text = answer.length > max ? `${answer.slice(0, max - 1)}…` : answer
+      state.variables[d.saveAs] = text
+      // Outside the try: a failed send is not the AI's failure.
+      if (d.sendAnswer) {
+        const title = interpolate(d.endButton, ctx).trim()
+        if (!title) {
+          await fx.sendText(text)
+        } else {
+          const buttons = [{ id: ASK_AI_END_BUTTON_ID, title }]
+          // An interactive body holds far less than a text; a long answer
+          // goes out whole, with the button on a short note after it.
+          if (text.length <= WA_LIMITS.interactive.bodyMax) {
+            await fx.sendButtons({ body: text, buttons })
+          } else {
+            await fx.sendText(text)
+            await fx.sendButtons({ body: ASK_AI_FOLLOW_UP, buttons })
+          }
+        }
+      }
+      return go('success')
+    }
 
     case 'tag':
       await fx.changeTags(
@@ -291,4 +386,9 @@ async function execute(
     case 'end':
       return { kind: 'halt', outcome: { status: 'completed' } }
   }
+}
+
+/** Escapes a value for use inside a JSON string literal the author wrote. */
+function jsonEscape(value: string) {
+  return JSON.stringify(value).slice(1, -1)
 }

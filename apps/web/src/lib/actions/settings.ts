@@ -141,5 +141,3 @@ export async function revokeApiKey(id: string) {
 
   revalidatePath('/settings')
 }
-
-export const API_SCOPES = SCOPES

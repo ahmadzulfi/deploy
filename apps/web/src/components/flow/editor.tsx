@@ -18,29 +18,34 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nanoid } from 'nanoid'
-import { NODE_LABELS, validateFlow, type FlowGraph, type NodeKind } from '@wa/core/flow'
+import { NODE_LABELS, assignedVariables, validateFlow, type FlowGraph, type NodeKind } from '@wa/core/flow'
 import { publishFlow, saveDraft } from '@/lib/actions/flows'
 import { NodeCard } from './node-card'
 import { Inspector } from './inspector'
 import { PALETTE, defaultData } from './defaults'
 import { cn } from '@/lib/utils'
 import { TemplatesProvider, type TemplateOption } from './templates-context'
+import { AiEndpointsProvider, type AiEndpointOption } from './ai-context'
 
 const nodeTypes = { wa: NodeCard }
 
 export function FlowEditor({
   templates,
+  aiEndpoints,
   ...props
 }: {
   flowId: string
   initial: FlowGraph
   publishedVersion: number | null
   templates: TemplateOption[]
+  aiEndpoints: AiEndpointOption[]
 }) {
   return (
     <ReactFlowProvider>
       <TemplatesProvider value={templates}>
-        <Canvas {...props} />
+        <AiEndpointsProvider value={aiEndpoints}>
+          <Canvas {...props} aiEndpoints={aiEndpoints} />
+        </AiEndpointsProvider>
       </TemplatesProvider>
     </ReactFlowProvider>
   )
@@ -50,10 +55,12 @@ function Canvas({
   flowId,
   initial,
   publishedVersion,
+  aiEndpoints,
 }: {
   flowId: string
   initial: FlowGraph
   publishedVersion: number | null
+  aiEndpoints: AiEndpointOption[]
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>(
     initial.nodes.map((n) => ({ id: n.id, type: 'wa', position: n.position, data: n.data as never })),
@@ -93,7 +100,10 @@ function Canvas({
     [nodes, edges],
   )
 
-  const issues = useMemo(() => validateFlow(graph), [graph])
+  const aiEndpointIds = useMemo(() => new Set(aiEndpoints.map((a) => a.id)), [aiEndpoints])
+  const issues = useMemo(() => validateFlow(graph, { aiEndpointIds }), [graph, aiEndpointIds])
+  // What a node can read: every variable some node in this flow fills.
+  const variables = useMemo(() => [...assignedVariables(graph)].sort(), [graph])
   const errors = issues.filter((i) => i.severity === 'error')
   const warnings = issues.filter((i) => i.severity === 'warning')
 
@@ -131,10 +141,13 @@ function Canvas({
 
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
       const id = nanoid(8)
-      setNodes((ns) => [...ns, { id, type: 'wa', position, data: defaultData(kind) as never }])
+      const data = defaultData(kind)
+      // With only one AI saved there is nothing to choose; pick it.
+      if (data.kind === 'askAi' && aiEndpoints.length === 1) data.endpointId = aiEndpoints[0]!.id
+      setNodes((ns) => [...ns, { id, type: 'wa', position, data: data as never }])
       setSelectedId(id)
     },
-    [screenToFlowPosition, setNodes],
+    [screenToFlowPosition, setNodes, aiEndpoints],
   )
 
   const updateNode = useCallback(
@@ -275,6 +288,7 @@ function Canvas({
           key={selected.id}
           nodeId={selected.id}
           data={selected.data as never}
+          variables={variables}
           onChange={(d) => updateNode(selected.id, d)}
           onDelete={() => deleteNode(selected.id)}
         />

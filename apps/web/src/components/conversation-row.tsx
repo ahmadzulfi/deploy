@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { WindowBadge } from '@/components/window-badge'
+import { LabelChip } from '@/components/labels/label-chip'
 import { cn } from '@/lib/utils'
 
 /**
@@ -15,20 +16,25 @@ import { cn } from '@/lib/utils'
  */
 export function ConversationRow({
   id,
+  query,
   title,
   preview,
   time,
   channelName,
   windowExpiresAt,
   unreadCount,
+  labels,
 }: {
   id: string
+  /** The inbox filter, carried along so opening a row does not drop it. */
+  query: string
   title: string
   preview: string
   time: string
   channelName: string
   windowExpiresAt: Date | null
   unreadCount: number
+  labels: { id: string; name: string; color: string }[]
 }) {
   const active = usePathname() === `/inbox/${id}`
 
@@ -43,7 +49,7 @@ export function ConversationRow({
 
   return (
     <Link
-      href={`/inbox/${id}`}
+      href={`/inbox/${id}${query}`}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'block border-b border-l-2 px-3 py-2.5 transition-colors',
@@ -56,6 +62,20 @@ export function ConversationRow({
       </div>
 
       <p className="mt-0.5 truncate text-xs text-fg-muted">{preview}</p>
+
+      {labels.length > 0 && (
+        // Two fit a 16rem column next to each other; the rest is a count.
+        <div className="mt-1.5 flex min-w-0 items-center gap-1">
+          {labels.slice(0, 2).map((l) => (
+            <LabelChip key={l.id} name={l.name} color={l.color} small className="max-w-28" />
+          ))}
+          {labels.length > 2 && (
+            <span className="shrink-0 text-[10px] text-fg-muted" title={labels.slice(2).map((l) => l.name).join(', ')}>
+              +{labels.length - 2}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-1.5 flex items-center gap-1.5">
         <WindowBadge expiresAt={windowExpiresAt} />

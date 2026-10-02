@@ -21,12 +21,33 @@ export interface FlowContext {
 
 const TEMPLATE = /\{\{\s*([\w.]+)\s*\}\}/g
 
-/** Replaces every `{{name}}` in `input`. Unknown names resolve to "". */
-export function interpolate(input: string, ctx: FlowContext): string {
+/**
+ * Replaces every `{{name}}` in `input`. Unknown names resolve to "".
+ *
+ * `escape` runs on each substituted value, never on the surrounding text, so
+ * a URL or JSON template stays well-formed whatever the contact typed.
+ */
+export function interpolate(input: string, ctx: FlowContext, escape?: (value: string) => string): string {
   return input.replace(TEMPLATE, (_, path: string) => {
-    const value = resolve(path, ctx)
-    return value === undefined || value === null ? '' : String(value)
+    const value = stringify(resolve(path, ctx))
+    return escape ? escape(value) : value
   })
+}
+
+function stringify(value: unknown): string {
+  if (value === undefined || value === null) return ''
+  // An API response saved whole would otherwise print as "[object Object]".
+  return typeof value === 'object' ? JSON.stringify(value) : String(value)
+}
+
+/** Walks `a.b.0.c` into objects and arrays; anything missing is undefined. */
+function dig(root: unknown, keys: string[]): unknown {
+  let at = root
+  for (const key of keys) {
+    if (at === null || typeof at !== 'object') return undefined
+    at = (at as Record<string, unknown>)[key]
+  }
+  return at
 }
 
 export function resolve(path: string, ctx: FlowContext): unknown {
@@ -56,7 +77,8 @@ export function resolve(path: string, ctx: FlowContext): unknown {
     }
 
     default:
-      return ctx.variables[path]
+      // `ai.feedback.title` reads into a response an httpRequest node saved.
+      return dig(ctx.variables[head!], rest)
   }
 }
 
@@ -71,7 +93,9 @@ export function validateAnswer(
     case 'any':
       return true
     case 'text':
-      return answer.type === 'text' && text.length > 0
+      // A tapped button or list row is a textual answer too; it arrives as
+      // its reply id, e.g. the "selesai" button Tanya AI puts under answers.
+      return ['text', 'interactive', 'button'].includes(answer.type) && text.length > 0
     case 'number':
       return text.length > 0 && Number.isFinite(Number(text.replace(',', '.')))
     case 'email':

@@ -11,7 +11,8 @@
     "ioredis": "^5.4.1",
     "pino": "^9.4.0",
     "zod": "^3.23.8",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "undici": "^7.18.2"
   },
   "scripts": {
     "test": "node --import tsx --test test/*.test.ts"
@@ -23,6 +24,9 @@
     "./templates": "./src/templates.ts",
     "./template-draft": "./src/template-draft.ts",
     "./contacts-import": "./src/contacts-import.ts",
-    "./queues": "./src/lib/queues.ts"
+    "./queues": "./src/lib/queues.ts",
+    "./ai": "./src/ai.ts",
+    "./ai-call": "./src/lib/ai-call.ts",
+    "./labels": "./src/labels.ts"
   }
 }

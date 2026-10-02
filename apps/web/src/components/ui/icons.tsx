@@ -100,6 +100,13 @@ export const IconGroup = (p: P) => (
   </Svg>
 )
 
+export const IconTag = (p: P) => (
+  <Svg {...p}>
+    <path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3-8.7 8.7-8.3-8.3Z" />
+    <circle cx="8.2" cy="8.2" r="1.4" />
+  </Svg>
+)
+
 export const IconTrash = (p: P) => (
   <Svg {...p}>
     <path d="M4 7h16M10 11v6M14 11v6" />

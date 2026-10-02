@@ -1,9 +1,10 @@
 import { prisma } from "@wa/db";
-import { metaSettings, WEBHOOK_EVENTS } from "@wa/core";
+import { API_SCOPES, metaSettings, WEBHOOK_EVENTS } from "@wa/core";
 import { requireUser } from "@/lib/auth";
 import { MetaSettingsForm } from "@/components/settings/meta-form";
 import { ApiKeys } from "@/components/settings/api-keys";
 import { WebhookEndpoints } from "@/components/settings/webhook-endpoints";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { cn, shortTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,8 @@ export default async function SettingsPage() {
           </p>
         </div>
 
+        <SettingsTabs active="/settings" />
+
         {legacyChannels.length > 0 && (
           <section>
             <h2 className="text-sm text-fg">Integrasi Meta (lama)</h2>
@@ -84,6 +87,7 @@ export default async function SettingsPage() {
 
           <ApiKeys
             canManage={canManage}
+            scopes={API_SCOPES}
             channels={channels}
             keys={keys.map((k) => ({
               id: k.id,

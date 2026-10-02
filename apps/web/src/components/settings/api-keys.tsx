@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from 'react'
 import { useFormStatus } from 'react-dom'
-import { API_SCOPES, createApiKey, revokeApiKey, type ApiKeyState } from '@/lib/actions/settings'
+import { createApiKey, revokeApiKey, type ApiKeyState } from '@/lib/actions/settings'
 import { cn } from '@/lib/utils'
 
 interface Key {
@@ -19,10 +19,12 @@ export function ApiKeys({
   canManage,
   keys,
   channels,
+  scopes,
 }: {
   canManage: boolean
   keys: Key[]
   channels: { id: string; name: string }[]
+  scopes: readonly string[]
 }) {
   const [state, action] = useActionState<ApiKeyState, FormData>(createApiKey, {})
   const [open, setOpen] = useState(false)
@@ -96,7 +98,7 @@ export function ApiKeys({
             <fieldset className="mt-3">
               <legend className="text-xs text-fg">Izin</legend>
               <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
-                {API_SCOPES.map((s) => (
+                {scopes.map((s) => (
                   <label key={s} className="flex items-center gap-2 text-[11px] text-fg">
                     <input type="checkbox" name={`scope:${s}`} />
                     <code className="font-mono">{s}</code>

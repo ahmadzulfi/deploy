@@ -93,6 +93,28 @@
   --color-chat-pattern: #dcd3c7;
   --color-bubble: #ffffff;
 
+  /*
+   * Conversation label palette, keyed like LABEL_COLORS in @wa/core/labels.
+   * Each text colour is at least 5:1 on its own chip and on the surface, in
+   * both themes.
+   */
+  --color-label-gray: #4b5768;
+  --color-label-gray-bg: #eceff3;
+  --color-label-blue: #2c56a0;
+  --color-label-blue-bg: #e2ebf9;
+  --color-label-teal: #0d6b69;
+  --color-label-teal-bg: #d9f1ef;
+  --color-label-green: #2f6b1e;
+  --color-label-green-bg: #e2f1da;
+  --color-label-yellow: #735800;
+  --color-label-yellow-bg: #f9efc8;
+  --color-label-orange: #a3410d;
+  --color-label-orange-bg: #fde6d9;
+  --color-label-red: #a51d3c;
+  --color-label-red-bg: #fbe3e8;
+  --color-label-purple: #673c9e;
+  --color-label-purple-bg: #eee6f9;
+
   /* Type scale from the design system. */
   --text-h1: 3rem;
   --text-h1--line-height: 1.1;
@@ -147,6 +169,22 @@
     --color-chat-bg: #0b141a;
     --color-chat-pattern: #16232c;
     --color-bubble: #1f2c34;
+    --color-label-gray: #c5cddb;
+    --color-label-gray-bg: #25314a;
+    --color-label-blue: #93b6f2;
+    --color-label-blue-bg: #192c4f;
+    --color-label-teal: #6fd5cf;
+    --color-label-teal-bg: #0e3333;
+    --color-label-green: #93d57e;
+    --color-label-green-bg: #183214;
+    --color-label-yellow: #f2c14e;
+    --color-label-yellow-bg: #33280d;
+    --color-label-orange: #ffa374;
+    --color-label-orange-bg: #3b1e0f;
+    --color-label-red: #ff92a7;
+    --color-label-red-bg: #3b1421;
+    --color-label-purple: #c9a9f6;
+    --color-label-purple-bg: #2a1c43;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -180,6 +218,22 @@
       --color-chat-bg: #0b141a;
       --color-chat-pattern: #16232c;
       --color-bubble: #1f2c34;
+      --color-label-gray: #c5cddb;
+      --color-label-gray-bg: #25314a;
+      --color-label-blue: #93b6f2;
+      --color-label-blue-bg: #192c4f;
+      --color-label-teal: #6fd5cf;
+      --color-label-teal-bg: #0e3333;
+      --color-label-green: #93d57e;
+      --color-label-green-bg: #183214;
+      --color-label-yellow: #f2c14e;
+      --color-label-yellow-bg: #33280d;
+      --color-label-orange: #ffa374;
+      --color-label-orange-bg: #3b1e0f;
+      --color-label-red: #ff92a7;
+      --color-label-red-bg: #3b1421;
+      --color-label-purple: #c9a9f6;
+      --color-label-purple-bg: #2a1c43;
     }
   }
 

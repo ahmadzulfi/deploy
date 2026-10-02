@@ -33,6 +33,12 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
     })
     .map((t) => ({ ...t, status: t.metaStatus }))
 
+  const aiEndpoints = await prisma.aiEndpoint.findMany({
+    where: { orgId: user.orgId },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  })
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface px-4">
@@ -52,6 +58,7 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
           initial={parsed.success ? parsed.data : EMPTY_GRAPH}
           publishedVersion={flow.publishedVersion?.version ?? null}
           templates={templates}
+          aiEndpoints={aiEndpoints}
         />
       </div>
     </div>

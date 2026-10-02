@@ -21,9 +21,18 @@ export interface FlowIssue {
  * runtime - a send after a long delay, a loop with no pause - is a warning,
  * because sometimes that is genuinely what the author meant.
  */
-export function validateFlow(graph: FlowGraph): FlowIssue[] {
+export interface ValidateOptions {
+  /**
+   * Ids of the org's saved AI endpoints. When given, a "Tanya AI" node naming
+   * one that no longer exists is an error; left out, that check is skipped.
+   */
+  aiEndpointIds?: ReadonlySet<string>
+}
+
+export function validateFlow(graph: FlowGraph, opts: ValidateOptions = {}): FlowIssue[] {
   const issues: FlowIssue[] = []
   const byId = new Map(graph.nodes.map((n) => [n.id, n]))
+  const assigned = assignedVariables(graph)
 
   const triggers = graph.nodes.filter((n) => n.data.kind === 'trigger')
   if (triggers.length === 0) {
@@ -47,7 +56,7 @@ export function validateFlow(graph: FlowGraph): FlowIssue[] {
   }
 
   for (const node of graph.nodes) {
-    issues.push(...checkNode(node))
+    issues.push(...checkNode(node, opts, assigned))
 
     // Handover ends the run as surely as End does - the engine halts and the
     // conversation belongs to an agent from then on - so requiring an outgoing
@@ -86,7 +95,20 @@ export function validateFlow(graph: FlowGraph): FlowIssue[] {
   return issues
 }
 
-function checkNode(node: FlowNode): FlowIssue[] {
+/** Variable names some node in the graph writes to. */
+export function assignedVariables(graph: FlowGraph): Set<string> {
+  const names = new Set<string>()
+  for (const n of graph.nodes) {
+    const d = n.data
+    if (d.kind === 'waitReply' || d.kind === 'httpRequest' || d.kind === 'askAi') names.add(d.saveAs)
+    if (d.kind === 'setVariable') names.add(d.name)
+  }
+  return names
+}
+
+const VARIABLE_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
+function checkNode(node: FlowNode, opts: ValidateOptions, assigned: Set<string>): FlowIssue[] {
   const out: FlowIssue[] = []
   const d = node.data
 
@@ -238,6 +260,71 @@ function checkNode(node: FlowNode): FlowIssue[] {
       }
       break
 
+    case 'httpRequest':
+      if (!/^https?:\/\/\S+$/.test(d.url.trim())) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'URL harus diawali http:// atau https://.' })
+      }
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(d.saveAs)) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `"${d.saveAs}" bukan nama variabel yang valid.`,
+        })
+      } else if (['contact', 'channel', 'system'].includes(d.saveAs)) {
+        // These prefixes resolve to built-in values first, so the saved
+        // response could never be read back.
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `"${d.saveAs}" dipakai sistem, pilih nama lain.`,
+        })
+      }
+      if (d.method === 'POST' && d.body.trim()) {
+        // Parse with every {{variable}} blanked out: the author's JSON must
+        // be valid on its own, since values are escaped into it at runtime.
+        try {
+          JSON.parse(d.body.replace(/\{\{\s*[\w.]+\s*\}\}/g, ''))
+        } catch {
+          out.push({ severity: 'error', nodeId: node.id, message: 'Body bukan JSON yang valid.' })
+        }
+      }
+      break
+
+    case 'askAi':
+      if (!d.endpointId) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Tanya AI: pilih AI yang dipakai.' })
+      } else if (opts.aiEndpointIds && !opts.aiEndpointIds.has(d.endpointId)) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'Tanya AI: AI yang dipilih sudah dihapus. Pilih lagi.',
+        })
+      }
+      if (!d.question.trim()) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Tanya AI: pilih variabel pertanyaannya.' })
+      } else if (!assigned.has(d.question)) {
+        // A warning, not an error: a flow started through the API may pass
+        // the variable in from outside.
+        out.push({
+          severity: 'warning',
+          nodeId: node.id,
+          message: `Tanya AI: variabel {{${d.question}}} tidak pernah diisi di flow ini. Tambahkan node Tunggu balasan yang menyimpan ke "${d.question}".`,
+        })
+      }
+      if (!VARIABLE_NAME.test(d.saveAs)) {
+        out.push({ severity: 'error', nodeId: node.id, message: `"${d.saveAs}" bukan nama variabel yang valid.` })
+      } else if (['contact', 'channel', 'system'].includes(d.saveAs)) {
+        out.push({ severity: 'error', nodeId: node.id, message: `"${d.saveAs}" dipakai sistem, pilih nama lain.` })
+      }
+      if (d.sendAnswer && d.endButton.trim().length > WA_LIMITS.buttons.titleMax) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: `Tanya AI: label tombol maksimal ${WA_LIMITS.buttons.titleMax} karakter.`,
+        })
+      }
+      break
+
     case 'condition':
       if (!d.variable.trim()) {
         out.push({ severity: 'error', nodeId: node.id, message: 'Kondisi belum punya variabel.' })
@@ -384,6 +471,8 @@ export const NODE_LABELS: Record<string, string> = {
   waitReply: 'Tunggu balasan',
   condition: 'Kondisi',
   setVariable: 'Set variabel',
+  httpRequest: 'Panggil API',
+  askAi: 'Tanya AI',
   delay: 'Jeda',
   assign: 'Tugaskan agen',
   tag: 'Tag kontak',

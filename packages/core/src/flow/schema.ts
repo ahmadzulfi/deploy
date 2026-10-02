@@ -27,6 +27,8 @@ export const NODE_KINDS = [
   'waitReply',
   'condition',
   'setVariable',
+  'httpRequest',
+  'askAi',
   'delay',
   'assign',
   'tag',
@@ -135,6 +137,39 @@ const setVariableData = z.object({
   value: z.string(),
 })
 
+const httpRequestData = z.object({
+  kind: z.literal('httpRequest'),
+  method: z.enum(['GET', 'POST']).default('GET'),
+  /** Values interpolated into the URL are percent-encoded. */
+  url: z.string(),
+  /** One `Name: value` per line. Values may hold {{variables}}. */
+  headers: z.string().default(''),
+  /** JSON sent with POST. Interpolated values are JSON-escaped. */
+  body: z.string().default(''),
+  /** The parsed response lands here; read it with {{saveAs.path.to.field}}. */
+  saveAs: z.string(),
+  timeoutSeconds: z.number().int().min(1).max(30).default(15),
+})
+
+const askAiData = z.object({
+  kind: z.literal('askAi'),
+  /** An AiEndpoint id. The URL, key and answer format live there, not here. */
+  endpointId: z.string().default(''),
+  /** Name of the variable holding the question, usually a waitReply's saveAs. */
+  question: z.string().default('pertanyaan'),
+  /** Send the answer to the contact straight away. */
+  sendAnswer: z.boolean().default(true),
+  /**
+   * Label of a reply button sent under the answer, e.g. "Selesai". Empty
+   * sends plain text. The button does not park the run like Kirim tombol
+   * does: a following Tunggu balasan receives the tap as its label, or any
+   * typed follow-up question, which is what a question-answer loop needs.
+   */
+  endButton: z.string().default(''),
+  /** The answer text is also kept here, for a later node to use. */
+  saveAs: z.string().default('jawaban_ai'),
+})
+
 const delayData = z.object({
   kind: z.literal('delay'),
   seconds: z.number().int().min(0),
@@ -172,6 +207,8 @@ export const nodeDataSchema = z.discriminatedUnion('kind', [
   waitReplyData,
   conditionData,
   setVariableData,
+  httpRequestData,
+  askAiData,
   delayData,
   assignData,
   tagData,
@@ -195,7 +232,8 @@ export const flowEdgeSchema = z.object({
   /**
    * Which output the edge leaves from. For a buttons node this is the button
    * id; for a condition it is "true" or "false"; for a waitReply it is
-   * "reply" or "timeout". Absent means the node's single default output.
+   * "reply" or "timeout"; for an httpRequest or askAi it is "success" or
+   * "error". Absent means the node's single default output.
    */
   sourceHandle: z.string().nullish(),
 })
@@ -229,6 +267,12 @@ export function handlesOf(node: FlowNode): { id: string | null; label: string }[
       return [
         { id: 'reply', label: 'dibalas' },
         { id: 'timeout', label: 'tidak dibalas' },
+      ]
+    case 'httpRequest':
+    case 'askAi':
+      return [
+        { id: 'success', label: 'berhasil' },
+        { id: 'error', label: 'gagal' },
       ]
     case 'end':
       return []

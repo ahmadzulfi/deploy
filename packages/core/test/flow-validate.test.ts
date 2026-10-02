@@ -249,6 +249,125 @@ describe('node fields', () => {
     assert.ok(errors(g).some((i) => /minimal 1 menit/.test(i.message)))
   })
 
+  test('an httpRequest needs an http(s) URL, a free variable name and valid JSON', () => {
+    const g = graph(
+      [
+        trigger,
+        node('h', {
+          kind: 'httpRequest',
+          method: 'POST',
+          url: 'ai.contoh.id/search',
+          headers: '',
+          body: '{"query": {{pertanyaan}}',
+          saveAs: 'contact',
+          timeoutSeconds: 15,
+        }),
+      ],
+      [{ id: 'e1', source: 't', target: 'h' }],
+    )
+    const messages = errors(g).map((i) => i.message)
+    assert.ok(messages.some((m) => /http:\/\/ atau https:\/\//.test(m)))
+    assert.ok(messages.some((m) => /dipakai sistem/.test(m)))
+    assert.ok(messages.some((m) => /bukan JSON/.test(m)))
+  })
+
+  test('a JSON body with variables inside quotes is valid', () => {
+    const g = graph(
+      [
+        trigger,
+        node('h', {
+          kind: 'httpRequest',
+          method: 'POST',
+          url: 'https://ai.contoh.id/search',
+          headers: '',
+          body: '{"query": "{{pertanyaan}}"}',
+          saveAs: 'ai',
+          timeoutSeconds: 15,
+        }),
+        end,
+      ],
+      [
+        { id: 'e1', source: 't', target: 'h' },
+        { id: 'e2', source: 'h', target: 'e', sourceHandle: 'success' },
+      ],
+    )
+    assert.deepEqual(errors(g), [])
+  })
+
+  describe('askAi', () => {
+    const wait = node('w', { kind: 'waitReply', saveAs: 'pertanyaan', expect: 'text', maxRetries: 1, timeoutMinutes: 5 })
+    const ask = (data: Partial<Extract<FlowNode['data'], { kind: 'askAi' }>> = {}) =>
+      node('a', { kind: 'askAi', endpointId: 'ai1', question: 'pertanyaan', sendAnswer: true, endButton: '', saveAs: 'jawaban_ai', ...data })
+    const wired = (a: FlowNode, withWait = true) =>
+      graph(withWait ? [trigger, wait, a, end] : [trigger, a, end], [
+        ...(withWait
+          ? [
+              { id: 'e1', source: 't', target: 'w' },
+              { id: 'e2', source: 'w', target: 'a', sourceHandle: 'reply' },
+              { id: 'e3', source: 'w', target: 'e', sourceHandle: 'timeout' },
+            ]
+          : [{ id: 'e1', source: 't', target: 'a' }]),
+        { id: 'e4', source: 'a', target: 'e', sourceHandle: 'success' },
+        { id: 'e5', source: 'a', target: 'e', sourceHandle: 'error' },
+      ])
+
+    test('a complete node is clean', () => {
+      assert.deepEqual(validateFlow(wired(ask()), { aiEndpointIds: new Set(['ai1']) }), [])
+    })
+
+    test('no AI chosen is an error', () => {
+      assert.ok(errors(wired(ask({ endpointId: '' }))).some((i) => /pilih AI/.test(i.message)))
+    })
+
+    test('an AI deleted since is an error, but only when the saved list is known', () => {
+      const g = wired(ask({ endpointId: 'terhapus' }))
+      assert.ok(
+        validateFlow(g, { aiEndpointIds: new Set(['ai1']) }).some(
+          (i) => i.severity === 'error' && /sudah dihapus/.test(i.message),
+        ),
+      )
+      assert.deepEqual(errors(g), [])
+    })
+
+    test('a question variable no node fills is flagged', () => {
+      // The mistake that sent every question to the AI empty: saved to one
+      // name, read from another.
+      const g = wired(ask({ question: 'jawaban' }))
+      assert.ok(warnings(g).some((i) => /\{\{jawaban\}\} tidak pernah diisi/.test(i.message)))
+    })
+
+    test('a button label longer than WhatsApp allows is an error', () => {
+      assert.ok(errors(wired(ask({ endButton: 'Selesai, terima kasih banyak' }))).some((i) => /label tombol/.test(i.message)))
+      // Not sent at all, so not checked.
+      assert.deepEqual(errors(wired(ask({ sendAnswer: false, endButton: 'Selesai, terima kasih banyak' }))), [])
+    })
+
+    test('a question-answer loop back into the AI is not a spinning cycle', () => {
+      const g = graph(
+        [
+          trigger,
+          wait,
+          ask({ endButton: 'Selesai' }),
+          node('w2', { kind: 'waitReply', saveAs: 'pertanyaan', expect: 'any', maxRetries: 0, timeoutMinutes: 20 }),
+          node('c', { kind: 'condition', variable: 'pertanyaan', operator: 'eq', value: 'selesai', caseSensitive: false }),
+          end,
+        ],
+        [
+          { id: 'e1', source: 't', target: 'w' },
+          { id: 'e2', source: 'w', target: 'a', sourceHandle: 'reply' },
+          { id: 'e3', source: 'w', target: 'e', sourceHandle: 'timeout' },
+          { id: 'e4', source: 'a', target: 'w2', sourceHandle: 'success' },
+          { id: 'e5', source: 'a', target: 'e', sourceHandle: 'error' },
+          { id: 'e6', source: 'w2', target: 'c', sourceHandle: 'reply' },
+          { id: 'e7', source: 'w2', target: 'e', sourceHandle: 'timeout' },
+          { id: 'e8', source: 'c', target: 'e', sourceHandle: 'true' },
+          { id: 'e9', source: 'c', target: 'a', sourceHandle: 'false' },
+        ],
+      )
+      assert.deepEqual(validateFlow(g, { aiEndpointIds: new Set(['ai1']) }), [])
+    })
+  })
+
   test('an invalid variable name on waitReply is an error', () => {
     const g = graph(
       [

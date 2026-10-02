@@ -10,3 +10,7 @@ packages/db/generated/
 .next/
 out/
 next-env.d.ts
+
+# Dump data untuk Supabase (berisi hash password & token)
+supabase/*-data.sql
+supabase/claudewa-lengkap.sql

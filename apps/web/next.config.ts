@@ -16,7 +16,8 @@ const config: NextConfig = {
 
   // Required at runtime on the server, never in a bundle. Leaving bullmq to
   // webpack also drags in its optional valkey driver, which is not installed.
-  serverExternalPackages: ['bullmq', 'ioredis', '@prisma/client', 'bcryptjs'],
+  // undici is the AI page's test call (@wa/core/ai-call); it is Node-only.
+  serverExternalPackages: ['bullmq', 'ioredis', '@prisma/client', 'bcryptjs', 'undici'],
 
   webpack(config) {
     // Those packages import siblings as './x.js' - the ESM spelling Node's

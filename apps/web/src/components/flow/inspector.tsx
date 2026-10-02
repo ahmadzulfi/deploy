@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { WA_LIMITS } from '@wa/core/limits'
 import { NODE_LABELS, type NodeData } from '@wa/core/flow'
 import { flowTemplateValues, renderTemplate, templateSlots } from '@wa/core/templates'
 import { cn } from '@/lib/utils'
 import { useTemplates } from './templates-context'
+import { useAiEndpoints } from './ai-context'
 
 const input =
   'h-8 w-full rounded-md border bg-surface px-2 text-[12px] outline-none placeholder:text-fg-muted focus:border-accent'
@@ -14,11 +16,14 @@ const area =
 export function Inspector({
   nodeId,
   data,
+  variables,
   onChange,
   onDelete,
 }: {
   nodeId: string
   data: NodeData
+  /** Variables some node in this flow fills, for pickers. */
+  variables: string[]
   onChange: (d: NodeData) => void
   onDelete: () => void
 }) {
@@ -38,7 +43,7 @@ export function Inspector({
       </div>
 
       <div className="space-y-3 p-3">
-        <Fields data={data} set={set} />
+        <Fields data={data} set={set} variables={variables} />
         <p className="pt-1 font-mono text-[10px] text-fg-muted">id: {nodeId}</p>
       </div>
     </aside>
@@ -55,7 +60,15 @@ const atLeast = (raw: string, min: number) => {
   return Number.isFinite(n) && n >= min ? n : min
 }
 
-function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => void }) {
+function Fields({
+  data,
+  set,
+  variables,
+}: {
+  data: NodeData
+  set: (p: Partial<NodeData>) => void
+  variables: string[]
+}) {
   switch (data.kind) {
     case 'trigger':
       return (
@@ -384,6 +397,9 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
     case 'sendTemplate':
       return <TemplateFields data={data} set={set} />
 
+    case 'askAi':
+      return <AskAiFields data={data} set={set} variables={variables} />
+
 
     case 'waitReply':
       return (
@@ -501,6 +517,72 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
         </>
       )
 
+    case 'httpRequest':
+      return (
+        <>
+          <Field label="Metode">
+            <select
+              className={input}
+              value={data.method}
+              onChange={(e) => set({ method: e.target.value as typeof data.method })}
+            >
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+            </select>
+          </Field>
+          <Field label="URL" hint="Boleh memuat {{variabel}}; nilainya otomatis di-encode.">
+            <textarea
+              rows={3}
+              className={cn(area, 'font-mono break-all')}
+              value={data.url}
+              onChange={(e) => set({ url: e.target.value.replace(/\n/g, '') })}
+              placeholder="https://api.contoh.com/cari?q={{jawaban}}"
+            />
+          </Field>
+          {data.method === 'POST' && (
+            <Field label="Body (JSON)" hint="Tulis {{variabel}} di dalam tanda kutip; isinya otomatis di-escape.">
+              <textarea
+                rows={4}
+                className={cn(area, 'font-mono')}
+                value={data.body}
+                onChange={(e) => set({ body: e.target.value })}
+                placeholder={'{"query": "{{jawaban}}"}'}
+              />
+            </Field>
+          )}
+          <Field label="Header" hint="Opsional. Satu per baris, format Nama: nilai.">
+            <textarea
+              rows={2}
+              className={cn(area, 'font-mono')}
+              value={data.headers}
+              onChange={(e) => set({ headers: e.target.value })}
+              placeholder="Authorization: Bearer ..."
+            />
+          </Field>
+          <Field
+            label="Simpan respons ke variabel"
+            hint={`Baca isinya dengan {{${data.saveAs || 'hasil'}.nama_field}}, misalnya {{${data.saveAs || 'hasil'}.data.0.judul}}.`}
+          >
+            <input
+              className={cn(input, 'font-mono')}
+              value={data.saveAs}
+              onChange={(e) => set({ saveAs: e.target.value })}
+            />
+          </Field>
+          <Field label="Batas waktu (detik)" hint="Lewat ini, atau status bukan 2xx, cabang 'gagal' yang dipakai.">
+            <input
+              type="number"
+              min={1}
+              max={30}
+              className={input}
+              value={data.timeoutSeconds}
+              onChange={(e) => set({ timeoutSeconds: Number(e.target.value) })}
+              onBlur={(e) => set({ timeoutSeconds: Math.min(30, atLeast(e.target.value, 1)) })}
+            />
+          </Field>
+        </>
+      )
+
     case 'delay':
       return (
         <Field
@@ -577,6 +659,105 @@ function Fields({ data, set }: { data: NodeData; set: (p: Partial<NodeData>) => 
         </Field>
       )
   }
+}
+
+function AskAiFields({
+  data,
+  set,
+  variables,
+}: {
+  data: Extract<NodeData, { kind: 'askAi' }>
+  set: (p: Partial<NodeData>) => void
+  variables: string[]
+}) {
+  const endpoints = useAiEndpoints()
+  const known = endpoints.some((e) => e.id === data.endpointId)
+  // The node's own output is not a sensible question.
+  const choices = variables.filter((v) => v !== data.saveAs)
+  const questionKnown = choices.includes(data.question)
+
+  return (
+    <>
+      <Field label="AI">
+        {endpoints.length === 0 ? (
+          <p className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-fg-muted">
+            Belum ada AI tersimpan.{' '}
+            <Link href="/ai" className="text-accent hover:underline">
+              Tambahkan di halaman AI
+            </Link>{' '}
+            dulu, lalu kembali ke sini.
+          </p>
+        ) : (
+          <select className={input} value={known ? data.endpointId : ''} onChange={(e) => set({ endpointId: e.target.value })}>
+            <option value="" disabled>
+              {data.endpointId ? 'AI sudah dihapus, pilih lagi' : 'Pilih AI…'}
+            </option>
+            {endpoints.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+
+      <Field label="Pertanyaan diambil dari" hint="Variabel yang diisi node Tunggu balasan sebelum node ini.">
+        {choices.length === 0 ? (
+          <p className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-fg-muted">
+            Belum ada variabel. Taruh node Tunggu balasan sebelum node ini untuk menampung pertanyaan pengguna.
+          </p>
+        ) : (
+          <select className={cn(input, 'font-mono')} value={data.question} onChange={(e) => set({ question: e.target.value })}>
+            {!questionKnown && (
+              <option value={data.question} disabled>
+                {data.question ? `{{${data.question}}} (tidak diisi di flow ini)` : 'Pilih variabel…'}
+              </option>
+            )}
+            {choices.map((v) => (
+              <option key={v} value={v}>{`{{${v}}}`}</option>
+            ))}
+          </select>
+        )}
+      </Field>
+
+      <Check
+        label="Kirim jawaban langsung ke pengguna"
+        checked={data.sendAnswer}
+        onChange={(v) => set({ sendAnswer: v })}
+      />
+
+      {data.sendAnswer && (
+        <Field
+          label="Tombol di bawah jawaban"
+          hint="Kosongkan untuk teks biasa. Tombol ini terbaca sebagai balasan &quot;selesai&quot;. Untuk tanya jawab berulang: sambungkan 'berhasil' ke Tunggu balasan, lalu Kondisi {{pertanyaan}} = selesai untuk mengakhiri, selain itu kembali ke node ini."
+        >
+          <input
+            className={input}
+            value={data.endButton}
+            maxLength={20}
+            placeholder="mis. Selesai"
+            onChange={(e) => set({ endButton: e.target.value })}
+          />
+        </Field>
+      )}
+
+      <Field
+        label="Simpan jawaban ke variabel"
+        hint={
+          data.sendAnswer
+            ? 'Opsional dipakai lagi di node berikutnya.'
+            : `Kirim sendiri lewat node Kirim teks berisi {{${data.saveAs || 'jawaban_ai'}}}.`
+        }
+      >
+        <input className={cn(input, 'font-mono')} value={data.saveAs} onChange={(e) => set({ saveAs: e.target.value })} />
+      </Field>
+
+      <p className="text-[10px] leading-4 text-fg-muted">
+        Cabang &lsquo;gagal&rsquo; dipakai kalau AI tidak menjawab, error, atau pertanyaannya kosong. URL, API key, dan
+        format jawaban diatur di halaman AI.
+      </p>
+    </>
+  )
 }
 
 const MEDIA_LABEL = { image: 'gambar', video: 'video', document: 'dokumen' } as const

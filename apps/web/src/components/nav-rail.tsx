@@ -9,6 +9,7 @@ const ITEMS: { href: string; label: string; icon: () => React.JSX.Element; soon?
   { href: '/inbox', label: 'Inbox', icon: IconMessage },
   { href: '/contacts', label: 'Kontak', icon: IconUsers },
   { href: '/flows', label: 'Flow', icon: IconFlow },
+  { href: '/ai', label: 'AI', icon: IconAi },
   { href: '/broadcast', label: 'Broadcast', icon: IconSend },
   { href: '/templates', label: 'Template', icon: IconTemplate },
   { href: '/channels', label: 'Nomor', icon: IconPhone },
@@ -103,6 +104,15 @@ function IconFlow() {
       <rect x="3" y="17" width="6" height="4" rx="1" />
       <rect x="15" y="17" width="6" height="4" rx="1" />
       <path d="M12 7v4M6 17v-2h12v2" />
+    </svg>
+  )
+}
+
+function IconAi() {
+  return (
+    <svg {...svg}>
+      <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5Z" />
+      <path d="M18.5 16.5 19 18l1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z" />
     </svg>
   )
 }

@@ -33,6 +33,10 @@ export function defaultData(kind: NodeKind): NodeData {
       return { kind, variable: 'jawaban', operator: 'eq', value: '', caseSensitive: false }
     case 'setVariable':
       return { kind, name: 'variabel', value: '' }
+    case 'httpRequest':
+      return { kind, method: 'GET', url: '', headers: '', body: '', saveAs: 'hasil', timeoutSeconds: 15 }
+    case 'askAi':
+      return { kind, endpointId: '', question: 'pertanyaan', sendAnswer: true, endButton: '', saveAs: 'jawaban_ai' }
     case 'delay':
       return { kind, seconds: 60 }
     case 'assign':
@@ -50,6 +54,8 @@ export const PALETTE: { group: string; kinds: NodeKind[] }[] = [
   { group: 'Mulai', kinds: ['trigger'] },
   { group: 'Kirim', kinds: ['sendText', 'sendMedia', 'sendButtons', 'sendList', 'sendTemplate'] },
   { group: 'Tunggu', kinds: ['waitReply', 'delay'] },
+  { group: 'AI', kinds: ['askAi'] },
   { group: 'Logika', kinds: ['condition', 'setVariable'] },
   { group: 'Tindakan', kinds: ['assign', 'tag', 'handover', 'end'] },
+  { group: 'Lanjutan', kinds: ['httpRequest'] },
 ]

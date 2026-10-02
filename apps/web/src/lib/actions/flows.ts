@@ -59,7 +59,10 @@ export async function publishFlow(flowId: string): Promise<PublishResult> {
   const parsed = flowGraphSchema.safeParse(flow.draftGraph)
   if (!parsed.success) return { ok: false, issues: ['Graf tidak valid.'] }
 
-  const blocking = validateFlow(parsed.data).filter((i) => i.severity === 'error')
+  const ai = await prisma.aiEndpoint.findMany({ where: { orgId: user.orgId }, select: { id: true } })
+  const blocking = validateFlow(parsed.data, { aiEndpointIds: new Set(ai.map((a) => a.id)) }).filter(
+    (i) => i.severity === 'error',
+  )
   if (blocking.length) return { ok: false, issues: blocking.map((i) => i.message) }
 
   const version = (flow.versions[0]?.version ?? 0) + 1

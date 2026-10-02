@@ -1,6 +1,7 @@
 import { Worker, type Job } from 'bullmq'
 import { prisma, Prisma, FlowStatus, OptInStatus, SessionStatus, type Channel, type Contact } from '@wa/db'
 import {
+  aiConfigOf,
   buildTemplateComponents,
   emitEvent,
   flowGraphSchema,
@@ -18,6 +19,7 @@ import {
   type SessionState,
 } from '@wa/core'
 import { QUEUE, flowQueue, workerOptions } from '@wa/core/queues'
+import { callAi, safeFetch } from '@wa/core/ai-call'
 import { enqueueSend } from './outbound.js'
 
 const log = logger.child({ worker: 'flow' })
@@ -456,6 +458,49 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
             ? [{ type: 'body', parameters: p.bodyParams.map((text) => ({ type: 'text', text })) }]
             : undefined,
       })
+    },
+
+    async httpRequest(p) {
+      // safeFetch refuses internal addresses and caps the body, which ends up
+      // stored whole in the session's variables.
+      const res = await safeFetch(p.url, p)
+      log.info({ sessionId, url: p.url, status: res.status }, 'flow memanggil API')
+      return res
+    },
+
+    async askAi({ endpointId, question }) {
+      // Scoped to the org, so a graph cannot borrow another org's endpoint
+      // and its API key by id.
+      const endpoint = await prisma.aiEndpoint.findFirst({
+        where: { id: endpointId, orgId: conversation.channel.orgId },
+      })
+      if (!endpoint) {
+        log.warn({ sessionId, endpointId }, 'AI tidak ditemukan')
+        throw new Error('AI tidak ditemukan')
+      }
+
+      const result = await callAi(aiConfigOf(endpoint), {
+        pertanyaan: question,
+        nama: conversation.contact.name ?? '',
+        nomor: conversation.contact.waId,
+      })
+
+      // One timestamp for both: the AI page reads "failing" as lastErrorAt
+      // not older than lastUsedAt.
+      const now = new Date()
+      await prisma.aiEndpoint.update({
+        where: { id: endpoint.id },
+        data: result.ok
+          ? { lastUsedAt: now }
+          : { lastUsedAt: now, lastErrorAt: now, lastError: result.error.slice(0, 500) },
+      })
+
+      if (!result.ok) {
+        log.warn({ sessionId, ai: endpoint.name, error: result.error, ms: result.ms }, 'Tanya AI gagal')
+        throw new Error(result.error)
+      }
+      log.info({ sessionId, ai: endpoint.name, ms: result.ms }, 'Tanya AI dijawab')
+      return { answer: result.answer }
     },
 
     async changeTags(action, tags) {

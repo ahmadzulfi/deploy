@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { handlesOf, type FlowNode } from '@wa/core/flow'
 import { NODE_LABELS } from '@wa/core/flow'
 import { cn } from '@/lib/utils'
+import { useAiEndpoints } from './ai-context'
 
 /**
  * Connection points. A handle nobody can find is a handle that does not
@@ -116,6 +117,13 @@ function Summary({ data }: { data: FlowNode['data'] }) {
       return text(`{{${data.variable}}} ${OPERATORS[data.operator]} ${data.value}`)
     case 'setVariable':
       return text(`{{${data.name}}} = ${data.value}`)
+    case 'httpRequest':
+      return data.url
+        ? text(`${data.method} ${data.url}\n→ {{${data.saveAs}}}`)
+        : muted('URL belum diisi')
+    case 'askAi':
+      return <AskAiSummary data={data} />
+
     case 'delay':
       return text(humanSeconds(data.seconds))
     case 'assign':
@@ -127,6 +135,25 @@ function Summary({ data }: { data: FlowNode['data'] }) {
     case 'end':
       return muted(data.reason || 'Selesai')
   }
+}
+
+function AskAiSummary({ data }: { data: Extract<FlowNode['data'], { kind: 'askAi' }> }) {
+  const ai = useAiEndpoints().find((a) => a.id === data.endpointId)
+  return (
+    <div className="space-y-0.5 text-[12px]">
+      <p className={ai ? 'text-fg' : 'text-fg-muted italic'}>
+        {ai ? ai.name : data.endpointId ? 'AI sudah dihapus' : 'AI belum dipilih'}
+      </p>
+      <p className="text-fg-muted">
+        Tanya {`{{${data.question}}}`}
+        {data.sendAnswer
+          ? data.endButton.trim()
+            ? `, jawaban dikirim + tombol "${data.endButton.trim()}"`
+            : ', jawaban langsung dikirim'
+          : `, simpan ke {{${data.saveAs}}}`}
+      </p>
+    </div>
+  )
 }
 
 const OPERATORS: Record<string, string> = {

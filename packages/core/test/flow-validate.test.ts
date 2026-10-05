@@ -478,3 +478,86 @@ describe('terminal nodes', () => {
     assert.ok(errors(g).some((i) => i.nodeId === 's' && /tidak terhubung/.test(i.message)))
   })
 })
+
+describe('aiRoute and the fallback trigger', () => {
+  const fallback = node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false })
+  const route = (data: Partial<Extract<FlowNode['data'], { kind: 'aiRoute' }>> = {}) =>
+    node('r', { kind: 'aiRoute', endpointId: 'rt1', question: 'pesan_awal', minScore: 0.7, saveAs: 'arah_ai', ...data })
+  const menu = node('m', {
+    kind: 'sendList',
+    body: 'Pilih:',
+    buttonText: 'Menu',
+    sections: [{ title: 'Layanan', rows: [{ id: 'skck', title: 'SKCK' }] }],
+  })
+  const info = node('i', { kind: 'sendText', body: 'Info SKCK' })
+  const routed = (r = route(), extra: FlowNode[] = []) =>
+    graph(
+      [fallback, r, menu, info, end, ...extra],
+      [
+        { id: '1', source: 'fb', target: 'r' },
+        { id: '2', source: 'r', target: 'm', sourceHandle: 'unsure' },
+        { id: '3', source: 'r', target: 'm', sourceHandle: 'error' },
+        { id: '4', source: 'm', target: 'i', sourceHandle: 'skck' },
+        { id: '5', source: 'i', target: 'e' },
+      ],
+    )
+  const kinds = new Map<string, 'ANSWER' | 'ROUTE'>([
+    ['rt1', 'ROUTE'],
+    ['ans1', 'ANSWER'],
+  ])
+
+  test('a wired router over a menu is valid, and pesan_awal needs no Tunggu balasan', () => {
+    assert.deepEqual(validateFlow(routed(), { aiEndpointIds: new Set(kinds.keys()), aiEndpointKinds: kinds }), [])
+  })
+
+  test('the fallback trigger needs no keywords', () => {
+    assert.ok(!errors(routed()).some((i) => i.nodeId === 'fb'))
+  })
+
+  test('a router with no endpoint chosen cannot publish', () => {
+    assert.ok(errors(routed(route({ endpointId: '' }))).some((i) => /pilih AI/.test(i.message)))
+  })
+
+  test('a router on an answering endpoint is an error, and so is the reverse', () => {
+    const opts = { aiEndpointIds: new Set(kinds.keys()), aiEndpointKinds: kinds }
+    const wrongRouter = validateFlow(routed(route({ endpointId: 'ans1' })), opts)
+    assert.ok(wrongRouter.some((i) => i.severity === 'error' && /Arahkan ke menu/.test(i.message)))
+
+    const ask = node('a', { kind: 'askAi', endpointId: 'rt1', question: 'pesan_awal', sendAnswer: true, endButton: '', saveAs: 'jawaban_ai' })
+    const g = graph([trigger, ask, end], [
+      { id: '1', source: 't', target: 'a' },
+      { id: '2', source: 'a', target: 'e', sourceHandle: 'success' },
+      { id: '3', source: 'a', target: 'e', sourceHandle: 'error' },
+    ])
+    assert.ok(validateFlow(g, opts).some((i) => i.severity === 'error' && /Jawab pertanyaan/.test(i.message)))
+  })
+
+  test('a minimum score outside 0 to 1 is an error', () => {
+    assert.ok(errors(routed(route({ minScore: 1.5 }))).some((i) => /antara 0 dan 1/.test(i.message)))
+  })
+
+  test('a router in a flow without any menu list is an error', () => {
+    const g = graph(
+      [fallback, route(), end],
+      [
+        { id: '1', source: 'fb', target: 'r' },
+        { id: '2', source: 'r', target: 'e', sourceHandle: 'unsure' },
+        { id: '3', source: 'r', target: 'e', sourceHandle: 'error' },
+      ],
+    )
+    assert.ok(errors(g).some((i) => /butuh menu/.test(i.message)))
+  })
+
+  test('a second fallback trigger is flagged', () => {
+    const second = node('fb2', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false })
+    const g = routed(route(), [second])
+    g.edges.push({ id: '6', source: 'fb2', target: 'r' })
+    assert.ok(warnings(g).some((i) => i.nodeId === 'fb2' && /lebih dari satu/.test(i.message)))
+  })
+
+  test('an unwired unsure branch is flagged', () => {
+    const g = routed()
+    g.edges = g.edges.filter((e) => e.sourceHandle !== 'unsure')
+    assert.ok(warnings(g).some((i) => i.nodeId === 'r' && /tidak cocok/.test(i.message)))
+  })
+})

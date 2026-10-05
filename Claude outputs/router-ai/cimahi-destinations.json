@@ -1,0 +1,776 @@
+[
+  {
+    "id": "m_darurat",
+    "path": "Kedaruratan",
+    "description": "Lapor situasi darurat lewat 112",
+    "content": "📢 Dalam situasi kedaruratan, segera hubungi 112! ☎️\n📱 Pengguna iPhone: Klik nomor untuk langsung panggil.\n📞 Pengguna Android: Buka aplikasi panggilan, ketik 112, lalu tekan panggil.\n⏰ Layanan ini dapat diakses melalui sambungan telepon bebas pulsa dan tersedia 24 jam untuk membantu Anda kapan saja, khusus untuk wilayah Kota Cimahi 🚨"
+  },
+  {
+    "id": "m_pengaduan",
+    "path": "Pengaduan",
+    "description": "Keluhan dan aspirasi untuk Pemkot Cimahi",
+    "content": "Pengaduan – Suara Anda, Perubahan untuk Kota Cimahi!\n✨ Punya Keluhan atau Saran? Laporkan dengan Mudah! ✨\nKami siap mendengar! Wargi Cimahi bisa melaporkan berbagai keluhan, pengaduan, atau saran dengan mudah dan cepat."
+  },
+  {
+    "id": "m_info",
+    "path": "Informasi Kota Cimahi",
+    "description": "Open Data, PPID, dan berita Bewara",
+    "content": "Informasi Kota Cimahi – Tetap Update, Makin Tahu!\n✨ Semua Info Tentang Cimahi, Ada di Sini! ✨\nDapatkan berbagai informasi penting seputar Kota Cimahi dengan mudah dan cepat! Dari data pembangunan, berita terbaru, hingga agenda kegiatan, semuanya bisa Anda akses langsung. Jangan sampai ketinggalan update penting!"
+  },
+  {
+    "id": "m_layanan",
+    "path": "Layanan Publik",
+    "description": "MPP, Disdukcapil, kecamatan, dan badan daerah",
+    "content": "Layanan Publik – Urusan Administrasi Jadi Lebih Mudah!\n✨ Satu Kota, Banyak Layanan – Semua Ada di Sini! ✨\nKini, mengurus berbagai keperluan administrasi di Kota Cimahi lebih praktis, cepat, dan mudah! Dari layanan kependudukan, perizinan usaha, hingga bantuan sosial, semua bisa diakses dengan lebih efisien. Klik \"Menu\" dan Pilih Unit Layanan yang Anda butuhkan dan selesaikan urusan hanya dalam genggaman!"
+  },
+  {
+    "id": "m_wisata",
+    "path": "Pariwisata",
+    "description": "Destinasi wisata Kota Cimahi",
+    "content": "Pariwisata – Jelajahi Keindahan & Sejarah Cimahi!\n✨ Satu Kota, Beragam Destinasi – Liburan Seru di Cimahi! ✨\nDari wisata alam yang asri, tempat bersejarah yang penuh cerita, hingga destinasi kekinian yang instagramable, semua ada di sini! \nPilih tempat favoritmu dan rasakan pengalaman seru di Kota Cimahi!"
+  },
+  {
+    "id": "m_cctv",
+    "path": "CCTV",
+    "description": "Pantau titik strategis kota secara real-time",
+    "content": "👀 Pantau Kota Cimahi Secara Real-Time!\nKini, Anda dapat memantau kondisi Kota Cimahi secara langsung lewat jaringan CCTV pintar kami. 📹 Anda bisa melihat berbagai daerah dan jalan berdasarkan wilayah di Kota Cimahi, sehingga mudah memantau situasi di sekitar Anda. 🛣️🏙️\n📍 Anda dapat memantau aktivitas jalan di lokasi berikut:\n1. Jl. Jend. Amir Machmud (Simpang Cihanjuang Depan BJB)\n2. Persimpangan Citereup\n3. Persimpangan Pemkot\n4. Pertigaan Melong 3\n5. Simpang Alun-Alun Gandawijaya 2\n6. Si…"
+  },
+  {
+    "id": "m_kejaksaan",
+    "path": "Kejaksaan Negeri",
+    "description": "e-Tilang, Rumah RJ, BAROS, SI-WALI",
+    "content": "🌟 Selamat Datang di Kejaksaan Negeri Cimahi 🌟\nSebagai lembaga penegak hukum di Kota Cimahi, kami berkomitmen untuk memberikan pelayanan terbaik bagi masyarakat Kota Cimahi melalui berbagai layanan yang mudah diakses, antara lain:\n1. e-Tilang\n2. Rumah RJ (Restorative Justice)\nWadah untuk penyelesaian perkara di luar pengadilan dengan pendekatan damai dan humanis. Layanan:\n▪️ Restorative Justice → Penyelesaian perkara lewat kesepakatan damai\n▪️ Halo JPN → Konsultasi hukum gratis dari Jaksa Peng…"
+  },
+  {
+    "id": "m_mbg",
+    "path": "Makan Bergizi Gratis",
+    "description": "SPPG, penerima manfaat, pengaduan, mitra BGN",
+    "content": "Halo Wargi Cimahi! 👋\n🍱 Program MBG merupakan inisiatif pemerintah dalam meningkatkan status gizi masyarakat, khususnya bagi 👧 Anak-anak, 🧑🏻‍🎓 Peserta Didik, 🤰 Ibu Hamil dan 🤱 Ibu Menyusui.\n🏛️ Program ini dilaksanakan oleh Badan Gizi Nasional (BGN) melalui Satuan Pelayanan Pemenuhan Gizi (SPPG) di setiap daerah, sesuai dengan ketentuan Peraturan Presiden Nomor 83 Tahun 2024 tentang Badan Gizi Nasional beserta peraturan pelaksana terkait.\n📲 Melalui layanan ini, masyarakat dapat memperol…"
+  },
+  {
+    "id": "pg_lapor",
+    "path": "Pengaduan › SP4N LAPOR",
+    "description": "Kanal pengaduan nasional lapor.go.id",
+    "content": "📢 Sistem Pengelolaan Pengaduan Pelayanan Publik Nasional (SP4N) - Layanan Aspirasi dan Pengaduan Online Rakyat (LAPOR!) \nWujudkan Cimahi yang MANTAP!\nPunya keluhan atau ingin menyampaikan aspirasi? SP4N LAPOR! adalah kanal resmi untuk memastikan setiap laporan Anda cepat ditindaklanjuti.\n🔗 Laporkan sekarang: https://www.lapor.go.id"
+  },
+  {
+    "id": "pg_tulis",
+    "path": "Pengaduan › Tulis Pengaduan",
+    "description": "Sampaikan keluhan langsung di chat ini",
+    "content": "Silakan tuliskan keluhan atau aspirasi Wargi dalam satu pesan. 📝\nSertakan lokasi dan waktu kejadian bila ada, supaya petugas lebih cepat menindaklanjuti."
+  },
+  {
+    "id": "pg_wali",
+    "path": "Pengaduan › WA Sampurasun Wali Kota",
+    "description": "Fast response Wali Kota & Wakil Wali Kota",
+    "content": "📱 WA Sampurasun Wali Kota Wakil Wali Kota Cimahi – Fast Response, Bikin Nyaman!\nAda pertanyaan atau keluhan? \nWA Sampurasun Wali Kota Wakil Wali Kota Cimah siap memberikan jawaban cepat dan solusi terbaik!\n🔗 Chat kami di sini: 085113051928"
+  },
+  {
+    "id": "ik_opendata",
+    "path": "Informasi Kota Cimahi › Open Data",
+    "description": "Pusat data terbuka Kota Cimahi",
+    "content": "📊 Open Data – Data Akurat untuk Kota yang MANTAP!\nOpen Data Kota Cimahi adalah pusat informasi berbasis data yang dapat diakses oleh masyarakat. Dengan transparansi dan keterbukaan data, Open Data mendukung pembangunan berbasis bukti untuk Kota Cimahi yang lebih maju!\n🔗 Akses Open Data: https://opendata.cimahikota.go.id/"
+  },
+  {
+    "id": "ik_ppid",
+    "path": "Informasi Kota Cimahi › PPID (SIMPONI)",
+    "description": "Permohonan informasi publik",
+    "content": "📂 PPID SIMPONI Kota Cimahi – Transparan, Bikin Makin HEPI!\nButuh informasi publik?\nKini, akses data dan informasi dari pemerintah semakin mudah dengan SIMPONI nya Kota Cimahi!\n🔗 Cek informasi di: https://ppid.cimahikota.go.id"
+  },
+  {
+    "id": "ik_bewara",
+    "path": "Informasi Kota Cimahi › Bewara Cimahi MANTAP",
+    "description": "Berita dan agenda terkini Kota Cimahi",
+    "content": "📰 Bewara Cimahi MANTAP Makin HEPI – Berita Terkini & Terpercaya!\n✨ Tetap Update, Makin HEPI! ✨\nDapatkan informasi terbaru seputar Kota Cimahi hanya di Bewara Cimahi MANTAP Makin HEPI! Dari kebijakan pemerintah, kegiatan masyarakat, hingga program inovatif yang bikin Cimahi semakin maju dan warganya makin HEPI!\n📢 Jangan ketinggalan berita terbaru dan update terkini, langsung dari sumber resmi!\n🔗 Baca berita lengkap di: cimahikota.go.id/berita\n📱 Ikuti kami di media sosial untuk info cepat & m…"
+  },
+  {
+    "id": "lp_mpp",
+    "path": "Layanan Publik › Mal Pelayanan Publik",
+    "description": "Layanan terpadu berbagai instansi di satu gedung",
+    "content": "Mall Pelayanan Publik (MPP) 🌟 Selamat datang di Mal Pelayanan Publik!🌟\n \nDi sini, kami menyediakan semua layanan yang Anda butuhkan dari barang dan jasa hingga administrasi dengan cepat, mudah, terjangkau, aman, dan nyaman. Mari nikmati layanan terintegrasi yang mempermudah proses administrasi di Kota Cimahi. 💪\n✨#KepuasanAndaPrioritasKami"
+  },
+  {
+    "id": "lp_disdukcapil",
+    "path": "Layanan Publik › Disdukcapil",
+    "description": "Kependudukan dan pencatatan sipil",
+    "content": "🆔 Dinas Kependudukan dan Pencatatan Sipil Kota Cimahi\nUrusan administrasi kependudukan kini bisa diakses secara online. Silakan pilih Menu:"
+  },
+  {
+    "id": "lp_kecamatan",
+    "path": "Layanan Publik › Kecamatan & Kelurahan",
+    "description": "Lapakami dan website kecamatan/kelurahan",
+    "content": "🏛️ Kecamatan dan Kelurahan Kota Cimahi\nLayanan administrasi kelurahan/kecamatan dan website resmi tiap wilayah. Silakan pilih Menu:"
+  },
+  {
+    "id": "lp_bakesbangpol",
+    "path": "Layanan Publik › Bakesbangpol",
+    "description": "Kesatuan bangsa dan politik",
+    "content": "🤝 Badan Kesatuan Bangsa dan Politik (Bakesbangpol) Kota Cimahi\nSilakan pilih Menu:"
+  },
+  {
+    "id": "lp_bpbd",
+    "path": "Layanan Publik › BPBD",
+    "description": "Penanggulangan bencana daerah",
+    "content": "🚨 Halo Wargi Cimahi!\n🌐 Website resmi dari Badan Penanggulangan Bencana Daerah siap memberikan informasi lengkap tentang layanan, program, dan kebijakan terkini.\n🛡️ Melalui platform ini, kamu dapat dengan mudah mengakses berbagai info penting seputar penanggulangan bencana di Kota Cimahi.\n💡 Jangan lewatkan! Yuk, cek langsung di sini:\n👉 https://bpbd.cimahikota.go.id/"
+  },
+  {
+    "id": "lp_bpkad",
+    "path": "Layanan Publik › BPKAD",
+    "description": "Pengelolaan keuangan dan aset daerah",
+    "content": "👋 Halo Wargi Cimahi!\n🌐 Website resmi dari Badan Pengelolaan Keuangan dan Aset Daerah hadir untuk memberikan informasi lengkap tentang layanan, program, dan kebijakan terkait keuangan serta aset daerah.\n📊 Melalui platform ini, kamu bisa dengan mudah mengakses data yang transparan dan akurat demi kemajuan bersama.\n✨ Yuk, langsung cek informasinya di sini:\n👉 https://bpkad.cimahikota.go.id/"
+  },
+  {
+    "id": "lp_bappenda",
+    "path": "Layanan Publik › Bappenda",
+    "description": "Pajak daerah, Wajib Pajak Online, dan BPHTB",
+    "content": "💰 Badan Pengelola Pendapatan Daerah (Bappenda) Kota Cimahi\nSilakan pilih Menu:"
+  },
+  {
+    "id": "lp_bappelitbangda",
+    "path": "Layanan Publik › Bappelitbangda",
+    "description": "Perencanaan pembangunan dan inovasi daerah",
+    "content": "📐 Badan Perencanaan Pembangunan, Penelitian dan Pengembangan Daerah (Bappelitbangda) Kota Cimahi\nSilakan pilih Menu:"
+  },
+  {
+    "id": "ws_eco",
+    "path": "Pariwisata › Eco Wisata Cimahi",
+    "description": "Wisata alam di Cipageran, tiket gratis",
+    "content": "🏕️ Eco Wisata Cimahi – Alam Asri, Udara Sejuk, Liburan Seru!\nNikmati pengalaman wisata alam terbaik di Eco Wisata Cimahi, destinasi hijau yang menawarkan kesejukan, keindahan alam, serta berbagai aktivitas seru untuk keluarga dan teman-teman!\n📍 Lokasi: ECO WISATA CIMAHI, JL. Martasik, Kp. Terobosan Cimenteng Cipageran Cimahi Utara\n🗺️ Maps: https://maps.app.goo.gl/Zi4KRSPHk6es6VVB8\n🕒 Jam Operasional: Setiap Hari, Pukul 7.00 Sampai Selesai\n🎟️ Harga Tiket: Gratis\n🌿 Fasilitas: Area bermain, s…"
+  },
+  {
+    "id": "ws_awc",
+    "path": "Pariwisata › Alam Wisata Cimahi",
+    "description": "One stop recreation di jalur utara Cimahi",
+    "content": "🏕️  Alam Wisata Cimahi – Alam Asri, Udara Sejuk, Liburan Seru!\nAlam Wisata Cimahi ( AWC ), tempat rekreasi utama diutara Kota Cimahi. Beberapa fasilitas rekreasi utama di utara Kota Cimahi. Beberapa fasilitas rekreasi tersedia lengkap,menjadikan AWC sebagai one stopre creation yang sayang untuk dilewatkan ketika melewati jalur utara.\n📍 Lokasi: ALAM WISATA CIMAHI, Jalan Kolonel Masturi KM.4 No.157, Cipageran, Kec. Cimahi Utara, Kota Cimahi, Jawa Barat 40511\n🗺️ Maps: https://maps.app.goo.gl/k1…"
+  },
+  {
+    "id": "ws_kabuci",
+    "path": "Pariwisata › Kampung Buyut Cipageran",
+    "description": "Camping, resort, dan venue di lahan 2,5 ha",
+    "content": "🏕️  Kampung Buyut Cipageran \nKampung Buyut Cipageran ( Kabuci ) yang tampak asri dan nyaman untuk dijadikan tempat kumpul bersama keluarga atau teman. Sejuk dan tentram, itulah kesan pertama jika kita menginjakan kaki ke Kampung Buyut  Cipageran.  Selain  masih  banyak  pepohonan,  dilahan  seluas  2,5 ha  tersebut  terdapat sejumlah bangunan yang terbuat dari bambu.\n📍 Lokasi: Kampung Buyut Cipageran (KABUCI), Jalan Kolonel Masturi KM.3  kel. Cipageran, Kec. Cimahi Utara, Kota Cimahi, Jawa Ba…"
+  },
+  {
+    "id": "ws_ciseupan",
+    "path": "Pariwisata › Teras Ciseupan",
+    "description": "Wisata alam dengan view spektakuler di Cibeber",
+    "content": "Teras Ciseupan Cimahi – Wisata Alam dengan View Spektakuler!\nNikmati suasana alam yang sejuk dan pemandangan menakjubkan di Teras Ciseupan Cimahi! Tempat ini menjadi destinasi favorit bagi wisatawan yang ingin bersantai, menikmati udara segar, dan mengabadikan momen dengan latar belakang alam yang indah.\n📍 Lokasi:  Pancanaka Hill, Jalan Sanghyang, RW.07, Cibeber, Kec. Cimahi Sel, Kota Cimahi, Jawa Barat 40531\n🗺️ Maps: https://maps.app.goo.gl/CjKPc6cXGnAgH4LWA\n🕒 Jam Operasional: Setiap Hari, …"
+  },
+  {
+    "id": "ws_cimiteg",
+    "path": "Pariwisata › Cimahi Military Heritage",
+    "description": "Jejak sejarah militer Kota Cimahi",
+    "content": "CIMITEG (Cimahi Military Heritage)\n🔰 Jejak Sejarah Militer Kota Cimahi!\nCimahi kaya akan sejarah militer, dengan bangunan peninggalan Belanda yang masih kuat berdiri. Pernah jadi garnisun militer terbesar di Hindia Belanda, Cimahi juga dikenal sebagai pusat pendidikan tentara, seperti Pusdikarmed & Pusdikpengmilum.\nNuansa loreng hijau melekat erat, menandai perjalanan panjang Cimahi sebagai kota militer. Menelusuri CIMITEG mengajak Anda mengenal peran penting Cimahi dalam sejarah militer Indon…"
+  },
+  {
+    "id": "kj_etilang",
+    "path": "Kejaksaan Negeri › e-Tilang",
+    "description": "Cara bayar denda dan ambil sisa titipan",
+    "content": "🙌 Halo Wargi Cimahi!\nDengan sistem e-Tilang atau electronic traffic law enforcement (ETLE), urusan pelanggaran lalu lintas jadi lebih mudah & tanpa ribet! 🚗💨\nTidak ada lagi tilang manual di jalan.\n📍 Cukup selesaikan kewajiban Anda dan ambil barang bukti e-Tilang di Kejaksaan Negeri Cimahi dengan layanan yang cepat, praktis, dan transparan."
+  },
+  {
+    "id": "kj_rj",
+    "path": "Kejaksaan Negeri › Rumah RJ",
+    "description": "Restorative Justice, Halo JPN, penyuluhan hukum",
+    "content": "⚖️ Rumah Restorative Justice (RJ) — Kejaksaan Negeri Cimahi\nWadah penyelesaian perkara di luar pengadilan dengan pendekatan damai dan humanis. Silakan pilih Menu:"
+  },
+  {
+    "id": "kj_baros",
+    "path": "Kejaksaan Negeri › Barang Bukti (BAROS)",
+    "description": "Pengambilan barang bukti bebas ongkos",
+    "content": "🙌 Halo Wargi Cimahi!\nSekarang ambil barang bukti jadi lebih gampang dengan BAROS – Barang Bukti Bebas Ongkos 🚚✨\n📌 BAROS (Barang Bukti Bebas Ongkos) adalah inovasi layanan Kejaksaan Negeri Cimahi untuk memudahkan masyarakat dalam mengambil barang bukti perkara.\n📘 Melalui layanan ini, masyarakat dapat:\n1. Mengambil barang bukti langsung di kantor Kejaksaan Negeri Cimahi.\n2. Mengajukan pengantaran (delivery) barang bukti sesuai alamat penerima.\nSyarat:\n1. Identitas diri (KTP/SIM/Kartu Keluarga…"
+  },
+  {
+    "id": "kj_siwali",
+    "path": "Kejaksaan Negeri › SI-WALI",
+    "description": "Sistem Informasi Perwalian Anak",
+    "content": "📱 SI-WALI (Sistem Informasi Perwalian Anak)\n🎉 Kejaksaan Tinggi Jawa Barat menghadirkan SI-WALI, sebuah layanan berbasis aplikasi yang memberikan kepastian hukum bagi anak-anak Indonesia yang tidak berada di bawah kekuasaan orang tua.\n👥 Melalui layanan ini, masyarakat maupun instansi terkait dapat mengajukan permohonan perwalian anak untuk memastikan hak-hak anak tetap terlindungi.\n✅ Dilayani langsung oleh Jaksa Pengacara Negara secara profesional\n✅ Proses mudah, transparan, dan GRATIS\n✅ Teri…"
+  },
+  {
+    "id": "mb_sppg",
+    "path": "Makan Bergizi Gratis › SPPG",
+    "description": "Satuan Pelayanan Pemenuhan Gizi per kelurahan",
+    "content": "🍱 Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi\nSilakan pilih Kelurahan untuk melihat SPPG yang melayani wilayah tersebut:"
+  },
+  {
+    "id": "mb_penerima",
+    "path": "Makan Bergizi Gratis › Lembaga Penerima Manfaat",
+    "description": "Siapa saja yang menerima manfaat program MBG",
+    "content": "👥 Lembaga Penerima Manfaat Program MBG\nProgram Makan Bergizi Gratis menyasar kelompok yang paling membutuhkan pemenuhan gizi, yaitu:\n👧 Anak-anak\n🧑🏻‍🎓 Peserta didik (PAUD/TK, SD, SMP, SMA/SMK sederajat)\n🤰 Ibu hamil\n🤱 Ibu menyusui\nPenyalurannya dilakukan lewat SPPG (Satuan Pelayanan Pemenuhan Gizi) di tiap kelurahan, bekerja sama dengan sekolah, madrasah, PAUD/Kober, dan posyandu setempat.\n📍 Untuk melihat daftar sekolah dan posyandu penerima manfaat di wilayah Wargi, pilih menu SPPG lalu …"
+  },
+  {
+    "id": "mb_aduan",
+    "path": "Makan Bergizi Gratis › Pengaduan",
+    "description": "Sampaikan keluhan terkait layanan MBG",
+    "content": "📣 Pengaduan Program MBG\nMenemukan kendala pada layanan Makan Bergizi Gratis — mutu makanan, jadwal distribusi, atau data penerima manfaat?\nWargi bisa menyampaikannya lewat:\n1️⃣ SP4N LAPOR! — kanal pengaduan resmi pemerintah\n🔗 https://www.lapor.go.id\n2️⃣ Menu Pengaduan di Wa Mantap — tulis keluhan Wargi langsung di chat ini, laporan akan diteruskan ke petugas\n3️⃣ SPPG setempat — sampaikan langsung ke yayasan pengelola SPPG di kelurahan Wargi (alamatnya ada di menu SPPG)\nSetiap laporan ditindak…"
+  },
+  {
+    "id": "mb_mitra",
+    "path": "Makan Bergizi Gratis › Mitra BGN",
+    "description": "Kemitraan dengan Badan Gizi Nasional",
+    "content": "🤝 Mitra Badan Gizi Nasional (BGN)\nProgram MBG dijalankan Badan Gizi Nasional melalui SPPG yang dikelola yayasan mitra di tiap daerah, sesuai Peraturan Presiden Nomor 83 Tahun 2024 tentang Badan Gizi Nasional beserta peraturan pelaksananya.\nDi Kota Cimahi, SPPG dikelola oleh yayasan-yayasan mitra yang bertanggung jawab atas penyiapan dan distribusi makanan bergizi ke sekolah dan posyandu di wilayahnya.\n📍 Nama yayasan pengelola tiap SPPG bisa Wargi lihat di menu SPPG — pilih kelurahan, lalu pil…"
+  },
+  {
+    "id": "mp_dekranasda",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Dekranasda",
+    "description": "Dewan Kerajinan Nasional Daerah",
+    "content": "DEKRANASDA - Dewan Kerajinan Nasional Daerah\nDEKRANASDA adalah organisasi nirlaba yang bertujuan untuk memayungi dan mengembangkan produk kerajinan 🧶. DEKRANASDA juga berusaha meningkatkan kehidupan pelaku bisnis 💼, terutama yang tergabung dalam kelompok usaha kecil dan menengah (UKM) 📈. Mari dukung dan kenali lebih dalam produk kerajinan lokal! 🛍️\n📍 Untuk mendapatkan informasi lebih lanjut, Anda bisa datang langsung ke Mal Pelayanan Publik Kota Cimahi dan menuju tenant DEKRANASDA."
+  },
+  {
+    "id": "mp_imigrasi",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Imigrasi (Paspor)",
+    "description": "Permohonan dan penggantian paspor",
+    "content": "Permohonan Paspor Baru dan Penggantian (SENIN dan RABU) - KHUSUS WARGA KTP CIMAHI\n🚨Penting untuk Warga KTP CIMAHI 🚨 \nIngin mengurus Paspor Baru atau Penggantian? Datanglah ke layanan kami setiap SENIN dan RABU! Pastikan Anda tidak ketinggalan kesempatan ini untuk memudahkan perjalanan Anda! ✈️💼\n⌚️ Jam Layanan: Pukul 08.00 s/d 10.00 WIB. (Disarankan datang Pukul 08.00 WIB)\n⌚️ Jam Layanan Pengambilan Paspor: Pukul 10.00 s/d 11.00 WIB\n🔎 Scan tiket antrian: Pukul 07.30 WIB s/d 08.30 WIB\nCatatan…"
+  },
+  {
+    "id": "mp_bnn",
+    "path": "Layanan Publik › Mal Pelayanan Publik › BNN Kota Cimahi",
+    "description": "SKHPN, rehabilitasi, penyuluhan narkoba",
+    "content": "BNN Kota Cimahi\n🚨 Halo Wargi Cimahi!🚨 \nDalam upaya menanggulangi penyalahgunaan narkoba yang semakin meningkat, Pemerintah Kota Cimahi mendukung penuh pembentukan Badan Narkotika Nasional (BNN) Kota Cimahi. Berdasarkan rekomendasi Walikota dan surat resmi dari Kementerian PAN RB, BNN Kota Cimahi siap memberantas peredaran narkoba di wilayah kita. Mari bersama-sama ciptakan Cimahi yang lebih aman dan bebas dari narkoba! 💪🌟"
+  },
+  {
+    "id": "mp_pa",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Pengadilan Agama",
+    "description": "e-Court, gugatan mandiri, informasi produk",
+    "content": "⚖️ Pengadilan Agama Kota Cimahi Kelas 1A ⚖️\nBerdasarkan Keputusan Presiden Republik Indonesia Nomor 15 Tahun 2016, yang kemudian diresmikan oleh Ketua Mahkamah Agung RI pada 22 Oktober 2018, terjadi perubahan menjadi tiga satuan kerja baru: Pengadilan Agama Kota Cimahi Kelas 1A, Pengadilan Agama Soreang Kelas II, dan Pengadilan Agama Ngamprah Kelas II.\nSaat ini, Pengadilan Agama Kota Cimahi hanya meliputi wilayah Kota Cimahi, yang terdiri dari 3 kecamatan dan 15 kelurahan. \n📍 Untuk keperluan a…"
+  },
+  {
+    "id": "mp_samsat",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Samsat (Pajak Kendaraan)",
+    "description": "Pembayaran dan pengesahan pajak tahunan",
+    "content": "🚗 Pembayaran & Pengesahan Pajak Kendaraan Bermotor Tahunan 💳\nLayanan Pembayaran dan Pengesahan Pajak Kendaraan Bermotor Tahunan ini dapat diakses oleh masyarakat Cimahi melalui Mal Pelayanan Publik (MPP) Kota Cimahi. Layanan ini memudahkan warga untuk menyelesaikan kewajiban pajak kendaraan mereka.\n🌟 Pembayaran & Pengesahan Pajak Kendaraan Bermotor Tahunan 🌟\nLayanan ini ditujukan bagi pemilik kendaraan bermotor yang ingin melakukan pembayaran pajak tahunan sekaligus pengesahan STNK sesuai d…"
+  },
+  {
+    "id": "mp_polres",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Polres Cimahi (SKCK)",
+    "description": "Surat Keterangan Catatan Kepolisian",
+    "content": "👮‍♂️ Halo Wargi Cimahi! 👮‍♀️\nKini, Polres Cimahi hadir di MPP Kota Cimahi, siap memberikan pelayanan yang lebih dekat dan mudah dijangkau oleh masyarakat. \n🚓 Kami berkomitmen untuk mewujudkan Polres Cimahi yang profesional, bermoral, dan modern, serta dapat dipercaya oleh masyarakat.\nSalah satu layanan yang kami hadirkan di MPP adalah Pelayanan SKCK, yang memudahkan Anda dalam mengurus surat keterangan catatan kepolisian dengan cepat dan efisien. 📜\nKami siap melayani Anda dengan sepenuh hat…"
+  },
+  {
+    "id": "mp_pegadaian",
+    "path": "Layanan Publik › Mal Pelayanan Publik › PT Pegadaian",
+    "description": "KCA, cicil emas, Arrum Haji, dan lainnya",
+    "content": "🏛️ PT Pegadaian 🏛️\n🌟 Tahu nggak, Wargi Cimahi? Sejarah PT Pegadaian dimulai dari Bank Van Leening yang didirikan oleh VOC untuk memberikan kredit dengan sistem gadai. 🤝\nTujuan kami:\n✅ Mencegah praktik ijon dan rentenir\n✅ Meningkatkan kesejahteraan rakyat kecil\n✅ Mendukung program pemerintah untuk ekonomi dan pembangunan nasional\nPegadaian: Solusi keuangan untuk masa depan yang lebih baik! 💪💼\n🌟 Ayo, kunjungi tenant Pegadaian di MPP Kota Cimahi! 🌟 Nikmati berbagai layanan keuangan yang ka…"
+  },
+  {
+    "id": "dc_dilanda",
+    "path": "Layanan Publik › Disdukcapil › DILANDACITA",
+    "description": "Digitalisasi Layanan Adminduk Cimahi Kota",
+    "content": "🌐 DILANDACITA — Digitalisasi Layanan Adminduk Cimahi Kota\nSilakan pilih Menu untuk melanjutkan:"
+  },
+  {
+    "id": "dc_sipanen",
+    "path": "Layanan Publik › Disdukcapil › SIPANEN",
+    "description": "Pendataan penduduk nonpermanen",
+    "content": "🏠SIPANEN (Sistem Pendataan Penduduk Nonpermanen)🏠\nSIPANEN adalah sistem yang digunakan untuk mendata penduduk nonpermanen, yaitu mereka yang tinggal di luar alamat domisili yang tercantum pada KK, KTP-el, atau Surat Keterangan Tempat Tinggal bagi orang asing. Penduduk nonpermanen ini tinggal paling lama 1 tahun dan tidak bertujuan untuk menetap di tempat tersebut. 📋\nMelalui sistem SIPANEN, pendataan menjadi lebih terstruktur, mempermudah pemerintah dalam mengelola data penduduk yang tidak me…"
+  },
+  {
+    "id": "dc_jebol",
+    "path": "Layanan Publik › Disdukcapil › JEBOLBAWATAS",
+    "description": "Jemput bola perekaman KTP-el lansia & disabilitas",
+    "content": "📢 Jemput Bola Perekaman KTP-el untuk Lansia & Penyandang Disabilitas ♿👵\nJebol Bawa Tas hadir untuk memudahkan warga lansia dan disabilitas di Kota Cimahi agar dapat melakukan perekaman KTP-el tanpa harus datang ke kantor pelayanan yang mungkin sulit dijangkau. 🏠➡️🗂️\n📋 Mohon isi data diri dan unggah persyaratan melalui link berikut ini:\n🔗 https://bit.ly/jebolbawatas\nMudah, cepat, dan bantu kami hadirkan pelayanan terbaik untuk Anda! 🙌"
+  },
+  {
+    "id": "dc_web",
+    "path": "Layanan Publik › Disdukcapil › Website Disdukcapil",
+    "description": "Situs resmi Disdukcapil Kota Cimahi",
+    "content": "🌐 Website Dinas Kependudukan dan Catatan Sipil 🏢\nSitus resmi Dinas Kependudukan dan Catatan Sipil Pemerintah Kota Cimahi menyediakan informasi lengkap tentang layanan, program, dan kebijakan.\n💻 Akses berbagai info penting dengan mudah melalui link berikut:\n🔗 https://disdukcapil.cimahikota.go.id/home"
+  },
+  {
+    "id": "kk_lapakami",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › LAPAKAMI",
+    "description": "Layanan surat kelurahan/kecamatan tanpa antre",
+    "content": "LAPAKAMI merupakan platform layanan publik berbasis digital yang mempermudah masyarakat dalam mengurus berbagai administrasi tanpa harus antre di kantor kelurahan maupun kecamatan."
+  },
+  {
+    "id": "kk_utara",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara",
+    "description": "Cibabat, Cipageran, Citeureup, Pasirkaliki",
+    "content": "🏢 Kecamatan Cimahi Utara\nSilakan pilih Menu untuk membuka website resmi kecamatan atau kelurahan:"
+  },
+  {
+    "id": "kk_selatan",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan",
+    "description": "Cibeber, Cibeureum, Leuwigajah, Melong, Utama",
+    "content": "🏢 Kecamatan Cimahi Selatan\nSilakan pilih Menu untuk membuka website resmi kecamatan atau kelurahan:"
+  },
+  {
+    "id": "kk_tengah",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah",
+    "description": "Baros, Cigugur Tengah, Cimahi, Karangmekar, dll",
+    "content": "🏢 Kecamatan Cimahi Tengah\nSilakan pilih Menu untuk membuka website resmi kecamatan atau kelurahan:"
+  },
+  {
+    "id": "bk_siomas",
+    "path": "Layanan Publik › Bakesbangpol › SIOMAS",
+    "description": "Sistem Informasi Organisasi Kemasyarakatan",
+    "content": "✨ Sistem Informasi Organisasi Kemasyarakatan\n✨ Sistem Informasi Organisasi Kemasyarakatan yang dikembangkan oleh BAKESBANGPOL hadir sebagai solusi canggih untuk mengelola data organisasi masyarakat dengan mudah dan efisien!\n💡 Website inovatif ini membantu kamu mengakses informasi secara cepat dan transparan, khususnya untuk semua organisasi kemasyarakatan di wilayah Kota Cimahi.\n🔍 Mau tahu lebih lanjut? Yuk, langsung cek aja di sini:\n👉 https://siomas.cimahikota.go.id\n📲 Dengan SIOMAS, semua …"
+  },
+  {
+    "id": "bk_web",
+    "path": "Layanan Publik › Bakesbangpol › Website Bakesbangpol",
+    "description": "Layanan, program, dan kebijakan terbaru",
+    "content": "Badan Kesatuan Bangsa dan Politik Kota Cimahi\n🌐 Badan Kesatuan Bangsa dan Politik Kota Cimahi menghadirkan website resmi sebagai platform utama untuk memberikan info lengkap tentang layanan, program, dan kebijakan terbaru dari Bakesbangpol.\n💼 Melalui website ini, kamu bisa dengan mudah mengakses berbagai informasi penting yang bermanfaat untuk masyarakat.\n✨ Yuk, langsung kunjungi link berikut untuk tahu lebih banyak:\n👉 https://bakesbangpol.cimahikota.go.id/\n📲 Akses cepat, lengkap, dan terpe…"
+  },
+  {
+    "id": "bp_wpo",
+    "path": "Layanan Publik › Bappenda › Wajib Pajak Online",
+    "description": "Urusan perpajakan daerah secara daring",
+    "content": "WPO - Wajib Pajak Online\nPajak online merupakan cara melakukan urusan perpajakan secara daring kapan saja dan di mana pun berada yang terintegrasi melalui aplikasi terdiri dari beberapa jenis fitur sesuai peruntukannya.\nAnda dapat akses website Wajib Pajak Online pada link berikut ini :\nhttps://epad.cimahikota.go.id/"
+  },
+  {
+    "id": "bp_bphtb",
+    "path": "Layanan Publik › Bappenda › BPHTB",
+    "description": "Bea Perolehan Hak atas Tanah dan Bangunan",
+    "content": "🏠📄 BPHTB - Bea Perolehan Hak atas Tanah dan Bangunan\nTahukah Anda? BPHTB adalah pajak yang dikenakan saat Anda memperoleh hak atas tanah dan/atau bangunan, baik oleh pribadi maupun badan hukum.\n🖥️ Kini, pelayanan BPHTB semakin mudah dengan aplikasi online yang menyediakan layanan pemberkasan, pengambilan dokumen, dan informasi lengkap tentang BPHTB.\n✨ Dengan aplikasi ini, wajib pajak bisa mengakses layanan kapan saja dan di mana saja tanpa ribet!\n🔗 Yuk, langsung akses layanan resmi di sini:…"
+  },
+  {
+    "id": "bp_web",
+    "path": "Layanan Publik › Bappenda › Website Bappenda",
+    "description": "Layanan, program, dan kebijakan Bappenda",
+    "content": "Badan Pengelola Pendapatan Daerah 🏢💼\nWebsite perangkat daerah pemerintah kota adalah platform resmi yang menyediakan informasi terkait layanan, program, dan kebijakan dari Badan Pengelola Pendapatan Daerah. Melalui website ini, masyarakat dapat dengan mudah mengakses berbagai informasi yang dapat di akses pada link di bawah ini :\nhttps://bappenda.cimahikota.go.id/"
+  },
+  {
+    "id": "bl_piramida",
+    "path": "Layanan Publik › Bappelitbangda › Piramida",
+    "description": "Pusat Informasi Riset dan Manajemen Inovasi Daerah",
+    "content": "🌟 Piramida Kota Cimahi: Inovasi Digital untuk Masa Depan! 🌟\nKami bangga mempersembahkan platform inovasi digital yang dikelola Pemerintah Kota Cimahi sebagai wadah partisipasi aktif masyarakat dalam pembangunan kota. Melalui Piramida (Pusat Informasi Riset dan Manajemen Inovasi Daerah), kamu bisa:\n💡 Mengusulkan ide-ide cemerlang\n🤝 Berbagi inovasi yang menginspirasi\n📚 Mengakses informasi terkini tentang program dan kebijakan kota\nTujuannya adalah untuk mendorong kolaborasi antara pemerintah…"
+  },
+  {
+    "id": "bl_web",
+    "path": "Layanan Publik › Bappelitbangda › Website Bappelitbangda",
+    "description": "Layanan, program, dan data perencanaan daerah",
+    "content": "👋 Halo Wargi Cimahi!\n🌐 Website resmi dari Badan Perencanaan Pembangunan, Penelitian dan Pengembangan Daerah Kota Cimahi hadir untuk memberikan informasi lengkap tentang layanan, program dan informasi seputar Bappelitbangda.  📊 Melalui website ini, kamu bisa dengan mudah mengakses data yang transparan dan akurat.  \n✨ Yuk, langsung cek informasinya di sini: \n👉 https://bappelitbangda.cimahikota.go.id/"
+  },
+  {
+    "id": "et_cara",
+    "path": "Kejaksaan Negeri › e-Tilang › Cara Bayar",
+    "description": "Langkah bayar denda tilang secara online",
+    "content": "🚦 Halo Wargi Cimahi!\nSekarang urusan tilang jadi lebih praktis dengan e-Tilang.\n👉 Bagi Anda yang ingin membayar denda tilang secara online, ikuti langkah berikut:\n1️⃣ Buka laman tilang.kejaksaan.go.id\n2️⃣ Masukkan Nomor Register Tilang sesuai berkas untuk melihat besaran denda\n- Pilih cara pengambilan barang bukti (datang langsung atau menggunakan layanan pengantaran barang bukti – S&K berlaku).\n3️⃣ Klik tombol Bayar\n- Anda akan mendapatkan kode pembayaran yang bisa digunakan melalui ATM, Mob…"
+  },
+  {
+    "id": "et_sisa",
+    "path": "Kejaksaan Negeri › e-Tilang › Pengambilan Sisa Titipan",
+    "description": "Ambil sisa uang titipan sidang lewat BRI",
+    "content": "🚦 Halo Wargi Cimahi!\n👉  Jika sebelumnya Anda sudah melakukan pembayaran uang titipan sidang, pada hari sidang kunjungi https://tilang.kejaksaan.go.id/ untuk melihat besar Denda dan sisa titipan, selanjutnya:\n1️⃣ Unduh surat pengantar ke BRI\n2️⃣  Silakan kunjungi teller BRI terdekat, dengan menunjukan Surat Pengantar atau nomor BRIVA (22955-xxx) \n3️⃣  Siapkan Kartu identitas Anda atau membawa surat kuasa (Bermaterai) jika di ambil oleh selain Pelanggar \n4️⃣  Teller akan memproses pengembakian …"
+  },
+  {
+    "id": "rj_rumah",
+    "path": "Kejaksaan Negeri › Rumah RJ › Rumah RJ",
+    "description": "Mediasi damai di rumah RJ tiap kelurahan",
+    "content": "⚖️ Rumah RJ\n⚖️ Restorative Justice (Keadilan Restoratif) adalah pendekatan penyelesaian perkara pidana yang menekankan pada pemulihan hubungan antara pelaku, korban, dan masyarakat, bukan sekadar penghukuman. Tujuannya menciptakan keadilan yang manusiawi dengan penyelesaian damai melalui mediasi, dialog, dan kesepakatan bersama.\n🗣️ Restorative Justice memberi ruang bagi korban untuk menyampaikan perasaan dan harapan, serta mendorong pelaku mengakui kesalahan dan bertanggung jawab. Dengan demik…"
+  },
+  {
+    "id": "rj_jpn",
+    "path": "Kejaksaan Negeri › Rumah RJ › Halo JPN",
+    "description": "Konsultasi hukum gratis dengan Jaksa Pengacara Negara",
+    "content": "🙌 Halo Wargi Cimahi!\nPunya permasalahan hukum dan butuh solusi cepat?\nSekarang Anda bisa konsultasi langsung dengan Jaksa Pengacara Negara (JPN) secara gratis & profesional melalui layanan Halo JPN.\n📌 Cara akses mudah:\n1️⃣ Buka laman https://halojpn.id\n2️⃣ Login akun HaloJPN\n3️⃣ Isi data diri\n4️⃣ Klik fitur Selengkapnya pada Dashboard Layanan Hukum\n5️⃣ Tulis permasalahan hukum yang ingin dikonsultasikan\n6️⃣ Cek kembali permohonan Anda lalu klik Submit\n✅ Praktis, cepat, tanpa biaya!\n👉 Yuk cek…"
+  },
+  {
+    "id": "rj_suluh",
+    "path": "Kejaksaan Negeri › Rumah RJ › Permohonan Penyuluhan",
+    "description": "Ajukan kegiatan penyuluhan hukum",
+    "content": "📢 Permohonan Kegiatan Penyuluhan Hukum\n⚖️ Kejaksaan Negeri Cimahi membuka kesempatan bagi sekolah, komunitas, instansi pemerintah maupun swasta untuk mengajukan permohonan penyuluhan hukum. Kami siap berbagi pengetahuan seputar peraturan perundang-undangan, hak & kewajiban hukum, serta isu-isu hukum lainnya yang relevan.\n📝 Untuk mengajukan permohonan, silakan isi formulir berikut:\n🔗 https://forms.gle/ZsiRFgbjAp56Y8Qp7\n📌 Pastikan melengkapi informasi pada formulir:\n1️⃣ Nama Pemohon → Nama in…"
+  },
+  {
+    "id": "rj_lapor",
+    "path": "Kejaksaan Negeri › Rumah RJ › Laporan Pengaduan",
+    "description": "Laporkan dugaan pelanggaran hukum",
+    "content": "📢 Selamat datang di layanan pengaduan online Kejaksaan Negeri Cimahi. 👋\nFormulir ini kami sediakan untuk memudahkan masyarakat dalam menyampaikan laporan atau pengaduan terkait dugaan tindak pidana korupsi, penyalahgunaan wewenang, atau pelanggaran hukum lainnya di wilayah hukum Kejaksaan Negeri Cimahi.\nSetiap laporan yang diterima akan kami tindaklanjuti sesuai prosedur hukum yang berlaku, dengan jaminan kerahasiaan identitas Anda. 🔒\n👉 Isi formulir di sini:\nhttps://forms.gle/Pcycb8xRwdy2uq…"
+  },
+  {
+    "id": "sk_cibeber",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber",
+    "description": "5 SPPG",
+    "content": "🍱 SPPG di Kelurahan Cibeber, Cimahi Selatan\nSilakan pilih SPPG untuk melihat alamat, yayasan pengelola, dan penerima manfaatnya:"
+  },
+  {
+    "id": "sk_leuwigajah",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Leuwigajah",
+    "description": "1 SPPG",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Leuwigajah\n🏛️ Yayasan Pengelola SPPG:\nYayasan Pawon Restu Ibu\n📍 Alamat:\nJl. Kerkof No.9, Leuwigajah, Kec. Cimahi Sel., Kota Cimahi, Jawa Barat 40532\n🗺️ Maps:\nhttps://maps.app.goo.gl/9dRD1HKkfLaFDMZJ8\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 13 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2122 penerima manfaat, yang terdiri:\n1. SDN Cireundeu: 139\n2. SDN Leuwiga…"
+  },
+  {
+    "id": "sk_utama",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Utama",
+    "description": "2 SPPG",
+    "content": "🍱 SPPG di Kelurahan Utama, Cimahi Selatan\nSilakan pilih SPPG untuk melihat detailnya:"
+  },
+  {
+    "id": "sk_melong",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Melong",
+    "description": "4 SPPG",
+    "content": "🍱 SPPG di Kelurahan Melong, Cimahi Selatan\nSilakan pilih SPPG untuk melihat detailnya:"
+  },
+  {
+    "id": "sk_cibeureum",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeureum",
+    "description": "4 SPPG",
+    "content": "🍱 SPPG di Kelurahan Cibeureum, Cimahi Selatan\nSilakan pilih SPPG untuk melihat detailnya:"
+  },
+  {
+    "id": "sk_baros",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Baros",
+    "description": "2 SPPG",
+    "content": "🍱 SPPG di Kelurahan Baros, Cimahi Tengah\nSilakan pilih SPPG untuk melihat detailnya:"
+  },
+  {
+    "id": "sk_karangmekar",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Karangmekar",
+    "description": "3 SPPG",
+    "content": "🍱 SPPG di Kelurahan Karangmekar, Cimahi Tengah\nSilakan pilih SPPG untuk melihat detailnya:"
+  },
+  {
+    "id": "sk_setiamanah",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Setiamanah",
+    "description": "1 SPPG",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Tengah Setiamanah\n🏛️ Yayasan Pengelola SPPG:\nYayasan Bina Siswa Madani\n📍 Alamat:\nJL. Warung Contong No.80, RT/001 RW/014, Kel. Setiamanah, Kec. Cimahi Tengah, Kota Cimahi\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/7uaYp9hAsc8nnLPz9\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 4000 penerima manfaat, yang terdiri:\n1. TK Dharma Husada  \n2. SMP Negeri 10 Cimahi  \n3…"
+  },
+  {
+    "id": "bn_skhpn",
+    "path": "Layanan Publik › Mal Pelayanan Publik › BNN Kota Cimahi › SKHPN",
+    "description": "Surat Keterangan Hasil Pemeriksaan Narkotika",
+    "content": "🌟 Layanan Penerbitan Surat Keterangan Hasil Pemeriksaan Narkotika (SKHPN) 🌟\nDikelola oleh Badan Narkotika Nasional (BNN), layanan ini tersedia di tingkat Provinsi maupun Kabupaten/Kota untuk memenuhi kebutuhan masyarakat dalam berbagai keperluan, seperti pendaftaran CPNS, TNI/POLRI, persyaratan pekerjaan, pendidikan, dan lainnya.\nPersyaratan yang Harus Dilengkapi:\n1. Fotokopi KTP: Wajib menyertakan fotokopi KTP yang masih berlaku.\n2. Pas Foto: 2x3, 3x4, atau 4x6 (bisa hitam putih atau berwarn…"
+  },
+  {
+    "id": "bn_rehab",
+    "path": "Layanan Publik › Mal Pelayanan Publik › BNN Kota Cimahi › Konsultasi Rehabilitasi",
+    "description": "Rawat jalan dan rujukan rawat inap, gratis",
+    "content": "🌟 Layanan Rehabilitasi BNN Kota Cimahi  🌟\nKami hadir untuk membantu masyarakat yang merupakan korban penyalahgunaan narkotika. Layanan ini ditujukan bagi individu yang berinisiatif untuk melakukan rehabilitasi secara sukarela, baik secara mandiri maupun diantar oleh keluarga.\nJenis Layanan Rehabilitasi:\nLayanan Rawat Jalan\nRujukan untuk Layanan Rawat Inap\nPersyaratan untuk Mengajukan Layanan:\nIdentitas Klien: Klien atau keluarga klien wajib membawa identitas calon klien.\nFormulir Ketersediaan…"
+  },
+  {
+    "id": "bn_suluh",
+    "path": "Layanan Publik › Mal Pelayanan Publik › BNN Kota Cimahi › Penyuluhan Narkoba",
+    "description": "Layanan penyuluhan narkoba untuk masyarakat",
+    "content": "🌟 Layanan Rehabilitasi BNN Kota Cimahi  🌟\nKami hadir untuk membantu masyarakat yang merupakan korban penyalahgunaan narkotika. Layanan ini ditujukan bagi individu yang berinisiatif untuk melakukan rehabilitasi secara sukarela, baik secara mandiri maupun diantar oleh keluarga.\nJenis Layanan Rehabilitasi:\nLayanan Rawat Jalan\nRujukan untuk Layanan Rawat Inap\nPersyaratan untuk Mengajukan Layanan:\nIdentitas Klien: Klien atau keluarga klien wajib membawa identitas calon klien.\nFormulir Ketersediaan…"
+  },
+  {
+    "id": "pa_ecourt",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Pengadilan Agama › e-Court",
+    "description": "e-Filing, e-Payment, e-Summons, e-Litigation",
+    "content": "🌟 Layanan e-Court 🌟\ne-Court adalah sistem layanan berbasis digital yang memudahkan masyarakat untuk mengakses layanan peradilan secara online. Layanan ini ditujukan bagi Pengguna Terdaftar yang ingin mengajukan perkara secara efisien tanpa harus datang langsung ke pengadilan. Dengan e-Court, proses menjadi lebih cepat, hemat waktu, dan transparan.\n📲 Fitur Utama e-Court:\n- e-Filing\nPendaftaran perkara secara online langsung ke sistem pengadilan.\n- e-Payment\nPembayaran panjar biaya perkara dil…"
+  },
+  {
+    "id": "pa_gugatan",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Pengadilan Agama › Gugatan Mandiri",
+    "description": "Buat gugatan sendiri lewat aplikasi, gratis",
+    "content": "🌟 Gugatan Mandiri di MPP Kota Cimahi 🌟\nGugatan Mandiri adalah sebuah aplikasi yang dirancang untuk memudahkan masyarakat dalam membuat gugatan secara mandiri, tanpa perlu pendampingan langsung dari advokat atau petugas pengadilan. Layanan ini bertujuan untuk memberikan akses keadilan yang mudah, cepat, dan biaya ringan kepada seluruh lapisan masyarakat.\n📱 Akses Mudah Melalui Smartphone:\n🔗 Akses aplikasi melalui: http://gugatanmandiri.badilag.net\n📋 Persyaratan Pelayanan:\n1. Nama lengkap dan…"
+  },
+  {
+    "id": "pa_ipp",
+    "path": "Layanan Publik › Mal Pelayanan Publik › Pengadilan Agama › Informasi Produk",
+    "description": "Informasi produk dan layanan pengadilan",
+    "content": "📖 Layanan Informasi Produk Pengadilan\nLayanan Informasi Produk Pengadilan merupakan salah satu bentuk nyata dari keterbukaan informasi publik di lingkungan Peradilan Agama Kota Cimahi. Layanan ini disediakan sebagai bagian dari upaya reformasi birokrasi dan untuk memastikan masyarakat mendapatkan akses informasi yang transparan, akurat, dan efisien mengenai pengadilan.\n💼 Jenis Informasi yang Dapat Diperoleh:\n- Profil Pengadilan\n- Alamat dan Nomor Telepon Pengadilan\n- Struktur Organisasi\n- Age…"
+  },
+  {
+    "id": "pd_kca",
+    "path": "Layanan Publik › Mal Pelayanan Publik › PT Pegadaian › Kredit Cepat Aman (KCA)",
+    "description": "Pinjaman tunai dengan sistem gadai",
+    "content": "🌟 Layanan Kredit Cepat Aman (KCA) 🌟\nKredit Cepat Aman (KCA) adalah layanan pinjaman tunai dengan sistem gadai, yang diberikan kepada seluruh golongan masyarakat. Kredit ini dapat digunakan untuk berbagai keperluan, baik konsumtif maupun produktif. Prosesnya mudah dan cepat, cukup dengan membawa barang agunan yang bernilai.\n🎯 Jenis Barang yang Dapat Dijadikan Agunan:\n- Emas dan emas batangan\n- Kendaraan bermotor (mobil dan motor)\n- Laptop dan handphone\n- Barang elektronik lainnya\n📝 Persyarat…"
+  },
+  {
+    "id": "pd_cicil",
+    "path": "Layanan Publik › Mal Pelayanan Publik › PT Pegadaian › Pegadaian Cicil Emas",
+    "description": "Beli emas batangan secara cicilan",
+    "content": "🌟 Pegadaian Cicil Emas 🌟\nPegadaian Cicil Emas adalah layanan pembiayaan pembelian emas batangan secara cicilan yang dapat diakses oleh masyarakat umum, baik secara personal maupun melalui skema arisan. Layanan ini memberikan kemudahan memiliki emas murni dari berbagai brand ternama seperti:\n- ANTAM\n- Galeri24\n- UBS\n- Lotus Archi\n📝 Persyaratan Pengajuan Cicil Emas:\n1. Mengisi formulir Cicil Emas yang disediakan di lokasi pelayanan\n2. Melampirkan fotokopi KTP yang masih berlaku\n3. Membayar uan…"
+  },
+  {
+    "id": "pd_arrum",
+    "path": "Layanan Publik › Mal Pelayanan Publik › PT Pegadaian › Arrum Haji Pegadaian",
+    "description": "Pembiayaan porsi haji sesuai prinsip syariah",
+    "content": "🌟 Arrum Haji Pegadaian 🌟\nArrum Haji adalah layanan pembiayaan syariah dari Pegadaian yang memudahkan masyarakat untuk memperoleh porsi haji tanpa harus menunggu lama mengumpulkan dana. Prosesnya aman, mudah, dan sesuai prinsip syariah, dengan jaminan emas atau Tabungan Emas.\n💼 Keuntungan Arrum Haji:\nMendapatkan porsi haji lebih cepat\nProses cepat dan transparan\nTanpa harus menjual emas atau menunggu tabungan terkumpul\nSesuai prinsip syariah\n📝 Persyaratan Pengajuan Arrum Haji:\n1. Jaminan ema…"
+  },
+  {
+    "id": "pd_lainnya",
+    "path": "Layanan Publik › Mal Pelayanan Publik › PT Pegadaian › Layanan Lainnya",
+    "description": "KUR Syariah, AMANAH, KREASI, Agen Pegadaian",
+    "content": "🏛️ Layanan Pegadaian Lainnya di MPP Kota Cimahi\nSelain KCA, Cicil Emas, dan Arrum Haji, tenant Pegadaian di MPP Kota Cimahi juga melayani:\n• KUR Syariah — pembiayaan usaha mikro sesuai prinsip syariah\n• AMANAH — pembiayaan kepemilikan kendaraan secara cicilan\n• KREASI — pinjaman usaha dengan jaminan BPKB kendaraan\n• Kreasi Multiguna — pinjaman multiguna dengan jaminan BPKB\n• Agen Pegadaian — kemitraan layanan Pegadaian\n📍 Informasi dan pengajuan dapat dilakukan langsung di tenant Pegadaian Mal…"
+  },
+  {
+    "id": "dl_info",
+    "path": "Layanan Publik › Disdukcapil › DILANDACITA › Deskripsi & Persyaratan",
+    "description": "Apa itu Dilandacita dan apa saja syaratnya",
+    "content": "🌐 DILANDACITA (Digitalisasi Layanan Adminduk Cimahi Kota) 🌐\n🌐  DILANDACITA adalah aplikasi layanan administrasi kependudukan yang efisien dan modern.\n📱 Aplikasi ini memanfaatkan internet untuk menjembatani masyarakat dan pemerintah dalam pendataan administrasi secara online.\n✨ Tujuan utamanya adalah memudahkan Disdukcapil Kota Cimahi dalam proses pendataan yang cepat, transparan, dan mudah diakses oleh semua warga.\n📲 Untuk informasi lengkap, kunjungi:\n🔗 https://dilandacita.cimahikota.go.i…"
+  },
+  {
+    "id": "dl_mohon",
+    "path": "Layanan Publik › Disdukcapil › DILANDACITA › Permohonan Layanan",
+    "description": "Ajukan permohonan adminduk secara online",
+    "content": "Permohonan Layanan Dilandacita\n🌟 Untuk mempermudah urusan administrasi Anda, akses layanan  Dilandacita (Digitalisasi Layanan Adminduk Cimahi Kota) dengan cepat dan mudah. Ayo, manfaatkan layanan ini sekarang juga untuk memenuhi kebutuhan administrasi Anda! Klik link berikut dan rasakan kemudahan layanan Adminduk Cimahi Kota:\n🌐 https://dilandacita.cimahikota.go.id/"
+  },
+  {
+    "id": "dl_lacak",
+    "path": "Layanan Publik › Disdukcapil › DILANDACITA › Lacak Status Permohonan",
+    "description": "Cek status permohonan dengan PIN",
+    "content": "Selamat datang dilayanan cek status permohonan DILANDACITA.\nSilahkan masukkan PIN permohonan untuk melanjutkan layanan ini."
+  },
+  {
+    "id": "dl_panduan",
+    "path": "Layanan Publik › Disdukcapil › DILANDACITA › Panduan",
+    "description": "Unduh buku panduan penggunaan aplikasi",
+    "content": "📘 Unduh Buku Panduan 📘\nUntuk mempermudah penggunaan aplikasi Dilanda Cita (Digitalisasi Layanan Adminduk Cimahi Kota), Anda dapat mengunduh buku panduan lengkap melalui link berikut:\n🔗 https://drive.cimahikota.go.id/s/iXXLs7NQZ2BQWoP\nBuku panduan ini akan memberikan informasi detail mengenai cara penggunaan aplikasi, langkah-langkah pendaftaran, serta fitur-fitur yang tersedia. Jangan ragu untuk mengunduhnya dan nikmati kemudahan dalam mengakses layanan administrasi penduduk secara online. 🚀"
+  },
+  {
+    "id": "lk_info",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › LAPAKAMI › Informasi Layanan",
+    "description": "25 jenis layanan surat yang tersedia",
+    "content": "Lapakami Melalui Lapakami, masyarakat bisa mendapatkan berbagai layanan seperti:  \n1. Layanan Pengantar SKCK \n2. Layanan Mempunyai Usaha \n3. Layanan Domisili \n4. Layanan Domisili Perusahaan \n5. Layanan Ibadah Haji \n6. Layanan Belum Memiliki Rumah \n7. Layanan Penduduk \n8. Layanan Belum Menikah \n9. Layanan Kematian \n10. Layanan SKTM \n11. Layanan Surat Keterangan Janda/Duda \n12. Layanan Andon Nikah \n13. Layanan Keterangan Bersih Diri \n14. Layanan Izin Keramaian \n15. Layanan Beda Data \n16. Layanan …"
+  },
+  {
+    "id": "lk_mohon",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › LAPAKAMI › Permohonan Layanan",
+    "description": "Ajukan permohonan surat secara online",
+    "content": "📝 Permohonan Layanan Lapakami\nAjukan surat keterangan kelurahan/kecamatan tanpa perlu antre di kantor. Siapkan dokumen persyaratan sesuai jenis layanan yang dipilih.\n🔗 Ajukan permohonan di: https://lapakami.cimahikota.go.id/layanan\nSetelah permohonan dikirim, Wargi akan menerima PIN yang bisa dipakai untuk melacak status permohonan."
+  },
+  {
+    "id": "lk_lacak",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › LAPAKAMI › Lacak Status Permohonan",
+    "description": "Cek status permohonan dengan PIN",
+    "content": "Selamat datang di layanan cek status permohonan LAPAKAMI.\nSilakan masukkan PIN permohonan untuk melanjutkan layanan ini."
+  },
+  {
+    "id": "lk_bantuan",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › LAPAKAMI › Pusat Bantuan",
+    "description": "Bantuan penggunaan layanan Lapakami",
+    "content": "💁 Pusat Bantuan Lapakami\nAda kendala saat mengajukan permohonan? Wargi bisa:\n1️⃣ Mengecek kembali daftar dan persyaratan layanan di https://lapakami.cimahikota.go.id/layanan\n2️⃣ Mendatangi kantor kelurahan sesuai domisili untuk pendampingan\n3️⃣ Menyampaikan keluhan lewat menu Pengaduan di Wa Mantap\nKami siap membantu sampai urusan Wargi selesai. 🙏"
+  },
+  {
+    "id": "cu_kec",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara › Kecamatan Cimahi Utara",
+    "description": "",
+    "content": "🏢 Website Kecamatan Cimahi Utara\nWebsite Kecamatan Cimahi Utara adalah platform yang menyediakan informasi dan layanan administrasi bagi warga dan informasi penting terkait Kecamatan Cimahi Utara.\nUntuk lebih lanjut, silakan akses: https://cimut.cimahikota.go.id/"
+  },
+  {
+    "id": "cu_cibabat",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara › Kelurahan Cibabat",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cibabat\nWebsite Kelurahan Cibabat adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cibabat.cimahikota.go.id/"
+  },
+  {
+    "id": "cu_cipageran",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara › Kelurahan Cipageran",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cipageran\nWebsite Kelurahan Cipageran adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cipageran.cimahikota.go.id/"
+  },
+  {
+    "id": "cu_citeureup",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara › Kelurahan Citeureup",
+    "description": "",
+    "content": "🏢 Website Kelurahan Citeureup\nWebsite Kelurahan Citeureup adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://citeureup.cimahikota.go.id/"
+  },
+  {
+    "id": "cu_pasirkaliki",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Utara › Kelurahan Pasirkaliki",
+    "description": "",
+    "content": "🏢 Website Kelurahan Pasirkaliki\nWebsite Kelurahan Pasirkaliki adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://pasirkaliki.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_kec",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kecamatan Cimahi Selatan",
+    "description": "",
+    "content": "🏢 Website Kecamatan Cimahi Selatan\nWebsite Kecamatan Cimahi Selatan adalah platform yang menyediakan informasi dan layanan administrasi bagi warga dan informasi penting terkait Kecamatan Cimahi Selatan.\nUntuk lebih lanjut, silakan akses: https://cimsel.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_cibeber",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kelurahan Cibeber",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cibeber\nWebsite Kelurahan Cibeber adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cibeber.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_cibeureum",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kelurahan Cibeureum",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cibeureum\nWebsite Kelurahan Cibeureum adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cibeureum.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_leuwigajah",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kelurahan Leuwigajah",
+    "description": "",
+    "content": "🏢 Website Kelurahan Leuwigajah\nWebsite Kelurahan Leuwigajah adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://leuwigajah.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_melong",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kelurahan Melong",
+    "description": "",
+    "content": "🏢 Website Kelurahan Melong\nWebsite Kelurahan Melong adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://melong.cimahikota.go.id/"
+  },
+  {
+    "id": "cs_utama",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Selatan › Kelurahan Utama",
+    "description": "",
+    "content": "🏢 Website Kelurahan Utama\nWebsite Kelurahan Utama adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://utama.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_kec",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kecamatan Cimahi Tengah",
+    "description": "",
+    "content": "🏢 Website Kecamatan Cimahi Tengah\nWebsite Kecamatan Cimahi Tengah adalah platform yang menyediakan informasi dan layanan administrasi bagi warga dan informasi penting terkait Kecamatan Cimahi Tengah.\nUntuk lebih lanjut, silakan akses: https://cimteng.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_baros",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Baros",
+    "description": "",
+    "content": "🏢 Website Kelurahan Baros\nWebsite Kelurahan Baros adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://baros.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_cigugur",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Cigugur Tengah",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cigugur Tengah\nWebsite Kelurahan Cigugur Tengah adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cigugurtengah.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_cimahi",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Cimahi",
+    "description": "",
+    "content": "🏢 Website Kelurahan Cimahi\nWebsite Kelurahan Cimahi adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://cimahi.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_karangmekar",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Karangmekar",
+    "description": "",
+    "content": "🏢 Website Kelurahan Karangmekar\nWebsite Kelurahan Karangmekar adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://karangmekar.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_padasuka",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Padasuka",
+    "description": "",
+    "content": "🏢 Website Kelurahan Padasuka\nWebsite Kelurahan Padasuka adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://padasuka.cimahikota.go.id/"
+  },
+  {
+    "id": "ct_setiamanah",
+    "path": "Layanan Publik › Kecamatan & Kelurahan › Kecamatan Cimahi Tengah › Kelurahan Setiamanah",
+    "description": "",
+    "content": "🏢 Website Kelurahan Setiamanah\nWebsite Kelurahan Setiamanah adalah platform yang menyediakan informasi dan layanan administrasi dan informasi penting terkait kelurahan.\nUntuk lebih lanjut, silakan akses: https://setiamanah.cimahikota.go.id/"
+  },
+  {
+    "id": "et_bank",
+    "path": "Kejaksaan Negeri › e-Tilang › Cara Bayar › Bayar via Bank/Pos",
+    "description": "Langkah pembayaran lewat teller bank atau Kantor Pos",
+    "content": "Halo Wargi Cimahi! 👋\n🌟 Mau bayar Denda Tilang? 🚦\nDenda tilang sejak Januari 2021 bisa dibayar melalui Modul Penerimaan Negara (MPN-G3) dengan internet, Mobile Banking, ATM, atau smartphone. 📱💻\nDapatkan Kode Pembayaran di aplikasi Tilang Kejaksaan dan lakukan pembayaran lewat bank/pos. 💳🏦\nBerikut langkah untuk pembayaran via BANK:\n1️⃣ Ambil no antrian dan isi slip setoran.\n2️⃣ Masukkan Nomor Pembayaran Tilang di kolom \"Nomor Rekening.\"\n3️⃣ Serahkan slip ke Teller.\n4️⃣ Teller melakukan val…"
+  },
+  {
+    "id": "et_tokped",
+    "path": "Kejaksaan Negeri › e-Tilang › Cara Bayar › Bayar via Tokopedia",
+    "description": "Langkah pembayaran lewat aplikasi Tokopedia",
+    "content": "🚦 Halo Wargi Cimahi!\n🌟 Yang mau bayar Denda Tilang/PNBP, kini bisa lewat Tokopedia! 📱\nDapatkan terlebih dahulu Kode Pembayaran Denda tilang melalui tilang.kejaksaan.go.id\nKemudian ikuti langkah mudah ini:\n1. Buka aplikasi Tokopedia di HP Anda.\n2. Pilih menu Top Up/Tagihan.\n3. Navigasi ke Layanan Pemerintah > Penerimaan Negara.\n4. Masukkan Kode Pembayaran.\n5. Pilih metode pembayaran yang nyaman: OVO, Internet Banking, Mobile Banking, dan banyak lagi!\n#Dirumahsaja #MudahDanAman"
+  },
+  {
+    "id": "spcb_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber › SPPG Cibeber",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeber\n🏛️ Yayasan Pengelola SPPG:\nYayasan Al Ikhlas Harokatul Fikri\n📍 Alamat:\nJl. Ibu Ganirah No 63 Rt 005/ Rw 005, Cibeber, Kecamatan Cimahi Selatan, Kota Cimahi, Jawa Barat\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/oCyR2KJRpKd3vTW66\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 20 oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3684 penerima manfaat, yang terdiri:…"
+  },
+  {
+    "id": "spcb_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber › SPPG Cibeber 2",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeber 2\n🏛️ Yayasan Pengelola SPPG:\nYayasan Miftahul Fallah Sirnajaya\n📍 Alamat:\nJl. Sanghyang Pancanaka Hill No.69 RT06/RW04, Kel. Cibeber, Kec. Cimahi Selatan, Kota Cimahi, Jawa Barat, 40525\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/DPBUNcdfh8LiHtYE8\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3684 penerima manfaat, yang terdiri:\n1. SDN CIBEBER 1\n2.…"
+  },
+  {
+    "id": "spcb_3",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber › SPPG Fausta Mulyasari",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Fausta Mulyasari Cibeber 3 Cimahi Selatan\n🏛️ Yayasan Pengelola SPPG:\nYayasan Hamasah Kharisma Bangsa\n📍 Alamat:\nJl Ibu Ganirah No.93, Cibeber, Cimahi Selatan\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/9cYWP4e9ZSLmSKfd8\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2150 penerima manfaat, yang terdiri:\n1. SDN CIBEBER MANDIRI 2  = 409\n2. SDN CIBEBER MANDIRI 1 =  483\n3. MI SADARMANAH =…"
+  },
+  {
+    "id": "spcb_4",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber › SPPG Cibeber 4",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeber 4\n🏛️ Yayasan Pengelola SPPG:\nYayasan Satya Nata Jagat\n📍 Alamat:\nJl. Komp. Puri Fajar No.2c, Cibeber, Kec. Cimahi Sel., Kota Cimahi, Jawa Barat 40531\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/TUesJjGgNeCoVPuy5\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2087 penerima manfaat, yang terdiri:\n1. SMAN 4 CIMAHI = 1373\n2. SDN LINGGABUDI = 367\n3. SDN …"
+  },
+  {
+    "id": "spcb_5",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeber › SPPG Cibeber 5",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeber 5\n🏛️ Yayasan Pengelola SPPG:\nYayasan Trisna Hayat Kadugede\n📍 Alamat:\nJl Raya Kelurahan Cibeber, Kecamatan Cimahi Selatan, Kota Cimahi, Provinsi Jawa Barat\n📍 Titik Koordinat:\n-\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 1502 penerima manfaat, yang terdiri:\n1. MI SADARMANAH : 166\n2. SMP PGRI LEUWIGAJAH : 43\n3. KOBER GRIYA ALAM : 33\n4. KOBER IBAD…"
+  },
+  {
+    "id": "spu_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Utama › SPPG Utama 1",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Utama 1\n🏛️ Yayasan Pengelola SPPG:\nYayasan Wijaya Kartika Nusantara\n📍 Alamat:\nJl. Mahar Martanegara, Gang Anggrek RT 004/RW 016, Kelurahan Utama, Kecamatan Cimahi Selatan, Kota Cimahi, Provinsi Jawa Barat, 40533\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/6h9g32i2DpoHgS1s7\n🗓️ Tanggal Operasional:\n27 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 1675 penerima manfaat, …"
+  },
+  {
+    "id": "spu_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Utama › SPPG Utama 2",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Utama 2\n🏛️ Yayasan Pengelola SPPG:\nYayasan Ghanniyah Maju Berkah\n📍 Alamat:\nJl. Nanjung RT.03/13 kel. utama, kec. Cimahi Selatan, kota cimahi, Jawa Barat\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/XEkvsMUsbp5n6N4s8\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2357 penerima manfaat, yang terdiri:\n1️⃣ SMK MOHAMMAD TOHA : 773\n2️⃣ SMP MOHAMMAD TOHA : 278\n3️⃣…"
+  },
+  {
+    "id": "spm_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Melong › SPPG Melong",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Melong\n🏛️ Yayasan Pengelola SPPG:\nYayasan Barusa Indonesia Lestari\n📍 Alamat:\nJl. Melong Asih Blok Sakola No. 90/160, RT 001 RW 007,\nKelurahan Melong, Kecamatan Cimahi Selatan, Kota Cimahi, Jawa Barat\n🗺️ Maps:\nhttps://maps.app.goo.gl/dUnB6fdTBEsafmLU7\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 4 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2099 penerima manfaat, …"
+  },
+  {
+    "id": "spm_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Melong › SPPG Melong 2",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) SPPG Kota Cimahi Cimahi Selatan Melong 2\n🏛️ Yayasan Pengelola SPPG:\nYayasan Anak Indonesia Emas\n📍 Alamat:\nJalan Sindangsari Barat No. 80 RT 001 RW 009, Kelurahan Melong, Kecamatan Cimahi Selatan, Kota Cimahi, Jawa Barat\n🗺️ Maps:\nhttps://maps.app.goo.gl/fSsBm4memWoxFz8SA\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 4 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3179 penerima manfaat, yang te…"
+  },
+  {
+    "id": "spm_3",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Melong › SPPG Melong 3",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) SPPG Kota Cimahi Cimahi Selatan Melong 3\n🏛️ Yayasan Pengelola SPPG:\nYayasan Prama Guna Nasional\n📍 Alamat:\nJl. Cibaligo KM 21 No.86 RT 01/RW 03, Melong, Kecamatan Cimahi Selatan, Kota Cimahi.\n🗺️ Maps:\nhttps://maps.app.goo.gl/T94S7Q9aiDYfa4eT9\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 14 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2450 penerima manfaat, yang terdiri:\n1. PAUD Darul Huda\n2.…"
+  },
+  {
+    "id": "spm_4",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Melong › SPPG Melong 4",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) SPPG Kota Cimahi Cimahi Selatan Melong 4\n🏛️ Yayasan Pengelola SPPG:\nYayasan Pangan Mandiri Barokah\n📍 Alamat:\nJalan Gempol Sari No.338, Kelurahan Melong, Kecamatan Cimahi Selatan, Kota Cimahi, Jawa Barat\n🗺️ Maps:\nhttps://maps.app.goo.gl/KprfpqQ82nHJ1tek9\n🗓️ Tanggal Operasional:\n01 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3000 penerima manfaat, yang terdiri:\n1. SDN Melong Mandiri 5: 471\n2. …"
+  },
+  {
+    "id": "spcr_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeureum › SPPG Cibeureum",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeureum\n🏛️ Yayasan Pengelola SPPG:\nYayasan Soemanta Direja Cigombong\n📍 Alamat:\nJalan Tirta Indah III Nomor 5, Kelurahan Cibereum, Kecamatan Cimahi Selatan, Kota Cimahi, Provinsi Jawa Barat 40535\n🗺️ Maps:\nhttps://maps.app.goo.gl/aRECBn8rZjhBe3Cn6\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 28 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3076 penerima manfaat, ya…"
+  },
+  {
+    "id": "spcr_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeureum › SPPG Cibeureum 2",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeureum 2\n🏛️ Yayasan Pengelola SPPG:\nYayasan Bakti Insan Darmawan\n📍 Alamat:\nJl. Cibereum no 97 RT. 06 RW. 20 Kelurahan Cibeureum Kecamatan Cimahi Selatan Kota Cimahi\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/oxKU9A7LzMvhED9o7\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 19 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3001 penerima manfaat, yang terdiri:\n1. Posy…"
+  },
+  {
+    "id": "spcr_3",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeureum › SPPG Cibeureum 3",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeureum 3\n🏛️ Yayasan Pengelola SPPG:\nYayasan Aliyardi Al Miroj\n📍 Alamat:\nJl. Rancabentang No.256, Cibeureum, Kec. Cimahi Sel., Kota Cimahi, Jawa Barat 40535\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/AVEsFsQZ1MZTvZ81A\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 29 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 3271 penerima manfaat, yang terdiri:\n1. SMKN 1 Cimahi…"
+  },
+  {
+    "id": "spcr_4",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Cibeureum › SPPG Cibeureum 4",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Selatan Cibeureum 4\n🏛️ Yayasan Pengelola SPPG:\nYayasan Taman Kencana Peduli\n📍 Alamat:\nJln. Rancabentang Blok Leuweung Gede Rt/Rw :01/27 Cibeureum, Kec. Cimahi Selatan\n📍 Titik Koordinat:\nhttps://maps.app.goo.gl/Gqssv4WEXmV5ccEs5\n🗓️ Tanggal Operasional:\n28 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2853 penerima manfaat, yang terdiri:\n1. KB Albina\n2. KB Annaba\n3. MI Cimindi…"
+  },
+  {
+    "id": "spb_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Baros › SPPG Baros",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) SPPG Kota Cimahi Cimahi Tengah Baros\n🏛️ Yayasan Pengelola SPPG:\nYayasan Manunggal Kartika Jaya\n📍 Alamat:\nJl. Pasir Kumeli No. 65, Kelurahan Baros, Kecamatan Cimahi Tengah, Kota Cimahi, Jawa Barat, 40521.\n🗺️ Maps:\nhttps://maps.app.goo.gl/knYFxUxGxy4TS7ny9\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 22 Agustus 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2500 penerima manfaat, yang terdiri:\n1. Paud …"
+  },
+  {
+    "id": "spb_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Baros › SPPG Baros 02",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) SPPG Kota Cimahi Cimahi Tengah Baros 02\n🏛️ Yayasan Pengelola SPPG:\nYayasan Amanah Bina Sejahtera\n📍 Alamat:\n Jl. H. Haris No. 5A (31), Kelurahan Baros, Kecamatan Cimahi Tengah, Kota Cimahi, Provinsi Jawa Barat\n🗺️ Maps:\nhttps://maps.app.goo.gl/fF5TkgeY75zUibb68\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 27 Oktober 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2562 penerima manfaat, yang terdiri:\n1. …"
+  },
+  {
+    "id": "spk_1",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Karangmekar › SPPG Karangmekar",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Tengah Karangmekar\n🏛️ Yayasan Pengelola SPPG:\nYayasan Guna Insan Mandiri\n📍 Alamat:\nJl. Gatot Subroto 248, Kel. Karangmekar, Kec. Cimahi Tengah, Kota Cimahi, 40523\n🗺️ Maps:\nhttps://maps.app.goo.gl/JfsFMNsh25ctJjUB8\n🗓️ Tanggal Operasional:\nMulai beroperasi sejak 23 April 2025\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2932 penerima manfaat, yang terdiri:\n1️⃣ SMPN 2 Cimahi  (Siswa 1256, …"
+  },
+  {
+    "id": "spk_2",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Karangmekar › SPPG Karangmekar 2",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Tengah Karangmekar 2\n🏛️ Yayasan Pengelola SPPG:\nYayasan Manunggal Kartika Jaya\n📍 Alamat:\nJl. Babakan no 26 Kecamatan Cimahi Tengah Kota Cimahi\n🗺️ Maps:\nhttps://maps.app.goo.gl/qBDCBsBoDSAL9No6A\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 1014 penerima manfaat, yang terdiri:\n1. TK Kartika siwi\n2. Tk Hidayah Alwashliyah\n3. TK Kencana Vinca V\n4. TK Kemala Bhayang…"
+  },
+  {
+    "id": "spk_3",
+    "path": "Makan Bergizi Gratis › SPPG › Kelurahan Karangmekar › SPPG Karangmekar 3",
+    "description": "",
+    "content": "👋 Halo, Wargi Cimahi!\n🍱 Selamat datang di Satuan Pelayanan Pemenuhan Gizi (SPPG) Kota Cimahi Cimahi Tengah Karangmekar 3\n🏛️ Yayasan Pengelola SPPG:\nYayasan Al Ihlas Nur Rohim\n📍 Alamat:\nJl. Warung Contong Barat No. 77, Karangmekar, Kecamatan Cimahi Tengah, Kota Cimahi, Jawa Barat\n🗺️ Maps:\nhttps://maps.app.goo.gl/mUSjzY3BhpLRs4AJ7\n🗓️ Tanggal Operasional:\n-\n👥 Jumlah Penerima Manfaat Program MBG:\nSebanyak 2662 penerima manfaat, yang terdiri:\t\n1. RA Al-Mukhlisin : 58\n2. RA Al-Akhyar : 100\n3. …"
+  }
+]

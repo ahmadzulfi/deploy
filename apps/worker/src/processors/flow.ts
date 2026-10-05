@@ -4,22 +4,25 @@ import {
   aiConfigOf,
   buildTemplateComponents,
   emitEvent,
+  findFallbackTrigger,
   flowGraphSchema,
   flowTemplateValues,
   IDLE_TIMEOUT_MINUTES,
   logger,
   matchTrigger,
   nextNodeId,
+  ROUTE_QUESTION_VARIABLE,
   runFlow,
   type EngineEffects,
   type EngineInput,
   type FlowContext,
   type FlowGraph,
+  type FlowNode,
   type InboundSignal,
   type SessionState,
 } from '@wa/core'
 import { QUEUE, flowQueue, workerOptions } from '@wa/core/queues'
-import { callAi, safeFetch } from '@wa/core/ai-call'
+import { callAi, callRoute, safeFetch } from '@wa/core/ai-call'
 import { enqueueSend } from './outbound.js'
 
 const log = logger.child({ worker: 'flow' })
@@ -86,7 +89,7 @@ async function handle(job: FlowJob) {
       await tick(session, { kind: 'reply', messageType: job.input.messageType, ...signal }, conversation)
       return
     }
-    await start(signal, conversation)
+    await start(signal, job.input.messageType, conversation)
     return
   }
 
@@ -124,8 +127,14 @@ async function activeSession(job: FlowJob, conversationId: string) {
   })
 }
 
-/** Looks for a published flow whose trigger this message fires. */
-async function start(signal: InboundSignal, conversation: Conversation) {
+/**
+ * Looks for a published flow whose trigger this message fires.
+ *
+ * Two passes: every ordinary trigger in every flow first, and only when none
+ * fired, a "no keyword matched" trigger - so a fallback in one flow can never
+ * steal a keyword another flow answers to.
+ */
+async function start(signal: InboundSignal, messageType: string, conversation: Conversation) {
   const flows = await prisma.flow.findMany({
     where: {
       orgId: conversation.channel.orgId,
@@ -139,46 +148,62 @@ async function start(signal: InboundSignal, conversation: Conversation) {
     orderBy: { updatedAt: 'desc' },
   })
 
-  for (const flow of flows) {
+  const live = flows.flatMap((flow) => {
     const version = flow.publishedVersion
-    if (!version) continue
-
+    if (!version) return []
     const parsed = flowGraphSchema.safeParse(version.graph)
     if (!parsed.success) {
       log.warn({ flowId: flow.id }, 'graf versi terbit tidak valid, dilewati')
-      continue
+      return []
     }
+    return [{ flowId: flow.id, versionId: version.id, graph: parsed.data }]
+  })
 
-    const hit = matchTrigger(parsed.data, signal)
-    if (!hit) continue
-
-    const startNodeId = nextNodeId(parsed.data, hit.node.id, null)
-    if (!startNodeId) {
-      log.warn({ flowId: flow.id }, 'trigger cocok tapi tidak terhubung ke mana pun')
-      continue
-    }
-
-    const session = await prisma.flowSession.create({
-      data: {
-        flowVersionId: version.id,
-        contactId: conversation.contactId,
-        channelId: conversation.channelId,
-        conversationId: conversation.id,
-        currentNodeId: hit.node.id,
-        variables: {},
-        status: SessionStatus.ACTIVE,
-      },
-      include: { flowVersion: true },
-    })
-
-    log.info(
-      { flowId: flow.id, matched: hit.matched, sessionId: session.id },
-      'flow dimulai',
-    )
-
-    await tick(session, { kind: 'start', startNodeId }, conversation)
-    return
+  for (const flow of live) {
+    const hit = matchTrigger(flow.graph, signal)
+    if (hit && (await begin(flow, hit.node, hit.matched, signal, conversation))) return
   }
+
+  // A tapped button or a photo is not a question an AI could place.
+  if (messageType !== 'text' || !signal.text?.trim()) return
+  for (const flow of live) {
+    const fallback = findFallbackTrigger(flow.graph)
+    if (fallback && (await begin(flow, fallback, 'tidak cocok kata kunci', signal, conversation))) return
+  }
+}
+
+/** Opens a session at `trigger`. False when the trigger leads nowhere. */
+async function begin(
+  flow: { flowId: string; versionId: string; graph: FlowGraph },
+  trigger: FlowNode,
+  matched: string,
+  signal: InboundSignal,
+  conversation: Conversation,
+) {
+  const startNodeId = nextNodeId(flow.graph, trigger.id, null)
+  if (!startNodeId) {
+    log.warn({ flowId: flow.flowId }, 'trigger cocok tapi tidak terhubung ke mana pun')
+    return false
+  }
+
+  const session = await prisma.flowSession.create({
+    data: {
+      flowVersionId: flow.versionId,
+      contactId: conversation.contactId,
+      channelId: conversation.channelId,
+      conversationId: conversation.id,
+      currentNodeId: trigger.id,
+      // The message that started it, for Arahkan AI or any later node.
+      variables: signal.text ? { [ROUTE_QUESTION_VARIABLE]: signal.text } : {},
+      status: SessionStatus.ACTIVE,
+    },
+    include: { flowVersion: true },
+  })
+
+  log.info({ flowId: flow.flowId, matched, sessionId: session.id }, 'flow dimulai')
+
+  await tick(session, { kind: 'start', startNodeId }, conversation)
+  return true
 }
 
 /**
@@ -501,6 +526,40 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
       }
       log.info({ sessionId, ai: endpoint.name, ms: result.ms }, 'Tanya AI dijawab')
       return { answer: result.answer }
+    },
+
+    async routeAi({ endpointId, question, destinations }) {
+      const endpoint = await prisma.aiEndpoint.findFirst({
+        where: { id: endpointId, orgId: conversation.channel.orgId },
+      })
+      // Publishing checks the kind too, but an endpoint is never re-checked
+      // against flows already live.
+      if (!endpoint || endpoint.kind !== 'ROUTE') {
+        log.warn({ sessionId, endpointId }, 'AI untuk Arahkan AI tidak ditemukan')
+        throw new Error('AI tidak ditemukan')
+      }
+
+      const result = await callRoute(aiConfigOf(endpoint), { question, destinations })
+
+      const now = new Date()
+      await prisma.aiEndpoint.update({
+        where: { id: endpoint.id },
+        data: result.ok
+          ? { lastUsedAt: now }
+          : { lastUsedAt: now, lastErrorAt: now, lastError: result.error.slice(0, 500) },
+      })
+
+      if (!result.ok) {
+        log.warn({ sessionId, ai: endpoint.name, error: result.error, ms: result.ms }, 'Arahkan AI gagal')
+        throw new Error(result.error)
+      }
+      // Never the question itself: a contact's words may carry their name,
+      // address or complaint. The pick and its score are enough to review.
+      log.info(
+        { sessionId, ai: endpoint.name, destinationId: result.destinationId, score: result.score, ms: result.ms },
+        'Arahkan AI menjawab',
+      )
+      return { destinationId: result.destinationId, score: result.score, candidates: result.candidates }
     },
 
     async changeTags(action, tags) {

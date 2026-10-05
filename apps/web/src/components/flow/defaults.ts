@@ -1,4 +1,4 @@
-import type { NodeData, NodeKind } from '@wa/core/flow'
+import { ROUTE_QUESTION_VARIABLE, type NodeData, type NodeKind } from '@wa/core/flow'
 
 /** Starting data for a freshly dropped node, valid enough not to error at once. */
 export function defaultData(kind: NodeKind): NodeData {
@@ -37,6 +37,8 @@ export function defaultData(kind: NodeKind): NodeData {
       return { kind, method: 'GET', url: '', headers: '', body: '', saveAs: 'hasil', timeoutSeconds: 15 }
     case 'askAi':
       return { kind, endpointId: '', question: 'pertanyaan', sendAnswer: true, endButton: '', saveAs: 'jawaban_ai' }
+    case 'aiRoute':
+      return { kind, endpointId: '', question: ROUTE_QUESTION_VARIABLE, minScore: 0.7, saveAs: 'arah_ai' }
     case 'delay':
       return { kind, seconds: 60 }
     case 'assign':
@@ -54,7 +56,7 @@ export const PALETTE: { group: string; kinds: NodeKind[] }[] = [
   { group: 'Mulai', kinds: ['trigger'] },
   { group: 'Kirim', kinds: ['sendText', 'sendMedia', 'sendButtons', 'sendList', 'sendTemplate'] },
   { group: 'Tunggu', kinds: ['waitReply', 'delay'] },
-  { group: 'AI', kinds: ['askAi'] },
+  { group: 'AI', kinds: ['askAi', 'aiRoute'] },
   { group: 'Logika', kinds: ['condition', 'setVariable'] },
   { group: 'Tindakan', kinds: ['assign', 'tag', 'handover', 'end'] },
   { group: 'Lanjutan', kinds: ['httpRequest'] },

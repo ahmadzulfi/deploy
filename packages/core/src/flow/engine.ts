@@ -1,4 +1,5 @@
 import { WA_LIMITS } from '../providers/limits.js'
+import { buildRouteCatalog, type RouteDestination } from './catalog.js'
 import { nextNodeId } from './match.js'
 import { compare, interpolate, resolve, validateAnswer, type FlowContext } from './runtime.js'
 import type { FlowGraph, FlowNode } from './schema.js'
@@ -52,9 +53,21 @@ export interface EngineEffects {
    * endpoint is gone, unreachable, refused, or answered nothing usable.
    */
   askAi(p: { endpointId: string; question: string }): Promise<{ answer: string }>
+  /**
+   * Asks a saved router endpoint which destination the question belongs to.
+   * Resolves with whatever it picked, unchecked - the engine checks the id
+   * and score itself. Rejects when there was no usable answer at all.
+   */
+  routeAi(p: { endpointId: string; question: string; destinations: RouteDestination[] }): Promise<RoutePick>
   changeTags(action: 'add' | 'remove', tags: string[]): Promise<void>
   assign(userId: string | null, note?: string): Promise<void>
   handover(): Promise<void>
+}
+
+export interface RoutePick {
+  destinationId: string | null
+  score: number
+  candidates: { id: string; score: number }[]
 }
 
 export interface SessionState {
@@ -365,6 +378,38 @@ async function execute(
         }
       }
       return go('success')
+    }
+
+    case 'aiRoute': {
+      const question = interpolate(`{{${d.question}}}`, ctx).trim()
+      const destinations = question ? buildRouteCatalog(graph) : []
+      if (destinations.length === 0) {
+        state.variables[d.saveAs] = { id: null, score: 0 }
+        return go('error')
+      }
+
+      let pick: RoutePick
+      try {
+        pick = await fx.routeAi({ endpointId: d.endpointId, question, destinations })
+      } catch {
+        // The worker has logged why and recorded it on the endpoint.
+        state.variables[d.saveAs] = { id: null, score: 0 }
+        return go('error')
+      }
+
+      // Only an id we sent counts. Anything else - a typo, an id from some
+      // other catalog, a confident guess below the bar - is treated as the
+      // router not knowing, and the contact gets the menu instead.
+      const score = Number.isFinite(pick.score) ? pick.score : 0
+      const dest = destinations.find((x) => x.id === pick.destinationId)
+      const candidates = pick.candidates.slice(0, 3)
+      if (!dest || score < d.minScore) {
+        state.variables[d.saveAs] = { id: null, score, candidates }
+        return go('unsure')
+      }
+
+      state.variables[d.saveAs] = { id: dest.id, score, path: dest.path, candidates }
+      return { kind: 'next', next: dest.target }
     }
 
     case 'tag':

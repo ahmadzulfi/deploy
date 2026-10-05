@@ -710,14 +710,26 @@ model WebhookDelivery {
   @@index([endpointId, createdAt])
 }
 
-/// An outside AI service the "Tanya AI" flow node can ask.
+/// What an AI endpoint is asked to do. Fixed when it is created: flow nodes
+/// pick endpoints by kind, so changing it would break the nodes using it.
+enum AiEndpointKind {
+  /// Answers a question in words - the "Tanya AI" node. Request and answer
+  /// are shaped by the templates the admin wrote.
+  ANSWER
+  /// Picks one menu destination for a question - the "Arahkan AI" node. The
+  /// request and answer follow the fixed POST /route contract instead.
+  ROUTE
+}
+
+/// An outside AI service a flow node can ask.
 ///
 /// Set up once by an admin on the AI page; flows only hold its id, so a new
 /// URL or a rotated API key takes effect without republishing any flow.
 model AiEndpoint {
-  id    String @id @default(cuid())
+  id    String         @id @default(cuid())
   orgId String
   name  String
+  kind  AiEndpointKind @default(ANSWER)
 
   method String @default("POST")
   /// May hold {{pertanyaan}}, {{nama}}, {{nomor}}.

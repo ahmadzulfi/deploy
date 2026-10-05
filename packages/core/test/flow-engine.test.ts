@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { runFlow, MAX_STEPS_PER_TICK, type EngineEffects, type SessionState } from '../src/flow/engine.ts'
-import { matchTrigger } from '../src/flow/match.ts'
+import { runFlow, MAX_STEPS_PER_TICK, type EngineEffects, type RoutePick, type SessionState } from '../src/flow/engine.ts'
+import { findFallbackTrigger, matchTrigger } from '../src/flow/match.ts'
 import type { FlowGraph, FlowNode } from '../src/flow/schema.ts'
 import type { FlowContext } from '../src/flow/runtime.ts'
 
@@ -26,12 +26,15 @@ type HttpCall = Parameters<EngineEffects['httpRequest']>[0]
 function spy(
   http: (p: HttpCall) => Promise<{ status: number; data: unknown }> = async () => ({ status: 200, data: {} }),
   ai: (p: { endpointId: string; question: string }) => Promise<{ answer: string }> = async () => ({ answer: '' }),
+  route: (p: RouteCall) => Promise<RoutePick> = async () => ({ destinationId: null, score: 0, candidates: [] }),
 ) {
   const calls: string[] = []
   const requests: HttpCall[] = []
+  const routes: RouteCall[] = []
   const fx: EngineEffects = {
     async httpRequest(p) { requests.push(p); return http(p) },
     async askAi(p) { calls.push(`ai:${p.endpointId}:${p.question}`); return ai(p) },
+    async routeAi(p) { routes.push(p); calls.push(`route:${p.endpointId}:${p.question}`); return route(p) },
     async sendText(b) { calls.push(`text:${b}`) },
     async sendMedia(p) { calls.push(`media:${p.media}:${p.source}:${p.value}:${p.caption ?? ''}`) },
     async sendButtons(p) { calls.push(`buttons:${p.headerImage ? p.headerImage + ':' : ''}${p.body}[${p.buttons.map((b) => b.id).join('|')}]`) },
@@ -41,8 +44,10 @@ function spy(
     async assign(u) { calls.push(`assign:${u ?? 'auto'}`) },
     async handover() { calls.push('handover') },
   }
-  return { calls, requests, fx }
+  return { calls, requests, routes, fx }
 }
+
+type RouteCall = Parameters<EngineEffects['routeAi']>[0]
 
 let state: SessionState
 beforeEach(() => {
@@ -70,6 +75,16 @@ describe('trigger matching', () => {
     // The tap carries a label too; matching the label would fire the wrong flow.
     const m = matchTrigger(graph, { text: 'Lihat menu', replyId: 'btn_promo' })
     assert.equal(m?.node.id, 'btn')
+  })
+
+  test('a fallback trigger never fires through ordinary matching', () => {
+    const g: FlowGraph = {
+      nodes: [node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false })],
+      edges: [],
+    }
+    assert.equal(matchTrigger(g, { text: 'cara bikin skck' }), null)
+    assert.equal(findFallbackTrigger(g)?.id, 'fb')
+    assert.equal(findFallbackTrigger(graph), null)
   })
 
   test('an invalid regex is skipped rather than crashing the pipeline', () => {
@@ -615,5 +630,112 @@ describe('askAi', () => {
       assert.deepEqual(r2.outcome, { status: 'completed' })
       assert.equal(calls.at(-1), 'text:Sesi ditutup.')
     })
+  })
+})
+
+describe('aiRoute', () => {
+  const graph = (minScore = 0.7): FlowGraph => ({
+    nodes: [
+      node('kw', { kind: 'trigger', match: 'keyword', values: ['menu'], caseSensitive: false }),
+      node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false }),
+      node('r', { kind: 'aiRoute', endpointId: 'rt1', question: 'pesan_awal', minScore, saveAs: 'arah_ai' }),
+      node('menu', {
+        kind: 'sendList',
+        body: 'Pilih layanan:',
+        buttonText: 'Menu',
+        sections: [{ title: 'Layanan', rows: [{ id: 'skck', title: 'SKCK' }, { id: 'paspor', title: 'Paspor' }] }],
+      }),
+      node('skck_txt', { kind: 'sendText', body: 'Info SKCK' }),
+      node('paspor_txt', { kind: 'sendText', body: 'Info paspor' }),
+      node('nav', { kind: 'sendButtons', body: 'Ada lagi?', buttons: [{ id: 'nav_menu', title: 'Menu Utama' }] }),
+      node('err', { kind: 'sendText', body: 'Maaf, coba pilih dari menu.' }),
+    ],
+    edges: [
+      edge('1', 'kw', 'menu'),
+      edge('2', 'fb', 'r'),
+      edge('3', 'r', 'menu', 'unsure'),
+      edge('4', 'r', 'err', 'error'),
+      edge('5', 'menu', 'skck_txt', 'skck'),
+      edge('6', 'menu', 'paspor_txt', 'paspor'),
+      edge('7', 'skck_txt', 'nav'),
+      edge('8', 'paspor_txt', 'nav'),
+      edge('9', 'nav', 'menu', 'nav_menu'),
+      edge('10', 'err', 'menu'),
+    ],
+  })
+  const asked = (q: string): SessionState => ({ ...state, variables: { pesan_awal: q } })
+  const start = { kind: 'start', startNodeId: 'r' } as const
+  const pick = (destinationId: string | null, score: number) => async (): Promise<RoutePick> => ({
+    destinationId,
+    score,
+    candidates: destinationId ? [{ id: destinationId, score }] : [],
+  })
+
+  test('jumps straight to the picked destination, skipping the menu', async () => {
+    const { calls, routes, fx } = spy(undefined, undefined, pick('skck', 0.82))
+
+    const r = await runFlow(graph(), asked('cara bikin skck'), start, ctx, fx)
+
+    assert.deepEqual(calls, ['route:rt1:cara bikin skck', 'text:Info SKCK', 'buttons:Ada lagi?[nav_menu]'])
+    assert.deepEqual(r.outcome, { status: 'waiting' })
+    assert.equal(r.state.currentNodeId, 'nav')
+    assert.deepEqual(r.state.variables.arah_ai, {
+      id: 'skck',
+      score: 0.82,
+      path: 'SKCK',
+      candidates: [{ id: 'skck', score: 0.82 }],
+    })
+    assert.deepEqual(routes[0]!.destinations.map((d) => d.id), ['skck', 'paspor'])
+  })
+
+  test('a pick below the minimum score shows the menu instead', async () => {
+    const { calls, fx } = spy(undefined, undefined, pick('skck', 0.5))
+
+    const r = await runFlow(graph(), asked('skck?'), start, ctx, fx)
+
+    assert.deepEqual(calls, ['route:rt1:skck?', 'list:Pilih layanan:'])
+    assert.equal((r.state.variables.arah_ai as { id: unknown }).id, null)
+  })
+
+  test('the minimum score is the node setting, inclusive', async () => {
+    const { calls, fx } = spy(undefined, undefined, pick('paspor', 0.5))
+
+    await runFlow(graph(0.5), asked('paspor'), start, ctx, fx)
+
+    assert.equal(calls[1], 'text:Info paspor')
+  })
+
+  test('no pick shows the menu', async () => {
+    const { calls, fx } = spy(undefined, undefined, pick(null, 0.3))
+
+    await runFlow(graph(), asked('terima kasih'), start, ctx, fx)
+
+    assert.deepEqual(calls, ['route:rt1:terima kasih', 'list:Pilih layanan:'])
+  })
+
+  test('an id that was never sent is not trusted', async () => {
+    const { calls, fx } = spy(undefined, undefined, pick('ktp', 0.99))
+
+    await runFlow(graph(), asked('ktp hilang'), start, ctx, fx)
+
+    assert.deepEqual(calls, ['route:rt1:ktp hilang', 'list:Pilih layanan:'])
+  })
+
+  test('a failing router takes the error branch', async () => {
+    const { calls, fx } = spy(undefined, undefined, async () => {
+      throw new Error('tidak ada jawaban dalam 8 detik')
+    })
+
+    await runFlow(graph(), asked('skck'), start, ctx, fx)
+
+    assert.deepEqual(calls, ['route:rt1:skck', 'text:Maaf, coba pilih dari menu.', 'list:Pilih layanan:'])
+  })
+
+  test('an empty question skips the call', async () => {
+    const { calls, fx } = spy()
+
+    await runFlow(graph(), asked('  '), start, ctx, fx)
+
+    assert.deepEqual(calls, ['text:Maaf, coba pilih dari menu.', 'list:Pilih layanan:'])
   })
 })

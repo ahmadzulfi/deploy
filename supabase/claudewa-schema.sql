@@ -1,6 +1,6 @@
 -- Skema database claudewa untuk Supabase
--- Dibuat dari 12 migrasi Prisma oleh tools/supabase-export.mjs
--- pada 2026-10-02T03:19:12.225Z.
+-- Dibuat dari 13 migrasi Prisma oleh tools/supabase-export.mjs
+-- pada 2026-10-05T00:37:51.711Z.
 --
 -- Cara pakai: tempel seluruh isi file ini ke Supabase -> SQL Editor -> Run,
 -- atau: psql "<connection string Supabase>" -f claudewa-schema.sql
@@ -734,6 +734,15 @@ ALTER TABLE "ConversationLabel" ADD CONSTRAINT "ConversationLabel_labelId_fkey" 
 ALTER TABLE "ConversationLabel" ADD CONSTRAINT "ConversationLabel_addedById_fkey" FOREIGN KEY ("addedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ============================================================
+-- Migrasi: 20261004010000_ai_endpoint_kind
+-- ============================================================
+-- CreateEnum
+CREATE TYPE "AiEndpointKind" AS ENUM ('ANSWER', 'ROUTE');
+
+-- AlterTable
+ALTER TABLE "AiEndpoint" ADD COLUMN     "kind" "AiEndpointKind" NOT NULL DEFAULT 'ANSWER';
+
+-- ============================================================
 -- Riwayat migrasi Prisma, supaya `prisma migrate deploy` tidak
 -- mencoba membuat ulang tabel yang sudah ada.
 -- ============================================================
@@ -749,18 +758,19 @@ CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
 );
 
 INSERT INTO "_prisma_migrations" ("id", "checksum", "finished_at", "migration_name", "applied_steps_count") VALUES
-    ('aca49001-6794-4bac-bbb7-6c8a3e39cdf2', 'c2c14a4781b6e08f88dd77c8192dee9fa9bd321533b171986d9dc5cf560c6977', now(), '20260920005944_init', 1),
-    ('1773c0ae-02fa-4522-94ac-af51adf189a0', '6d02d276c4ff326d4c5b3d0f138f5903d2f958c3ad0da904d3544b5db9ca2148', now(), '20260920014311_add_user_password', 1),
-    ('4a507d3e-23e5-4159-8c10-a4679e3a1299', '1c0e646c61c420e7193bc188cc88d3df67f8e04b560e1ab349a6003e5823e518', now(), '20260920052716_org_meta_settings', 1),
-    ('4719f87a-2282-4da1-a41f-5897ca9bd108', '3d1e96ede5e80f3d86ec24edc7019dff732bf38758748d6c82c7272a8cc781dd', now(), '20260920053744_waba_connections', 1),
-    ('e90ab149-d250-4e6e-a476-b681ec948e08', '2732d26c87de84668705846672a7afe0c691ec5c33646efe9eea591db9b3c7ba', now(), '20260920063256_flow_enabled', 1),
-    ('3e1e043b-773d-4cf2-bd3d-2d43170196a2', '2b192dce7598af70fb3e5c9f7dd7e787e4c7b22950e34d8927444cb848b2a31e', now(), '20260921115821_bot_auto_resume', 1),
-    ('bae32f09-7416-4e53-9760-8cac46424e6e', 'dab4954d21e719a4043e29c7e82e0a51f78a1c836bcafa66146fad1a6a615780', now(), '20260922225500_outgoing_webhooks', 1),
-    ('1aee89c8-a0e8-4c8a-99b3-53a5dd1eda40', '43843da7a79c3cb3d7fcb1e8227142edb1894ad440e9f9efa18df2ad45631f85', now(), '20260923010000_message_request_id', 1),
-    ('70ad3a23-d3ab-4cf0-b35a-765b3648d8d3', '4bd570fe04c52e41e49e2184939233502c37c35e8e1c28fbdcfc1e47592aaac1', now(), '20260923020000_campaign_runner_and_key_channels', 1),
-    ('63309e85-70e1-45d9-a800-7e10b8ef5f58', '08704fc009e78d167f7c8f1b0e15308bdcb711d0983ea480fa6c78fbab0b2deb', now(), '20260923021000_campaign_error', 1),
-    ('b8a25ff7-472c-4c0c-9807-35491f4bf3ff', 'd7b59928e39754bcdcf5816f01023701b64ea9cbcfd9387163531864f154dbdd', now(), '20260930020000_ai_endpoints', 1),
-    ('2837328e-7a74-4850-a93e-14dee032fa68', '118abcb0c7381b448de1319c8decf30d573b50a1ba62a76e6305c7e8fdbcf9a8', now(), '20261002010000_labels', 1);
+    ('2bb27419-aba7-43e0-8311-eb3b7040e558', 'c2c14a4781b6e08f88dd77c8192dee9fa9bd321533b171986d9dc5cf560c6977', now(), '20260920005944_init', 1),
+    ('88f3c004-639d-4b0a-a658-f048c4a8ae10', '6d02d276c4ff326d4c5b3d0f138f5903d2f958c3ad0da904d3544b5db9ca2148', now(), '20260920014311_add_user_password', 1),
+    ('4cb786f2-d5eb-4081-92f2-a59047ca0421', '1c0e646c61c420e7193bc188cc88d3df67f8e04b560e1ab349a6003e5823e518', now(), '20260920052716_org_meta_settings', 1),
+    ('c8c25864-aa36-4a05-9fac-2adc4e428b88', '3d1e96ede5e80f3d86ec24edc7019dff732bf38758748d6c82c7272a8cc781dd', now(), '20260920053744_waba_connections', 1),
+    ('692a5897-9386-4eba-922c-3dde8949ec01', '2732d26c87de84668705846672a7afe0c691ec5c33646efe9eea591db9b3c7ba', now(), '20260920063256_flow_enabled', 1),
+    ('c1ebf611-b4ae-43b8-b4ca-c18cb6514fa9', '2b192dce7598af70fb3e5c9f7dd7e787e4c7b22950e34d8927444cb848b2a31e', now(), '20260921115821_bot_auto_resume', 1),
+    ('77068c7d-624a-40dd-8464-552be522ce2f', 'dab4954d21e719a4043e29c7e82e0a51f78a1c836bcafa66146fad1a6a615780', now(), '20260922225500_outgoing_webhooks', 1),
+    ('15293d10-e993-44d3-933c-e05cfc90fbe1', '43843da7a79c3cb3d7fcb1e8227142edb1894ad440e9f9efa18df2ad45631f85', now(), '20260923010000_message_request_id', 1),
+    ('01cce2a4-6a5f-4e31-97d7-f4a107780aa7', '4bd570fe04c52e41e49e2184939233502c37c35e8e1c28fbdcfc1e47592aaac1', now(), '20260923020000_campaign_runner_and_key_channels', 1),
+    ('d346a54b-3597-457b-8ed9-14fac2aee6dc', '08704fc009e78d167f7c8f1b0e15308bdcb711d0983ea480fa6c78fbab0b2deb', now(), '20260923021000_campaign_error', 1),
+    ('36676bd5-b486-4f98-ac75-d7b9a10713e6', 'd7b59928e39754bcdcf5816f01023701b64ea9cbcfd9387163531864f154dbdd', now(), '20260930020000_ai_endpoints', 1),
+    ('f7143006-73fb-4533-8e40-a2e7c78f9214', '118abcb0c7381b448de1319c8decf30d573b50a1ba62a76e6305c7e8fdbcf9a8', now(), '20261002010000_labels', 1),
+    ('f5506fc3-97f6-45e6-82b8-d66bae28e82b', 'cb319331738027c703b10727994084bb7dc7d2e2eb0d83828d6affd758bc2116', now(), '20261004010000_ai_endpoint_kind', 1);
 
 -- ============================================================
 -- Kunci Data API Supabase: RLS aktif tanpa policy = anon/authenticated

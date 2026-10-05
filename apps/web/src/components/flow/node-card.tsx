@@ -95,6 +95,7 @@ function Summary({ data }: { data: FlowNode['data'] }) {
       const values = data.values.filter(Boolean)
       if (data.match === 'newConversation') return muted('Percakapan baru')
       if (data.match === 'api') return muted('Dipicu lewat API')
+      if (data.match === 'fallback') return muted('Pesan yang tidak cocok kata kunci apa pun')
       return values.length ? text(values.join(', ')) : muted('Belum ada kata kunci')
     }
     case 'sendText':
@@ -123,6 +124,8 @@ function Summary({ data }: { data: FlowNode['data'] }) {
         : muted('URL belum diisi')
     case 'askAi':
       return <AskAiSummary data={data} />
+    case 'aiRoute':
+      return <AiRouteSummary data={data} />
 
     case 'delay':
       return text(humanSeconds(data.seconds))
@@ -151,6 +154,21 @@ function AskAiSummary({ data }: { data: Extract<FlowNode['data'], { kind: 'askAi
             ? `, jawaban dikirim + tombol "${data.endButton.trim()}"`
             : ', jawaban langsung dikirim'
           : `, simpan ke {{${data.saveAs}}}`}
+      </p>
+    </div>
+  )
+}
+
+function AiRouteSummary({ data }: { data: Extract<FlowNode['data'], { kind: 'aiRoute' }> }) {
+  const ai = useAiEndpoints().find((a) => a.id === data.endpointId)
+  return (
+    <div className="space-y-0.5 text-[12px]">
+      <p className={ai ? 'text-fg' : 'text-fg-muted italic'}>
+        {ai ? ai.name : data.endpointId ? 'AI sudah dihapus' : 'AI belum dipilih'}
+      </p>
+      <p className="text-fg-muted">
+        Arahkan {`{{${data.question}}}`} ke menu, skor minimal{' '}
+        {data.minScore.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
       </p>
     </div>
   )

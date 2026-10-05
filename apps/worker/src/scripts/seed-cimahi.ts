@@ -33,6 +33,19 @@ if (!FLOW_ID) {
   process.exit(1)
 }
 
+const target = await prisma.flow.findUnique({ where: { id: FLOW_ID }, select: { orgId: true } })
+if (!target) {
+  console.error(`Flow ${FLOW_ID} tidak ditemukan.`)
+  process.exit(1)
+}
+// Arahkan AI needs a router endpoint. Without one the node is still laid
+// out, and publishing stays blocked until an admin picks one in the editor.
+const router = await prisma.aiEndpoint.findFirst({
+  where: { orgId: target.orgId, kind: 'ROUTE' },
+  orderBy: { createdAt: 'asc' },
+  select: { id: true, name: true },
+})
+
 const templates: Record<string, string> = JSON.parse(
   readFileSync(resolve(here, 'wa-mantap-templates.json'), 'utf8'),
 )
@@ -160,6 +173,25 @@ link('trigger', 'welcome')
 // name. It is dropped rather than swapped for {{contact.name}}: interpolate()
 // has no fallback, and an unknown contact would be greeted "Selamat datang **".
 text('welcome', without(T(1), '*Ahmad* '), 'menu')
+
+// A question typed in the contact's own words ("cara bikin skck") matches no
+// keyword above. Instead of going unanswered it is routed straight to the
+// menu row it belongs to - one billed message instead of the six or seven a
+// walk down the menus costs. Unsure or failing, it falls back to the greeting
+// and main menu, which is what typing "menu" gives anyway.
+add({
+  id: 'trigger_ai',
+  type: 'trigger',
+  data: { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false },
+})
+link('trigger_ai', 'arahkan')
+add({
+  id: 'arahkan',
+  type: 'aiRoute',
+  data: { kind: 'aiRoute', endpointId: router?.id ?? '', question: 'pesan_awal', minScore: 0.7, saveAs: 'arah_ai' },
+})
+link('arahkan', 'welcome', 'unsure')
+link('arahkan', 'welcome', 'error')
 
 text('tutup', T(64), 'selesai')
 layoutParent.set('tutup', 'menu')
@@ -907,7 +939,10 @@ function layout() {
   }
   for (const [child, p] of parent) children.set(p, [...(children.get(p) ?? []), child])
 
-  const orphans = nodes.filter((n) => n.id !== 'trigger' && !parent.has(n.id))
+  // The router branch only leads into the tree, never out of it, so it is
+  // placed by hand beside the main trigger below.
+  const sideRoots = new Set(['trigger_ai', 'arahkan'])
+  const orphans = nodes.filter((n) => n.id !== 'trigger' && !sideRoots.has(n.id) && !parent.has(n.id))
   if (orphans.length) {
     throw new Error(`Node tanpa induk di layout: ${orphans.map((n) => n.id).join(', ')}`)
   }
@@ -931,6 +966,10 @@ function layout() {
   }
 
   place('trigger', 0)
+
+  const trigger = byId.get('trigger')!.position
+  byId.get('trigger_ai')!.position = { x: trigger.x - COL, y: 0 }
+  byId.get('arahkan')!.position = { x: trigger.x - COL, y: ROW }
 }
 
 layout()
@@ -945,7 +984,9 @@ const dupes = nodes.map((n) => n.id).filter((id, i, all) => all.indexOf(id) !== 
 if (dupes.length) throw new Error(`Node id dobel: ${[...new Set(dupes)].join(', ')}`)
 
 const issues = validateFlow(graph)
-const errors = issues.filter((i) => i.severity === 'error')
+// A missing router endpoint is the admin's to pick, not a broken graph: the
+// draft is still written, and publishing refuses until it is chosen.
+const errors = issues.filter((i) => i.severity === 'error' && !(i.nodeId === 'arahkan' && !router && /pilih AI/.test(i.message)))
 
 console.log(`${nodes.length} node, ${edges.length} koneksi`)
 for (const i of issues) console.log(`  [${i.severity}] ${i.nodeId ?? '-'}: ${i.message}`)
@@ -963,5 +1004,10 @@ await prisma.flow.update({
   },
 })
 
-console.log('\nDraf tersimpan. Buka editor untuk meninjau, lalu terbitkan sendiri.')
+console.log(
+  router
+    ? `\nArahkan AI memakai "${router.name}".`
+    : '\nBelum ada AI jenis "Arahkan ke menu": tambahkan di halaman AI, lalu pilih di node Arahkan AI.',
+)
+console.log('Draf tersimpan. Buka editor untuk meninjau, lalu terbitkan sendiri.')
 await prisma.$disconnect()

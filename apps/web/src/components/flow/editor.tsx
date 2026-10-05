@@ -100,8 +100,14 @@ function Canvas({
     [nodes, edges],
   )
 
-  const aiEndpointIds = useMemo(() => new Set(aiEndpoints.map((a) => a.id)), [aiEndpoints])
-  const issues = useMemo(() => validateFlow(graph, { aiEndpointIds }), [graph, aiEndpointIds])
+  const aiOpts = useMemo(
+    () => ({
+      aiEndpointIds: new Set(aiEndpoints.map((a) => a.id)),
+      aiEndpointKinds: new Map(aiEndpoints.map((a) => [a.id, a.kind])),
+    }),
+    [aiEndpoints],
+  )
+  const issues = useMemo(() => validateFlow(graph, aiOpts), [graph, aiOpts])
   // What a node can read: every variable some node in this flow fills.
   const variables = useMemo(() => [...assignedVariables(graph)].sort(), [graph])
   const errors = issues.filter((i) => i.severity === 'error')
@@ -142,8 +148,11 @@ function Canvas({
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
       const id = nanoid(8)
       const data = defaultData(kind)
-      // With only one AI saved there is nothing to choose; pick it.
-      if (data.kind === 'askAi' && aiEndpoints.length === 1) data.endpointId = aiEndpoints[0]!.id
+      // With only one AI of the right kind saved there is nothing to choose; pick it.
+      if (data.kind === 'askAi' || data.kind === 'aiRoute') {
+        const usable = aiEndpoints.filter((a) => a.kind === (data.kind === 'askAi' ? 'ANSWER' : 'ROUTE'))
+        if (usable.length === 1) data.endpointId = usable[0]!.id
+      }
       setNodes((ns) => [...ns, { id, type: 'wa', position, data: data as never }])
       setSelectedId(id)
     },

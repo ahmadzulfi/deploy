@@ -2,19 +2,27 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { useFormStatus } from 'react-dom'
-import type { AiPreset } from '@wa/core/ai'
+import { ROUTE_TIMEOUT_DEFAULT, type AiEndpointKind, type AiPreset } from '@wa/core/ai'
 import {
   deleteAiEndpoint,
   saveAiEndpoint,
   testAiEndpoint,
+  testRouteEndpoint,
   type AiFormState,
   type AiTestResult,
+  type RouteTestResult,
 } from '@/lib/actions/ai'
 import { cn } from '@/lib/utils'
+
+const KIND_LABELS: Record<AiEndpointKind, string> = {
+  ANSWER: 'Jawab pertanyaan',
+  ROUTE: 'Arahkan ke menu',
+}
 
 export interface AiEndpointRow {
   id: string
   name: string
+  kind: AiEndpointKind
   method: 'GET' | 'POST'
   host: string
   /** Empty for anyone who may not edit it. */
@@ -63,8 +71,11 @@ export function AiEndpoints({
             <div className="flex flex-wrap items-start gap-x-4 gap-y-2 p-3">
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] text-fg">{e.name}</div>
-                <div className="mt-0.5 truncate font-mono text-[11px] text-fg-muted">
-                  {e.method} {e.host}
+                <div className="mt-0.5 truncate text-[11px] text-fg-muted">
+                  {KIND_LABELS[e.kind]} ·{' '}
+                  <span className="font-mono">
+                    {e.method} {e.host}
+                  </span>
                 </div>
                 <p className="mt-1 text-[11px] text-fg-muted">
                   {e.usedIn.length ? `Dipakai di flow: ${e.usedIn.join(', ')}` : 'Belum dipakai di flow mana pun'}
@@ -158,6 +169,8 @@ function AiEndpointForm({
   const isNew = !initial
   const first = presets[0]!.config
 
+  const [kind, setKind] = useState<AiEndpointKind>(initial?.kind ?? 'ANSWER')
+  const isRoute = kind === 'ROUTE'
   const [presetId, setPresetId] = useState(presets[0]!.id)
   const [name, setName] = useState(initial?.name ?? '')
   const [method, setMethod] = useState(initial?.method ?? first.method)
@@ -170,6 +183,7 @@ function AiEndpointForm({
 
   const [question, setQuestion] = useState('')
   const [test, setTest] = useState<AiTestResult | null>(null)
+  const [routeTest, setRouteTest] = useState<RouteTestResult | null>(null)
   const [testing, startTest] = useTransition()
 
   const [state, action] = useActionState<AiFormState, FormData>(saveAiEndpoint, {})
@@ -192,11 +206,27 @@ function AiEndpointForm({
     setTest(null)
   }
 
+  // A router's URL, headers and timeout share nothing with the answer
+  // presets, so switching kind starts those fields over.
+  const chooseKind = (next: AiEndpointKind) => {
+    setKind(next)
+    setTest(null)
+    setRouteTest(null)
+    if (next === 'ROUTE') {
+      setUrl('')
+      setHeaders('')
+      setTimeoutSeconds(ROUTE_TIMEOUT_DEFAULT)
+    } else {
+      applyPreset(presetId)
+    }
+  }
+
   const runTest = () =>
     startTest(async () => {
       const data = new FormData(form.current!)
       data.set('question', question)
-      setTest(await testAiEndpoint(data))
+      if (isRoute) setRouteTest(await testRouteEndpoint(data))
+      else setTest(await testAiEndpoint(data))
     })
 
   const stored = initial?.headerNames ?? []
@@ -204,8 +234,38 @@ function AiEndpointForm({
   return (
     <form ref={form} action={action} className="space-y-3">
       {initial && <input type="hidden" name="id" value={initial.id} />}
+      <input type="hidden" name="kind" value={kind} />
 
-      {isNew && (
+      {isNew ? (
+        <fieldset>
+          <legend className="text-xs text-fg">Jenis</legend>
+          <div className="mt-1 grid gap-2 sm:grid-cols-2">
+            {(['ANSWER', 'ROUTE'] as const).map((k) => (
+              <label
+                key={k}
+                className={cn(
+                  'flex cursor-pointer gap-2 rounded-md border bg-surface p-2.5 text-[11px] text-fg-muted',
+                  kind === k && 'border-accent',
+                )}
+              >
+                <input type="radio" name="kindChoice" checked={kind === k} onChange={() => chooseKind(k)} className="mt-0.5" />
+                <span>
+                  <span className="block text-xs text-fg">{KIND_LABELS[k]}</span>
+                  {k === 'ANSWER'
+                    ? 'Membalas pertanyaan dengan teks. Dipakai node Tanya AI.'
+                    : 'Memilih tujuan di menu flow, bot langsung lompat ke jawabannya. Dipakai node Arahkan AI.'}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : (
+        <p className="text-[11px] text-fg-muted">
+          Jenis: <span className="text-fg">{KIND_LABELS[kind]}</span>. Jenis tidak bisa diubah setelah disimpan.
+        </p>
+      )}
+
+      {isNew && !isRoute && (
         <label className="block">
           <span className="text-xs text-fg">Mulai dari</span>
           <select className={input} value={presetId} onChange={(e) => applyPreset(e.target.value)}>
@@ -232,11 +292,13 @@ function AiEndpointForm({
           placeholder="AI Layanan Publik"
           className={input}
         />
-        <span className="mt-1 block text-[11px] text-fg-muted">Nama inilah yang dipilih di node Tanya AI.</span>
+        <span className="mt-1 block text-[11px] text-fg-muted">
+          Nama inilah yang dipilih di node {isRoute ? 'Arahkan AI' : 'Tanya AI'}.
+        </span>
       </label>
 
       <div className="flex gap-3">
-        <label className="block w-28 shrink-0">
+        <label className={cn('block w-28 shrink-0', isRoute && 'hidden')}>
           <span className="text-xs text-fg">Metode</span>
           <select
             name="method"
@@ -255,11 +317,20 @@ function AiEndpointForm({
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://api.contoh.com/chat"
+            placeholder={isRoute ? 'https://layanan-ai.contoh.id/route' : 'https://api.contoh.com/chat'}
             className={cn(input, 'font-mono text-[12px]')}
           />
         </label>
       </div>
+
+      {isRoute && (
+        <p className="rounded-md bg-muted px-3 py-2 text-[11px] text-fg-muted">
+          Dipanggil dengan <code className="font-mono text-fg">POST</code> berisi pertanyaan warga dan daftar tujuan
+          dari menu flow, lalu harus menjawab <code className="font-mono text-fg">destination_id</code> dan{' '}
+          <code className="font-mono text-fg">score</code> sesuai kontrak <code className="font-mono">/route</code>.
+          Body dan format jawaban tidak perlu diatur.
+        </p>
+      )}
 
       <label className="block">
         <span className="text-xs text-fg">Header</span>
@@ -292,38 +363,42 @@ function AiEndpointForm({
         )}
       </label>
 
-      {method === 'POST' && (
+      {!isRoute && method === 'POST' && (
         <label className="block">
           <span className="text-xs text-fg">Body (JSON)</span>
           <textarea name="body" rows={10} value={body} onChange={(e) => setBody(e.target.value)} className={area} />
         </label>
       )}
 
-      <p className="rounded-md bg-muted px-3 py-2 text-[11px] text-fg-muted">
-        Di URL, header, atau body, tulis <code className="font-mono text-fg">{'{{pertanyaan}}'}</code> untuk
-        pertanyaan pengguna (wajib). Tersedia juga <code className="font-mono text-fg">{'{{nama}}'}</code> dan{' '}
-        <code className="font-mono text-fg">{'{{nomor}}'}</code> kontak. Isinya otomatis di-encode, jadi di body
-        cukup tulis di dalam tanda kutip.
-      </p>
+      {!isRoute && (
+        <>
+          <p className="rounded-md bg-muted px-3 py-2 text-[11px] text-fg-muted">
+            Di URL, header, atau body, tulis <code className="font-mono text-fg">{'{{pertanyaan}}'}</code> untuk
+            pertanyaan pengguna (wajib). Tersedia juga <code className="font-mono text-fg">{'{{nama}}'}</code> dan{' '}
+            <code className="font-mono text-fg">{'{{nomor}}'}</code> kontak. Isinya otomatis di-encode, jadi di body
+            cukup tulis di dalam tanda kutip.
+          </p>
 
-      <label className="block">
-        <span className="text-xs text-fg">Format jawaban</span>
-        <textarea
-          name="answerTemplate"
-          rows={2}
-          value={answerTemplate}
-          onChange={(e) => setAnswerTemplate(e.target.value)}
-          placeholder="{{choices.0.message.content}}"
-          className={area}
-        />
-        <span className="mt-1 block text-[11px] text-fg-muted">
-          Teks yang dikirim ke pengguna. Ambil field dari respons dengan{' '}
-          <code className="font-mono">{'{{nama.field}}'}</code>, indeks list dengan angka (
-          <code className="font-mono">{'{{data.0.judul}}'}</code>), atau saring list dengan{' '}
-          <code className="font-mono">{'{{content[type=text].text}}'}</code>. Kosongkan kalau API-nya membalas teks
-          biasa. Lihat &ldquo;Respons mentah&rdquo; di hasil uji untuk mencari nama field.
-        </span>
-      </label>
+          <label className="block">
+            <span className="text-xs text-fg">Format jawaban</span>
+            <textarea
+              name="answerTemplate"
+              rows={2}
+              value={answerTemplate}
+              onChange={(e) => setAnswerTemplate(e.target.value)}
+              placeholder="{{choices.0.message.content}}"
+              className={area}
+            />
+            <span className="mt-1 block text-[11px] text-fg-muted">
+              Teks yang dikirim ke pengguna. Ambil field dari respons dengan{' '}
+              <code className="font-mono">{'{{nama.field}}'}</code>, indeks list dengan angka (
+              <code className="font-mono">{'{{data.0.judul}}'}</code>), atau saring list dengan{' '}
+              <code className="font-mono">{'{{content[type=text].text}}'}</code>. Kosongkan kalau API-nya membalas teks
+              biasa. Lihat &ldquo;Respons mentah&rdquo; di hasil uji untuk mencari nama field.
+            </span>
+          </label>
+        </>
+      )}
 
       <label className="block w-40">
         <span className="text-xs text-fg">Batas waktu (detik)</span>
@@ -350,7 +425,7 @@ function AiEndpointForm({
                 runTest()
               }
             }}
-            placeholder="ktp saya hilang, gimana ngurusnya?"
+            placeholder={isRoute ? 'cara bikin skck' : 'ktp saya hilang, gimana ngurusnya?'}
             className={cn(input, 'mt-0')}
           />
           <button
@@ -363,7 +438,9 @@ function AiEndpointForm({
           </button>
         </div>
 
-        {test && (
+        {isRoute && routeTest && <RouteTestView result={routeTest} />}
+
+        {!isRoute && test && (
           <div className="mt-3 space-y-2">
             <p className="text-[11px] text-fg-muted">
               {test.status !== undefined && `HTTP ${test.status}`}
@@ -401,6 +478,56 @@ function AiEndpointForm({
         </button>
       </div>
     </form>
+  )
+}
+
+const score = (s: number) => s.toLocaleString('id-ID', { maximumFractionDigits: 2 })
+
+/** Where the router would send the question, by menu path rather than bare id. */
+function RouteTestView({ result }: { result: RouteTestResult }) {
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] text-fg-muted">
+        {result.catalog && `Diuji dengan ${result.catalog}`}
+        {result.ok && ` (${result.count} tujuan)`}
+        {result.status !== undefined && ` · HTTP ${result.status}`}
+        {result.ms !== undefined && ` · ${(result.ms / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} detik`}
+      </p>
+      {!result.ok ? (
+        <p className="rounded-md bg-danger-bg px-3 py-2 text-[12px] whitespace-pre-wrap text-danger">{result.error}</p>
+      ) : result.pick ? (
+        <div className="rounded-md bg-ok-bg px-3 py-2 text-[12px] text-fg">
+          <p>
+            Diarahkan ke <span className="font-medium">{result.pick.path ?? result.pick.id}</span> · skor{' '}
+            {score(result.pick.score)}
+          </p>
+          {!result.pick.path && (
+            <p className="mt-1 text-danger">ID &ldquo;{result.pick.id}&rdquo; tidak ada di menu, jadi bot akan mengirim menu utama.</p>
+          )}
+        </div>
+      ) : (
+        <p className="rounded-md bg-muted px-3 py-2 text-[12px] text-fg">
+          AI tidak memilih tujuan (skor {score(result.score)}). Warga akan mendapat menu utama.
+        </p>
+      )}
+      {result.ok && result.candidates.length > 0 && (
+        <ul className="space-y-0.5 text-[11px] text-fg-muted">
+          {result.candidates.map((c) => (
+            <li key={c.id}>
+              {score(c.score)} · {c.path ?? `${c.id} (tidak ada di menu)`}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result.raw && (
+        <details open={!result.ok}>
+          <summary className="cursor-pointer text-[11px] text-fg-muted">Respons mentah</summary>
+          <pre className="mt-1 max-h-72 overflow-auto rounded-md bg-muted p-2 font-mono text-[11px] whitespace-pre-wrap text-fg">
+            {result.raw}
+          </pre>
+        </details>
+      )}
+    </div>
   )
 }
 

@@ -1,8 +1,10 @@
 import { WA_LIMITS } from '../providers/limits.js'
+import { buildRouteCatalog } from './catalog.js'
 import {
   handlesOf,
   isSendingNode,
   isWaitingNode,
+  ROUTE_QUESTION_VARIABLE,
   type FlowGraph,
   type FlowNode,
 } from './schema.js'
@@ -27,6 +29,11 @@ export interface ValidateOptions {
    * one that no longer exists is an error; left out, that check is skipped.
    */
   aiEndpointIds?: ReadonlySet<string>
+  /**
+   * What each of those endpoints is for. When given, a Tanya AI node on a
+   * router endpoint, or an Arahkan AI node on an answering one, is an error.
+   */
+  aiEndpointKinds?: ReadonlyMap<string, 'ANSWER' | 'ROUTE'>
 }
 
 export function validateFlow(graph: FlowGraph, opts: ValidateOptions = {}): FlowIssue[] {
@@ -37,6 +44,23 @@ export function validateFlow(graph: FlowGraph, opts: ValidateOptions = {}): Flow
   const triggers = graph.nodes.filter((n) => n.data.kind === 'trigger')
   if (triggers.length === 0) {
     issues.push({ severity: 'error', message: 'Flow butuh minimal satu node Trigger.' })
+  }
+
+  const fallbacks = triggers.filter((n) => n.data.kind === 'trigger' && n.data.match === 'fallback')
+  if (fallbacks.length > 1) {
+    issues.push({
+      severity: 'warning',
+      nodeId: fallbacks[1]!.id,
+      message: 'Ada lebih dari satu Trigger "tidak cocok kata kunci" — hanya yang pertama yang dipakai.',
+    })
+  }
+
+  if (graph.nodes.some((n) => n.data.kind === 'aiRoute') && buildRouteCatalog(graph).length === 0) {
+    issues.push({
+      severity: 'error',
+      nodeId: graph.nodes.find((n) => n.data.kind === 'aiRoute')!.id,
+      message: 'Arahkan AI butuh menu: flow ini belum punya node Kirim list dengan baris yang tersambung.',
+    })
   }
 
   for (const e of graph.edges) {
@@ -97,10 +121,13 @@ export function validateFlow(graph: FlowGraph, opts: ValidateOptions = {}): Flow
 
 /** Variable names some node in the graph writes to. */
 export function assignedVariables(graph: FlowGraph): Set<string> {
-  const names = new Set<string>()
+  // Filled by the worker for every session an inbound message starts.
+  const names = new Set<string>([ROUTE_QUESTION_VARIABLE])
   for (const n of graph.nodes) {
     const d = n.data
-    if (d.kind === 'waitReply' || d.kind === 'httpRequest' || d.kind === 'askAi') names.add(d.saveAs)
+    if (d.kind === 'waitReply' || d.kind === 'httpRequest' || d.kind === 'askAi' || d.kind === 'aiRoute') {
+      names.add(d.saveAs)
+    }
     if (d.kind === 'setVariable') names.add(d.name)
   }
   return names
@@ -299,6 +326,12 @@ function checkNode(node: FlowNode, opts: ValidateOptions, assigned: Set<string>)
           nodeId: node.id,
           message: 'Tanya AI: AI yang dipilih sudah dihapus. Pilih lagi.',
         })
+      } else if (opts.aiEndpointKinds?.get(d.endpointId) === 'ROUTE') {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'Tanya AI: AI yang dipilih jenisnya "Arahkan ke menu". Pilih AI jenis "Jawab pertanyaan".',
+        })
       }
       if (!d.question.trim()) {
         out.push({ severity: 'error', nodeId: node.id, message: 'Tanya AI: pilih variabel pertanyaannya.' })
@@ -322,6 +355,41 @@ function checkNode(node: FlowNode, opts: ValidateOptions, assigned: Set<string>)
           nodeId: node.id,
           message: `Tanya AI: label tombol maksimal ${WA_LIMITS.buttons.titleMax} karakter.`,
         })
+      }
+      break
+
+    case 'aiRoute':
+      if (!d.endpointId) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Arahkan AI: pilih AI yang dipakai.' })
+      } else if (opts.aiEndpointIds && !opts.aiEndpointIds.has(d.endpointId)) {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'Arahkan AI: AI yang dipilih sudah dihapus. Pilih lagi.',
+        })
+      } else if (opts.aiEndpointKinds?.get(d.endpointId) === 'ANSWER') {
+        out.push({
+          severity: 'error',
+          nodeId: node.id,
+          message: 'Arahkan AI: AI yang dipilih jenisnya "Jawab pertanyaan". Pilih AI jenis "Arahkan ke menu".',
+        })
+      }
+      if (!d.question.trim()) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Arahkan AI: pilih variabel pertanyaannya.' })
+      } else if (!assigned.has(d.question)) {
+        out.push({
+          severity: 'warning',
+          nodeId: node.id,
+          message: `Arahkan AI: variabel {{${d.question}}} tidak pernah diisi di flow ini.`,
+        })
+      }
+      if (!(d.minScore >= 0 && d.minScore <= 1)) {
+        out.push({ severity: 'error', nodeId: node.id, message: 'Arahkan AI: batas skor harus antara 0 dan 1.' })
+      }
+      if (!VARIABLE_NAME.test(d.saveAs)) {
+        out.push({ severity: 'error', nodeId: node.id, message: `"${d.saveAs}" bukan nama variabel yang valid.` })
+      } else if (['contact', 'channel', 'system'].includes(d.saveAs)) {
+        out.push({ severity: 'error', nodeId: node.id, message: `"${d.saveAs}" dipakai sistem, pilih nama lain.` })
       }
       break
 
@@ -473,6 +541,7 @@ export const NODE_LABELS: Record<string, string> = {
   setVariable: 'Set variabel',
   httpRequest: 'Panggil API',
   askAi: 'Tanya AI',
+  aiRoute: 'Arahkan AI',
   delay: 'Jeda',
   assign: 'Tugaskan agen',
   tag: 'Tag kontak',

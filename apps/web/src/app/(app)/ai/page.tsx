@@ -30,9 +30,10 @@ export default async function AiPage() {
         <div>
           <h1 className="text-h5 text-fg">AI</h1>
           <p className="mt-1 text-xs text-fg-muted">
-            Simpan layanan AI di sini sekali, lalu pakai di flow lewat node{' '}
-            <span className="text-fg">Tanya AI</span> cukup dengan memilih namanya. URL, API key, dan
-            cara membaca jawabannya hanya diatur di halaman ini.
+            Simpan layanan AI di sini sekali, lalu pakai di flow cukup dengan memilih namanya. AI jenis{' '}
+            <span className="text-fg">Jawab pertanyaan</span> dipakai node Tanya AI; jenis{' '}
+            <span className="text-fg">Arahkan ke menu</span> dipakai node Arahkan AI untuk langsung membawa warga ke
+            jawaban di menu tanpa mengirim menu bertingkat. URL dan API key hanya diatur di halaman ini.
           </p>
         </div>
 
@@ -44,6 +45,7 @@ export default async function AiPage() {
             return {
               id: r.id,
               name: r.name,
+              kind: r.kind,
               method: r.method === 'GET' ? ('GET' as const) : ('POST' as const),
               host: hostOf(r.url),
               // The full config is for whoever may edit it; a URL can carry a

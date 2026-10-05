@@ -85,8 +85,16 @@ function Fields({
               <option value="buttonPayload">Tombol ditekan</option>
               <option value="newConversation">Percakapan baru</option>
               <option value="api">Dipicu lewat API</option>
+              <option value="fallback">Tidak cocok kata kunci apa pun</option>
             </select>
           </Field>
+
+          {data.match === 'fallback' && (
+            <p className="text-[10px] leading-4 text-fg-muted">
+              Jalan untuk pesan teks yang tidak memicu trigger lain di flow mana pun. Sambungkan ke node Arahkan AI
+              supaya pertanyaan warga langsung diarahkan ke jawabannya.
+            </p>
+          )}
 
           {['keyword', 'exact', 'regex', 'buttonPayload'].includes(data.match) && (
             <Field
@@ -103,7 +111,7 @@ function Fields({
             </Field>
           )}
 
-          {data.match !== 'newConversation' && data.match !== 'api' && (
+          {['keyword', 'exact', 'regex', 'buttonPayload'].includes(data.match) && (
             <Check
               label="Bedakan huruf besar-kecil"
               checked={data.caseSensitive}
@@ -400,6 +408,8 @@ function Fields({
     case 'askAi':
       return <AskAiFields data={data} set={set} variables={variables} />
 
+    case 'aiRoute':
+      return <AiRouteFields data={data} set={set} variables={variables} />
 
     case 'waitReply':
       return (
@@ -670,7 +680,7 @@ function AskAiFields({
   set: (p: Partial<NodeData>) => void
   variables: string[]
 }) {
-  const endpoints = useAiEndpoints()
+  const endpoints = useAiEndpoints('ANSWER')
   const known = endpoints.some((e) => e.id === data.endpointId)
   // The node's own output is not a sensible question.
   const choices = variables.filter((v) => v !== data.saveAs)
@@ -761,6 +771,80 @@ function AskAiFields({
 }
 
 const MEDIA_LABEL = { image: 'gambar', video: 'video', document: 'dokumen' } as const
+
+function AiRouteFields({
+  data,
+  set,
+  variables,
+}: {
+  data: Extract<NodeData, { kind: 'aiRoute' }>
+  set: (p: Partial<NodeData>) => void
+  variables: string[]
+}) {
+  const endpoints = useAiEndpoints('ROUTE')
+  const known = endpoints.some((e) => e.id === data.endpointId)
+  const choices = variables.filter((v) => v !== data.saveAs)
+
+  return (
+    <>
+      <Field label="AI">
+        {endpoints.length === 0 ? (
+          <p className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-fg-muted">
+            Belum ada AI jenis &ldquo;Arahkan ke menu&rdquo;.{' '}
+            <Link href="/ai" className="text-accent hover:underline">
+              Tambahkan di halaman AI
+            </Link>{' '}
+            dulu.
+          </p>
+        ) : (
+          <select className={input} value={known ? data.endpointId : ''} onChange={(e) => set({ endpointId: e.target.value })}>
+            <option value="" disabled>
+              {data.endpointId ? 'AI sudah dihapus, pilih lagi' : 'Pilih AI…'}
+            </option>
+            {endpoints.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+
+      <Field label="Pertanyaan diambil dari" hint="{{pesan_awal}} berisi pesan yang memulai sesi.">
+        <select className={cn(input, 'font-mono')} value={data.question} onChange={(e) => set({ question: e.target.value })}>
+          {!choices.includes(data.question) && (
+            <option value={data.question} disabled>{`{{${data.question}}} (tidak diisi di flow ini)`}</option>
+          )}
+          {choices.map((v) => (
+            <option key={v} value={v}>{`{{${v}}}`}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Skor minimal" hint="0 sampai 1. Di bawah ini, warga dapat cabang 'tidak cocok'.">
+        <input
+          type="number"
+          min={0}
+          max={1}
+          step={0.05}
+          className={input}
+          value={data.minScore}
+          onChange={(e) => set({ minScore: Number(e.target.value) })}
+        />
+      </Field>
+
+      <Field label="Simpan keputusan ke variabel">
+        <input className={cn(input, 'font-mono')} value={data.saveAs} onChange={(e) => set({ saveAs: e.target.value })} />
+      </Field>
+
+      <p className="text-[10px] leading-4 text-fg-muted">
+        Daftar tujuan diambil otomatis dari baris semua node Kirim list di flow ini. Kalau AI yakin, bot langsung
+        lompat ke tujuan itu tanpa mengirim menu. Sambungkan &lsquo;tidak cocok&rsquo; dan &lsquo;gagal&rsquo; ke
+        menu utama.
+      </p>
+    </>
+  )
+}
 
 function TemplateFields({
   data,

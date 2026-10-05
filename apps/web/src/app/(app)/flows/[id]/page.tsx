@@ -36,7 +36,7 @@ export default async function FlowEditorPage({ params }: { params: Promise<{ id:
   const aiEndpoints = await prisma.aiEndpoint.findMany({
     where: { orgId: user.orgId },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true },
+    select: { id: true, name: true, kind: true },
   })
 
   return (

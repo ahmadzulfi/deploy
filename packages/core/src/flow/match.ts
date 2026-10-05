@@ -49,8 +49,9 @@ export function matchTrigger(graph: FlowGraph, signal: InboundSignal): TriggerMa
       continue
     }
 
-    // Fired by an explicit API call, never by an incoming message.
-    if (d.match === 'api' || d.match === 'buttonPayload') continue
+    // Fired by an explicit API call, never by an incoming message. A
+    // fallback only fires once every flow has been asked: findFallbackTrigger.
+    if (d.match === 'api' || d.match === 'buttonPayload' || d.match === 'fallback') continue
     if (!text) continue
 
     const haystack = d.caseSensitive ? text : text.toLowerCase()
@@ -74,6 +75,16 @@ export function matchTrigger(graph: FlowGraph, signal: InboundSignal): TriggerMa
   }
 
   return null
+}
+
+/**
+ * The graph's "no keyword matched" trigger, if it has one.
+ *
+ * Kept apart from matchTrigger because it must lose to every ordinary trigger
+ * in every flow, not just in its own: the worker asks all flows first.
+ */
+export function findFallbackTrigger(graph: FlowGraph): FlowNode | null {
+  return graph.nodes.find((n) => n.data.kind === 'trigger' && n.data.match === 'fallback') ?? null
 }
 
 /** The node an edge leads to, given the output handle taken. */

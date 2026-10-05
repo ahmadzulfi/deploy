@@ -171,6 +171,31 @@ export function checkAiConfig(cfg: AiEndpointConfig): string | null {
   return null
 }
 
+export type AiEndpointKind = 'ANSWER' | 'ROUTE'
+
+/** A router answers in under 3s by contract; past this the contact gets the menu. */
+export const ROUTE_TIMEOUT_DEFAULT = 8
+
+/**
+ * Problems in a router endpoint's form. Only the URL, headers and timeout
+ * are the admin's: the request and answer follow the POST /route contract.
+ */
+export function checkRouteConfig(cfg: Pick<AiEndpointConfig, 'url' | 'timeoutSeconds'>): string | null {
+  try {
+    const url = new URL(cfg.url.trim())
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return 'URL harus diawali https://.'
+  } catch {
+    return 'URL tidak valid.'
+  }
+  if (/\{\{/.test(cfg.url)) {
+    return 'Endpoint Arahkan AI tidak memakai {{...}}: pertanyaan dan daftar menu dikirim di body.'
+  }
+  if (!Number.isInteger(cfg.timeoutSeconds) || cfg.timeoutSeconds < 1 || cfg.timeoutSeconds > AI_TIMEOUT_MAX) {
+    return `Batas waktu harus 1 sampai ${AI_TIMEOUT_MAX} detik.`
+  }
+  return null
+}
+
 export interface AiPreset {
   id: string
   label: string

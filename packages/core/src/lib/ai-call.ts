@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto'
 import { isIP } from 'node:net'
 import { Agent, fetch } from 'undici'
-import { buildAiRequest, renderAnswer, type AiEndpointConfig, type AiVars } from '../ai.js'
+import { z } from 'zod'
+import { buildAiRequest, parseHeaderLines, renderAnswer, type AiEndpointConfig, type AiVars } from '../ai.js'
+import type { RouteDestination } from '../flow/catalog.js'
 import { isLocalhostUrl, isPrivateAddress, publicOnlyLookup } from './public-url.js'
 
 /**
@@ -120,4 +123,95 @@ export async function callAi(cfg: AiEndpointConfig, vars: AiVars): Promise<AiRes
     }
   }
   return { ok: true, answer, status: res.status, data: res.data, ms: ms() }
+}
+
+/** One menu destination as the POST /route contract sends it. */
+export type RouteWireDestination = Pick<RouteDestination, 'id' | 'path' | 'description' | 'content'>
+
+/**
+ * The catalog's fingerprint: equal hashes mean an identical list, so the
+ * router may reuse whatever it computed for it (embeddings, usually).
+ */
+export function routeCatalogHash(destinations: RouteWireDestination[]): string {
+  return createHash('sha256').update(JSON.stringify(destinations)).digest('hex')
+}
+
+const routeAnswer = z.object({
+  destination_id: z.string().nullable(),
+  score: z.number().finite(),
+  candidates: z
+    .array(z.object({ id: z.string(), score: z.number().finite() }))
+    .max(10)
+    .optional()
+    .default([]),
+})
+
+export type RouteResult =
+  | {
+      ok: true
+      destinationId: string | null
+      score: number
+      candidates: { id: string; score: number }[]
+      status: number
+      data: unknown
+      ms: number
+    }
+  | { ok: false; error: string; status?: number; data?: unknown; ms: number }
+
+/**
+ * Asks a router endpoint which destination a question belongs to.
+ *
+ * Only shapes the call and checks the answer's form; whether the picked id
+ * is one we sent, and whether the score clears the bar, is the engine's job.
+ * Never throws.
+ */
+export async function callRoute(
+  cfg: Pick<AiEndpointConfig, 'url' | 'headers' | 'timeoutSeconds'>,
+  req: { question: string; destinations: RouteDestination[] | RouteWireDestination[] },
+): Promise<RouteResult> {
+  const started = Date.now()
+  const ms = () => Date.now() - started
+
+  // The node a destination leads to is ours; the router only sees the menu.
+  const destinations = req.destinations.map(({ id, path, description, content }) => ({ id, path, description, content }))
+  const headers: Record<string, string> = { ...parseHeaderLines(cfg.headers), 'Content-Type': 'application/json' }
+  const body = JSON.stringify({
+    question: req.question,
+    catalog_hash: routeCatalogHash(destinations),
+    destinations,
+  })
+
+  let res: SafeResponse
+  try {
+    res = await safeFetch(cfg.url.trim(), { method: 'POST', headers, body, timeoutMs: cfg.timeoutSeconds * 1000 })
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err), ms: ms() }
+  }
+
+  if (res.status < 200 || res.status >= 300) {
+    const detail = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
+    return { ok: false, error: `HTTP ${res.status}: ${detail.slice(0, 300)}`, status: res.status, data: res.data, ms: ms() }
+  }
+
+  const parsed = routeAnswer.safeParse(res.data)
+  if (!parsed.success) {
+    const where = parsed.error.issues[0]?.path.join('.') || 'jawaban'
+    return {
+      ok: false,
+      error: `Jawaban tidak sesuai kontrak /route (${where}). Harus berisi destination_id dan score.`,
+      status: res.status,
+      data: res.data,
+      ms: ms(),
+    }
+  }
+
+  return {
+    ok: true,
+    destinationId: parsed.data.destination_id,
+    score: parsed.data.score,
+    candidates: parsed.data.candidates,
+    status: res.status,
+    data: res.data,
+    ms: ms(),
+  }
 }

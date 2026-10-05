@@ -29,6 +29,7 @@ export const NODE_KINDS = [
   'setVariable',
   'httpRequest',
   'askAi',
+  'aiRoute',
   'delay',
   'assign',
   'tag',
@@ -38,12 +39,23 @@ export const NODE_KINDS = [
 
 export type NodeKind = (typeof NODE_KINDS)[number]
 
+/**
+ * Holds the text of the message that started a session. Filled by the worker
+ * for every session an inbound message starts, so Arahkan AI has a question
+ * without a Tunggu balasan in front of it.
+ */
+export const ROUTE_QUESTION_VARIABLE = 'pesan_awal'
+
 const position = z.object({ x: z.number(), y: z.number() })
 
 const triggerData = z.object({
   kind: z.literal('trigger'),
-  /** keyword: any of `values` appears; exact: whole message equals one */
-  match: z.enum(['keyword', 'exact', 'regex', 'newConversation', 'buttonPayload', 'api']),
+  /**
+   * keyword: any of `values` appears; exact: whole message equals one.
+   * fallback: a text message no other trigger in any flow fired on - the
+   * door to Arahkan AI for questions typed in the contact's own words.
+   */
+  match: z.enum(['keyword', 'exact', 'regex', 'newConversation', 'buttonPayload', 'api', 'fallback']),
   values: z.array(z.string()).default([]),
   caseSensitive: z.boolean().default(false),
 })
@@ -170,6 +182,26 @@ const askAiData = z.object({
   saveAs: z.string().default('jawaban_ai'),
 })
 
+/**
+ * Sends the contact's question and the flow's menu destinations to a router
+ * endpoint, then jumps straight to the destination it picks - skipping every
+ * menu in between, each of which is a billed message.
+ *
+ * It sends nothing itself and has no "success" output: where it goes on
+ * success is decided at runtime by the menu row picked, not by an edge.
+ */
+const aiRouteData = z.object({
+  kind: z.literal('aiRoute'),
+  /** An AiEndpoint id of kind ROUTE. */
+  endpointId: z.string().default(''),
+  /** Variable holding the question; the worker fills pesan_awal on start. */
+  question: z.string().default(ROUTE_QUESTION_VARIABLE),
+  /** A pick scoring below this takes the "unsure" branch instead. 0 to 1. */
+  minScore: z.number().default(0.7),
+  /** The decision is kept here: { id, score, path }. */
+  saveAs: z.string().default('arah_ai'),
+})
+
 const delayData = z.object({
   kind: z.literal('delay'),
   seconds: z.number().int().min(0),
@@ -209,6 +241,7 @@ export const nodeDataSchema = z.discriminatedUnion('kind', [
   setVariableData,
   httpRequestData,
   askAiData,
+  aiRouteData,
   delayData,
   assignData,
   tagData,
@@ -233,7 +266,8 @@ export const flowEdgeSchema = z.object({
    * Which output the edge leaves from. For a buttons node this is the button
    * id; for a condition it is "true" or "false"; for a waitReply it is
    * "reply" or "timeout"; for an httpRequest or askAi it is "success" or
-   * "error". Absent means the node's single default output.
+   * "error"; for an aiRoute it is "unsure" or "error". Absent means the
+   * node's single default output.
    */
   sourceHandle: z.string().nullish(),
 })
@@ -272,6 +306,11 @@ export function handlesOf(node: FlowNode): { id: string | null; label: string }[
     case 'askAi':
       return [
         { id: 'success', label: 'berhasil' },
+        { id: 'error', label: 'gagal' },
+      ]
+    case 'aiRoute':
+      return [
+        { id: 'unsure', label: 'tidak cocok' },
         { id: 'error', label: 'gagal' },
       ]
     case 'end':

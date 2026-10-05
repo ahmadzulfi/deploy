@@ -1,0 +1,252 @@
+---
+title: Layanan pengetahuan
+description: API layanan ai-knowledge — dokumen SOP, pencarian semantik, dan router menu di balik node Tanya AI, Arahkan AI, dan halaman Basis Pengetahuan.
+---
+
+Ini **bukan** bagian Public API. Layanan pengetahuan adalah service terpisah
+(`apps/ai-knowledge`: Go, PostgreSQL + pgvector, Gemini) yang menyimpan dokumen SOP
+dan menjawab pertanyaan dari dokumen itu. Platform ini memakainya di tiga tempat:
+
+- **Halaman Basis Pengetahuan** di dashboard — menambah, mengubah, menghapus, dan
+  menguji dokumen. Alamat dan key-nya diatur di `.env` root:
+  `AI_KNOWLEDGE_URL` dan `AI_KNOWLEDGE_API_KEY`.
+- **Node Tanya AI** di flow — lewat AI jenis *Jawab pertanyaan* di halaman AI yang
+  diarahkan ke [`/documents/search`](#mencari-jawaban).
+- **Node Arahkan AI** di flow — lewat AI jenis *Arahkan ke menu* yang diarahkan ke
+  [`/route`](#router-menu-route).
+
+Untuk mencoba tanpa layanan sungguhan, jalankan `pnpm knowledge:fake`: tiruan di
+`http://localhost:4020` dengan rute dan bentuk respons yang sama, dokumen di memori,
+tanpa Gemini. Cara menjalankan layanan aslinya ada di [bagian akhir](#menjalankan-lokal).
+
+## Autentikasi
+
+Kalau layanan menyetel `INTERNAL_API_KEY`, setiap request kecuali `GET /` wajib
+membawa key itu di salah satu header berikut:
+
+| Header | Isi |
+|---|---|
+| `X-Internal-API-Key` | `<key>` — yang dipakai dashboard |
+| `X-API-Key` | `<key>` |
+| `Authorization` | `Bearer <key>` |
+
+Key salah atau tidak ada dibalas **401**. Kalau `INTERNAL_API_KEY` kosong, layanan
+terbuka untuk siapa saja: setiap orang bisa menghabiskan kuota Gemini dan mengubah
+dokumen. Jangan jalankan begitu di alamat publik.
+
+## Mencari jawaban
+
+```text
+POST /documents/search
+Content-Type: application/json
+
+{ "query": "ktp saya hilang, syaratnya apa?", "limit": 3 }
+```
+
+`GET /documents/search?q=…&limit=3` juga diterima. `limit` (default 3) adalah jumlah
+dokumen yang dibaca untuk menyusun jawaban. Query kosong dibalas **400**.
+
+Urutan kerjanya:
+
+1. Pertanyaan diubah jadi embedding lewat Gemini.
+2. **Cache.** Kalau pertanyaan yang pernah dijawab kemiripannya ≥ 92%, jawaban lama
+   dikembalikan apa adanya (`source: "cache"`).
+3. Kalau tidak ada di cache, `limit` dokumen terdekat diambil, Gemini menyusun
+   jawaban dari dokumen itu, dan hasilnya disimpan ke cache.
+
+```json
+{
+  "status": "success",
+  "source": "generated",
+  "cache_hit": false,
+  "query": "ktp saya hilang, syaratnya apa?",
+  "feedback": {
+    "related_service": "Penggantian KTP Elektronik Hilang",
+    "category": "Kependudukan",
+    "short_description": "Untuk KTP yang hilang, siapkan surat kehilangan dan fotokopi KK.",
+    "long_summary": "Minta surat keterangan kehilangan di kantor polisi, lalu bawa bersama fotokopi KK ke kecamatan…",
+    "best_similarity": 0.7623,
+    "best_similarity_percentage": "76.23%"
+  },
+  "matched_sources": [
+    {
+      "id": 12,
+      "category": "Kependudukan",
+      "title": "Penggantian KTP Elektronik Hilang",
+      "similarity": 0.7623,
+      "similarity_percentage": "76.23%"
+    }
+  ]
+}
+```
+
+| Field | Arti |
+|---|---|
+| `source` | `generated` (dijawab baru) atau `cache` |
+| `matched_history` | Hanya untuk `cache`: pertanyaan lama yang dianggap sama |
+| `feedback.related_service` | Judul dokumen terdekat; `Tidak Ditemukan` kalau tidak ada yang cukup mirip |
+| `feedback.short_description` | Jawaban singkat, siap dikirim ke warga |
+| `feedback.long_summary` | Rincian prosedur |
+| `feedback.best_similarity` | Kemiripan dokumen terdekat, 0–1 |
+| `matched_sources[]` | Dokumen yang dibaca, urut dari yang paling mirip |
+
+Setiap kali dokumen ditambah, diubah, dihapus, atau di-seed, **seluruh** cache
+dikosongkan, karena tidak bisa diketahui jawaban mana yang terdampak. Pertanyaan
+berikutnya dijawab ulang dari dokumen terbaru.
+
+<Callout type="warn">
+Perilaku itu ada sejak `apps/ai-knowledge` di repo ini. Layanan yang masih jalan dari
+kode lama tidak mengosongkan cache, jadi pertanyaan yang mirip dengan yang pernah
+ditanyakan tetap mendapat jawaban lama.
+</Callout>
+
+### Dipakai di node Tanya AI
+
+Isi AI baru di halaman **AI** dengan jenis *Jawab pertanyaan*:
+
+| Kolom | Isi |
+|---|---|
+| Method | `POST` |
+| URL | `<AI_KNOWLEDGE_URL>/documents/search` |
+| Header | `X-Internal-API-Key: <key>` |
+| Body | `{"query": "{{pertanyaan}}"}` |
+| Template jawaban | `{{feedback.short_description}}` lalu baris kosong lalu `{{feedback.long_summary}}` |
+
+Node Tanya AI hanya menyimpan teks jawabannya. Kalau bot perlu memilah jawaban yang
+kurang yakin — misalnya meneruskan ke agen saat kemiripan di bawah `0.6` — pakai node
+**Panggil API** ke URL yang sama: respons utuhnya tersimpan di variabel `saveAs`
+(misalnya `ai`), lalu pasang node Kondisi pada `ai.feedback.best_similarity`.
+
+## Mengelola dokumen
+
+Inilah yang dipanggil halaman Basis Pengetahuan. Setiap simpan membuat embedding baru
+lewat Gemini, jadi butuh beberapa detik.
+
+| Request | Body | Hasil |
+|---|---|---|
+| `GET /documents?limit=50&offset=0` | — | `{ total, limit, offset, data: [dokumen…] }`, urut ID naik |
+| `GET /documents/{id}` | — | `{ data: dokumen }`, atau **404** |
+| `POST /documents` | `{ category, title, content }` | **201** `{ data: { id, … } }` |
+| `PUT /documents/{id}` | `{ category, title, content }` | Mengganti seluruh isi; **404** kalau tidak ada |
+| `DELETE /documents/{id}` | — | **404** kalau tidak ada |
+
+Satu dokumen berbentuk:
+
+```json
+{
+  "id": 12,
+  "category": "Kependudukan",
+  "title": "Penggantian KTP Elektronik Hilang",
+  "content": "Minta surat keterangan kehilangan di kantor polisi…",
+  "created_at": "2026-10-05T03:45:26Z"
+}
+```
+
+`category` kosong disimpan sebagai `Umum`. `title` dan `content` wajib (**400** kalau
+kosong); `title` maksimum 255 karakter dan `category` 100. Tiap dokumen menjadi
+**satu** embedding tanpa dipecah, jadi isi yang terlalu panjang (lebih dari ±800 kata)
+kehilangan bagian akhirnya. Dashboard membatasi isi 8.000 karakter karena itu.
+
+Error selalu berbentuk `{ "status": "error", "message": "…" }`.
+
+## Router menu (`/route`)
+
+Dipakai node **Arahkan AI**: pesan pertama warga yang tidak cocok kata kunci langsung
+dibawa ke menu jawabannya, tanpa melewati menu bertingkat. Kontraknya sama dengan
+router yang disepakati untuk claudewa:
+
+```text
+POST /route
+Authorization: Bearer <INTERNAL_API_KEY>
+
+{ "question": "mau gadai emas", "catalog_hash": "…", "destinations": [ { "id", "path", "description", "content" }, … ] }
+```
+
+```json
+{
+  "destination_id": "pd_kca",
+  "score": 0.7188,
+  "candidates": [
+    { "id": "pd_cicil", "score": 0.7189 },
+    { "id": "pd_kca", "score": 0.7188 },
+    { "id": "mp_pegadaian", "score": 0.6861 }
+  ]
+}
+```
+
+Jawaban asli untuk menu Cimahi. Menurut embedding, "Cicil Emas" dan "Kredit Cepat
+Aman (gadai)" nyaris sama (selisih 0,0001); pemilih AI yang menentukan KCA.
+
+Cara memilihnya:
+
+1. **Basa-basi** ("terima kasih", "ok", "selamat pagi", emoji saja) langsung `null`,
+   tanpa memakai kuota Gemini.
+2. Pertanyaan diubah jadi embedding dan dibandingkan dengan setiap tujuan menu. Teks
+   tujuan = `path` + `description` + `content`.
+3. Kalau skor tertinggi di bawah `ROUTE_MIN_SCORE` (bawaan **0,62**), jawabannya `null`.
+4. Enam tujuan terdekat diberikan ke model teks Gemini (`ROUTE_CHOOSER_MODEL`) untuk
+   dipilih satu, atau `null`. Ini yang membedakan "gadai emas" (KCA) dari "cicil
+   emas", yang bagi embedding saja terlihat mirip.
+5. Kalau model teks lewat `ROUTE_CHOOSER_TIMEOUT` (2,5 detik), error, atau kuotanya
+   habis, router memakai pilihan embedding. Dua kandidat yang berimbang (selisih di
+   bawah `ROUTE_MIN_MARGIN`) dari menu utama berbeda lalu dijawab `null`.
+
+`score` adalah kemiripan tujuan yang dipilih, sehingga bisa lebih rendah dari
+kandidat pertama, seperti contoh di atas. `candidates` selalu tiga kemiripan
+tertinggi, untuk log.
+
+Hasil `tools/route-eval.mjs` (23 soal, menu Cimahi 129 tujuan), 5 Oktober 2026:
+
+| | Embedding saja | Saringan basa-basi + pemilih AI |
+|---|---|---|
+| Pertanyaan layanan tepat sasaran | 18 dari 20 | **20 dari 20** |
+| "terima kasih", "ok" jadi `null` | 0 dari 2 | 2 dari 2 |
+| "harga cabai hari ini" jadi `null` | hanya dengan batas skor 0,62 | hanya dengan batas skor 0,62 |
+| Waktu per pertanyaan | ±0,4 detik | median 1,3 detik, terlama 1,7 detik |
+
+Batas 0,62 disetel dari soal-soal ini: pertanyaan di luar topik berskor 0,61, dan
+pertanyaan benar terendah 0,64. Pantau log setelah dipakai warga, lalu sesuaikan.
+
+### Menu yang belum pernah dilihat
+
+Embedding tiap tujuan disimpan di tabel `route_embeddings`, dengan kunci dari model
+dan teks persisnya. Jadi menu cukup di-embed sekali, termasuk setelah restart, dan
+mengubah satu menu hanya meng-embed ulang menu itu.
+
+Kuota gratis Gemini hanya **100 embedding per menit**, dan setiap tujuan dihitung
+satu. Menu baru seukuran Cimahi (129 tujuan) karena itu butuh lebih dari satu menit:
+
+- `/route` membalas **503** `{"error": "daftar tujuan sedang disiapkan…"}` dalam
+  ±2,5 detik, dan claudewa mengirim menu utama.
+- Layanan menunggu kuota sesuai saran Gemini, lalu melanjutkan sisanya di latar.
+- Setiap 25 tujuan yang selesai langsung disimpan.
+
+Kuota itu juga dipakai `/documents/search`. Kalau bot ramai, pertimbangkan tier
+berbayar.
+
+Isi pertanyaan warga tidak ditulis ke log, karena bisa memuat nama, alamat, atau
+keluhan pribadi. Yang dicatat hanya tujuan yang dipilih, skor, cara memilih, dan
+waktunya.
+
+## Rute admin
+
+`POST /documents/reset` menghapus **seluruh** dokumen beserta cache, dan
+`POST /documents/seed` mengisi data contoh dari `dummy_data.json`. Keduanya sengaja
+tidak dipanggil dashboard. Jangan dipakai di layanan yang melayani warga.
+
+Reset hanya terkunci header `X-Admin-Secret` kalau layanan menyetel `ADMIN_SECRET_KEY`.
+Tanpa itu, reset terbuka bagi siapa pun yang memegang `INTERNAL_API_KEY`, kecuali
+`ENV` atau `NODE_ENV` bernilai `production`. Isi `ADMIN_SECRET_KEY` di setiap layanan
+yang dipakai sungguhan.
+
+## Menjalankan lokal
+
+Kodenya ada di `apps/ai-knowledge` dan butuh Go. Salin `apps/ai-knowledge/.env.example`
+ke `apps/ai-knowledge/.env` (bukan `.env` root), isi, lalu:
+
+```bash
+pnpm dev:ai
+```
+
+Saat start, layanan membuat tabelnya sendiri kalau belum ada. Isi `AI_KNOWLEDGE_URL`
+di `.env` root dengan `http://localhost:8080` supaya dashboard memakainya.

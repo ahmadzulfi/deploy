@@ -13,12 +13,14 @@
     "dev:worker": "pnpm --filter @wa/worker dev",
     "dev:web": "pnpm --filter @wa/web dev",
     "dev:docs": "pnpm --filter @wa/docs dev",
+    "dev:ai": "go -C apps/ai-knowledge run .",
     "channel:add": "pnpm --filter @wa/worker channel:add",
     "channel:list": "pnpm --filter @wa/worker channel:list",
     "send:test": "pnpm --filter @wa/worker send:test",
     "typecheck": "tsc -b --pretty",
     "test": "pnpm --filter @wa/core --filter @wa/webhook test",
-    "webhook:fake": "node tools/fake-webhook.mjs"
+    "webhook:fake": "node tools/fake-webhook.mjs",
+    "knowledge:fake": "node tools/fake-knowledge.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",

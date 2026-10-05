@@ -1,0 +1,708 @@
+{
+  "total": 100,
+  "limit": 100,
+  "offset": 0,
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "category": "Kependudukan",
+      "title": "Penerbitan KTP Elektronik Baru Pemula Usia 17 Tahun",
+      "content": "Perekaman biometrik sidik jari, iris mata, dan foto wajah untuk warga negara yang telah genap berusia 17 tahun atau sudah menikah dengan membawa fotokopi KK ke kantor kecamatan.",
+      "created_at": "2026-09-20T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "category": "Kependudukan",
+      "title": "Penggantian e-KTP Rusak, Buram, atau Patah",
+      "content": "Pelayanan pencetakan ulang blangko kartu tanda penduduk yang rusak secara fisik, chip tidak terbaca, atau foto memudar tanpa perlu perekaman sidik jari ulang.",
+      "created_at": "2026-09-20T08:05:00Z"
+    },
+    {
+      "id": 3,
+      "category": "Kependudukan",
+      "title": "Penerbitan Surat Keterangan Pengganti KTP Hilang",
+      "content": "Pengurusan cetak kembali kartu identitas yang hilang dengan melampirkan surat tanda lapor kehilangan dari kepolisian sektor setempat serta salinan kartu keluarga.",
+      "created_at": "2026-09-20T08:10:00Z"
+    },
+    {
+      "id": 4,
+      "category": "Kependudukan",
+      "title": "Pembaruan Kartu Keluarga Akibat Penambahan Anggota Baru",
+      "content": "Revisi elemen data kartu keluarga karena adanya kelahiran anak baru atau kepindahan anggota keluarga baru dengan menyertakan surat kenal lahir dari bidan atau rumah sakit.",
+      "created_at": "2026-09-20T08:15:00Z"
+    },
+    {
+      "id": 5,
+      "category": "Kependudukan",
+      "title": "Pecah Kartu Keluarga Mandiri untuk Pasangan Baru Menikah",
+      "content": "Layanan pemisahan susunan keluarga dari kartu keluarga orang tua menjadi lembar KK mandiri baru setelah melangsungkan perkawinan sah dengan melampirkan buku nikah.",
+      "created_at": "2026-09-20T08:20:00Z"
+    },
+    {
+      "id": 6,
+      "category": "Kependudukan",
+      "title": "Penerbitan Akta Kelahiran Anak Terlambat Melapor",
+      "content": "Pencatatan sipil kelahiran anak yang melebihi batas waktu 60 hari sejak hari persalinan, membutuhkan surat keterangan lahir, identitas orang tua, dan surat pernyataan pertanggungjawaban mutlak.",
+      "created_at": "2026-09-20T08:25:00Z"
+    },
+    {
+      "id": 7,
+      "category": "Kependudukan",
+      "title": "Penerbitan Akta Kematian dan Penghapusan Data NIK",
+      "content": "Pencatatan resmi peristiwa meninggalnya warga guna memperbarui basis data kependudukan dan menerbitkan akta kematian untuk pengurusan waris, pensiun, atau klaim asuransi.",
+      "created_at": "2026-09-20T08:30:00Z"
+    },
+    {
+      "id": 8,
+      "category": "Kependudukan",
+      "title": "Surat Keterangan Pindah Domisili Antar Kota atau Provinsi",
+      "content": "Penerbitan Surat Keterangan Pindah Warga Negara Indonesia (SKPWNI) bagi penduduk yang hendak bermukim permanen di luar kabupaten/kota tempat tinggal sebelumnya.",
+      "created_at": "2026-09-20T08:35:00Z"
+    },
+    {
+      "id": 9,
+      "category": "Kependudukan",
+      "title": "Pendaftaran Kartu Identitas Anak (KIA) Balita dan Remaja",
+      "content": "Pembuatan tanda pengenal resmi bagi anak usia 0 hingga menjelang 17 tahun guna mempermudah akses fasilitas publik, perbankan, dan validasi dokumen imigrasi paspor anak.",
+      "created_at": "2026-09-20T08:40:00Z"
+    },
+    {
+      "id": 10,
+      "category": "Kependudukan",
+      "title": "Koreksi Kesalahan Ketik Nama pada Dokumen Catatan Sipil",
+      "content": "Prosedur perbaikan ejaan nama, tanggal lahir, atau gelar pada akta kelahiran dan kartu identitas agar selaras dengan ijazah terakhir melalui penetapan pejabat disdukcapil.",
+      "created_at": "2026-09-20T08:45:00Z"
+    },
+    {
+      "id": 11,
+      "category": "Sosial",
+      "title": "Pendaftaran DTKS untuk Pengajuan Bantuan Sosial",
+      "content": "Proses verifikasi dan validasi data rumah tangga rentan ke dalam Data Terpadu Kesejahteraan Sosial melalui musyawarah kelurahan sebagai syarat wajib penerima bansos.",
+      "created_at": "2026-09-20T08:50:00Z"
+    },
+    {
+      "id": 12,
+      "category": "Sosial",
+      "title": "Penyaluran Program Keluarga Harapan (PKH) Komponen Ibu Hamil",
+      "content": "Bantuan tunai bersyarat bagi ibu mengandung dan balita dari keluarga prasejahtera untuk pemenuhan gizi, pemeriksaan kesehatan berkala di posyandu, dan imunisasi rutin.",
+      "created_at": "2026-09-20T08:55:00Z"
+    },
+    {
+      "id": 13,
+      "category": "Sosial",
+      "title": "Bantuan Pangan Non Tunai (BPNT) Sembako Kartu Keluarga Sejahtera",
+      "content": "Distribusi saldo elektronik bulanan untuk membeli komoditas pangan pokok seperti beras, telur, dan kacang-kacangan melalui e-warong resmi mitra pemerintah.",
+      "created_at": "2026-09-20T09:00:00Z"
+    },
+    {
+      "id": 14,
+      "category": "Sosial",
+      "title": "Bantuan Langsung Tunai (BLT) Dana Desa untuk Warga Miskin Ekstrem",
+      "content": "Alokasi anggaran desa khusus untuk menopang daya beli warga lanjut usia tunggal, kehilangan mata pencaharian, atau menderita penyakit kronis menahun.",
+      "created_at": "2026-09-20T09:05:00Z"
+    },
+    {
+      "id": 15,
+      "category": "Sosial",
+      "title": "Penerbitan Surat Keterangan Tidak Mampu (SKTM) Umum",
+      "content": "Surat rekomendasi dari kantor kelurahan bagi warga ekonomi lemah untuk keperluan keringanan biaya rumah sakit, pembebasan biaya pengadilan, atau bantuan keringanan UKT kuliah.",
+      "created_at": "2026-09-20T09:10:00Z"
+    },
+    {
+      "id": 16,
+      "category": "Sosial",
+      "title": "Bantuan Rumah Tidak Layak Huni (RTLH) Bedah Rumah",
+      "content": "Program stimulan renovasi tempat tinggal warga miskin dengan kondisi dinding bilik lapuk, atap bocor parah, atau lantai tanah agar menjadi hunian sehat dan layak huni.",
+      "created_at": "2026-09-20T09:15:00Z"
+    },
+    {
+      "id": 17,
+      "category": "Sosial",
+      "title": "Penyediaan Alat Bantu Kursi Roda dan Kruk Disabilitas Fisik",
+      "content": "Fasilitas pemberian alat penunjang mobilitas fisik gratis dari dinas sosial bagi penyandang disabilitas dari keluarga tidak mampu dan lansia yang lumpuh.",
+      "created_at": "2026-09-20T09:20:00Z"
+    },
+    {
+      "id": 18,
+      "category": "Sosial",
+      "title": "Pelayanan Penampungan Sementara Lansia Telantar di Panti Sosial",
+      "content": "Evakuasi, rehabilitasi sosial, dan perawatan harian bagi kakek atau nenek telantar yang tidak memiliki sanak saudara atau tempat berteduh tetap.",
+      "created_at": "2026-09-20T09:25:00Z"
+    },
+    {
+      "id": 19,
+      "category": "Sosial",
+      "title": "Penanganan Anak Jalanan dan Pengamen Anak di Bawah Umur",
+      "content": "Rehabilitasi psikososial serta bimbingan konseling bagi anak putus sekolah yang berkeliaran di lampu merah agar dapat kembali ke bangku pendidikan nonformal.",
+      "created_at": "2026-09-20T09:30:00Z"
+    },
+    {
+      "id": 20,
+      "category": "Sosial",
+      "title": "Bantuan Logistik Darurat Bencana Kebakaran dan Tenda Pengungsi",
+      "content": "Penyaluran cepat dapur umum, selimut, pakaian pantas pakai, terpal, serta makanan siap saji dari dinas sosial untuk korban musibah kebakaran permukiman padat.",
+      "created_at": "2026-09-20T09:35:00Z"
+    },
+    {
+      "id": 21,
+      "category": "Kesehatan",
+      "title": "Pendaftaran Peserta BPJS Kesehatan PBI APBD Gratis",
+      "content": "Jaminan perlindungan asuransi kesehatan rawat jalan dan inap kelas 3 yang iuran preminya ditanggung 100% oleh pemerintah daerah bagi masyarakat berpenghasilan rendah.",
+      "created_at": "2026-09-20T09:40:00Z"
+    },
+    {
+      "id": 22,
+      "category": "Kesehatan",
+      "title": "Pelayanan Pemeriksaan Balita dan Pencegahan Stunting Posyandu",
+      "content": "Pemantauan kurva tumbuh kembang berat dan tinggi badan anak, pemberian biskuit gizi tambahan (PMT), vitamin A, serta edukasi pola makan ibu menyusui.",
+      "created_at": "2026-09-20T09:45:00Z"
+    },
+    {
+      "id": 23,
+      "category": "Kesehatan",
+      "title": "Imunisasi Dasar Lengkap Bayi di Puskesmas",
+      "content": "Pemberian vaksin wajib polio, BCG, DPT, campak rubella, dan hepatitis B bagi bayi usia 0-11 bulan guna mencegah penyakit menular berbahaya secara cuma-cuma.",
+      "created_at": "2026-09-20T09:50:00Z"
+    },
+    {
+      "id": 24,
+      "category": "Kesehatan",
+      "title": "Layanan Konseling Kesehatan Jiwa dan Pencegahan Depresi",
+      "content": "Konsultasi tatap muka gratis bersama psikolog klinis puskesmas bagi warga yang mengalami gangguan kecemasan berat, stres berkepanjangan, atau trauma mental.",
+      "created_at": "2026-09-20T09:55:00Z"
+    },
+    {
+      "id": 25,
+      "category": "Kesehatan",
+      "title": "Pengobatan Rutin Tuberkulosis (TBC) Program DOTS Gratis",
+      "content": "Pemeriksaan dahak mikroskopis, rontgen paru, dan paket obat anti-tuberkulosis selama enam bulan secara teratur di bawah pengawasan petugas puskesmas tanpa dipungut biaya.",
+      "created_at": "2026-09-20T10:00:00Z"
+    },
+    {
+      "id": 26,
+      "category": "Kesehatan",
+      "title": "Pelayanan Fogging Nyamuk dan Penanganan Kasus Demam Berdarah",
+      "content": "Pengasapan insektisida massal di wilayah RT/RW yang terkonfirmasi ada pasien demam berdarah dengue (DBD) disertai pembagian bubuk abate pembasmi jentik nyamuk.",
+      "created_at": "2026-09-20T10:05:00Z"
+    },
+    {
+      "id": 27,
+      "category": "Kesehatan",
+      "title": "Permintaan Rujukan Berjenjang Pasien BPJS ke Rumah Sakit Umum",
+      "content": "Surat pengantar dokter fasilitas kesehatan tingkat pertama (FKTP) ke poliklinik spesialis rumah sakit rujukan bagi pasien dengan indikasi medis yang membutuhkan penanganan lanjutan.",
+      "created_at": "2026-09-20T10:10:00Z"
+    },
+    {
+      "id": 28,
+      "category": "Kesehatan",
+      "title": "Layanan Antar Jemput Mobil Ambulans Gawat Darurat Warga",
+      "content": "Armada mobil jenazah dan ambulans medis siaga 24 jam dengan peralatan bantuan pernapasan untuk mengevakuasi pasien kritis dari kediaman warga ke unit gawat darurat.",
+      "created_at": "2026-09-20T10:15:00Z"
+    },
+    {
+      "id": 29,
+      "category": "Kesehatan",
+      "title": "Pemeriksaan Ibu Hamil Trimester Akhir dan Persalinan Normal Puskesmas",
+      "content": "Layanan antenatal care (ANC) berkala termasuk USG dasar, cek hemoglobin darah, serta ruang persalinan 24 jam dengan bidan terlatih untuk kelahiran normal berisiko rendah.",
+      "created_at": "2026-09-20T10:20:00Z"
+    },
+    {
+      "id": 30,
+      "category": "Kesehatan",
+      "title": "Layanan Tes HIV/AIDS Sukarela dan Konseling VCT Rahasia",
+      "content": "Skrining cepat dan pendampingan rahasia bagi kelompok rentan terinfeksi virus menular seksual, mencakup pengobatan antiretroviral (ARV) lanjutan.",
+      "created_at": "2026-09-20T10:25:00Z"
+    },
+    {
+      "id": 31,
+      "category": "Pendidikan",
+      "title": "Penerimaan Peserta Didik Baru (PPDB) Jalur Afirmasi Miskin",
+      "content": "Pendaftaran kuota khusus sekolah negeri tingkat SD, SMP, dan SMA bagi anak dari keluarga pemegang KIP atau terdaftar DTKS tanpa dibatasi seleksi nilai rapor.",
+      "created_at": "2026-09-20T10:30:00Z"
+    },
+    {
+      "id": 32,
+      "category": "Pendidikan",
+      "title": "Pengajuan Beasiswa Mahasiswa Kurang Mampu KIP Kuliah",
+      "content": "Subsidi biaya uang kuliah tunggal (UKT) penuh hingga semester akhir ditambah bantuan biaya hidup bulanan untuk calon sarjana berprestasi dari latar belakang tidak mampu.",
+      "created_at": "2026-09-20T10:35:00Z"
+    },
+    {
+      "id": 33,
+      "category": "Pendidikan",
+      "title": "Program Sekolah Paket A, B, dan C Ijazah Kesetaraan",
+      "content": "Pendidikan nonformal belajar mandiri bagi warga putus sekolah atau usia dewasa agar memperoleh sertifikat ijazah setara SD, SMP, atau SMA yang diakui negara.",
+      "created_at": "2026-09-20T10:40:00Z"
+    },
+    {
+      "id": 34,
+      "category": "Pendidikan",
+      "title": "Penerbitan Surat Pengganti Ijazah Sekolah yang Terbakar atau Hilang",
+      "content": "Proses penerbitan Surat Keterangan Pendamping Ijazah (SKPI) resmi dari dinas pendidikan atas ijazah asli yang musnah karena bencana dengan saksi teman seangkatan.",
+      "created_at": "2026-09-20T10:45:00Z"
+    },
+    {
+      "id": 35,
+      "category": "Pendidikan",
+      "title": "Penyaluran Bantuan Operasional Sekolah (BOS) Buku Gratis Pelajar",
+      "content": "Pengaduan terkait pungutan liar di lingkungan sekolah negeri yang melanggar aturan distribusi buku paket pelajaran wajib dan fasilitas penunjang belajar gratis siswa.",
+      "created_at": "2026-09-20T10:50:00Z"
+    },
+    {
+      "id": 36,
+      "category": "Pendidikan",
+      "title": "Bantuan Seragam dan Sepatu Sekolah Gratis Anak Yatim Piatu",
+      "content": "Pemberian paket perlengkapan sekolah lengkap awal tahun ajaran baru bagi anak yatim dan piatu binaan yayasan atau panti asuhan dari dana zakat/hibah daerah.",
+      "created_at": "2026-09-20T10:55:00Z"
+    },
+    {
+      "id": 37,
+      "category": "Pendidikan",
+      "title": "Layanan Perpustakaan Keliling dan Pojok Baca RW",
+      "content": "Mobil literasi keliling yang meminjamkan buku anak, dongeng, dan buku keterampilan di ruang publik terpadu ramah anak untuk meningkatkan minat baca generasi muda.",
+      "created_at": "2026-09-20T11:00:00Z"
+    },
+    {
+      "id": 38,
+      "category": "Pendidikan",
+      "title": "Konseling Khusus Siswa Korban Perundungan (Bullying) di Sekolah",
+      "content": "Posko pelaporan aman dari ancaman, pendampingan trauma psikologis anak, dan mediasi orang tua terkait kasus kekerasan verbal maupun fisik di instansi pendidikan.",
+      "created_at": "2026-09-20T11:05:00Z"
+    },
+    {
+      "id": 39,
+      "category": "Pendidikan",
+      "title": "Pelatihan Komputer Dasar dan Internet Gratis untuk Anak Kampung",
+      "content": "Kursus pengenalan software perkantoran, pengetikan naskah, dan literasi digital aman bagi remaja yang tidak mempunyai perangkat laptop sendiri di rumah.",
+      "created_at": "2026-09-20T11:10:00Z"
+    },
+    {
+      "id": 40,
+      "category": "Pendidikan",
+      "title": "Legalitas Legalisir Ijazah Kelulusan Sekolah Luar Negeri",
+      "content": "Verifikasi kesetaraan kurikulum dan pengesahan ijazah lulusan lembaga pendidikan internasional agar dapat digunakan mendaftar kerja atau kuliah di dalam negeri.",
+      "created_at": "2026-09-20T11:15:00Z"
+    },
+    {
+      "id": 41,
+      "category": "Ketenagakerjaan",
+      "title": "Pembuatan Kartu Kuning AK-1 Pencari Kerja Disnaker",
+      "content": "Pendaftaran pencari kerja aktif untuk diterbitkan kartu tanda bukti terdata resmi di dinas tenaga kerja sebagai berkas lamaran seleksi CPNS, BUMN, atau perusahaan swasta.",
+      "created_at": "2026-09-20T11:20:00Z"
+    },
+    {
+      "id": 42,
+      "category": "Ketenagakerjaan",
+      "title": "Pelatihan Vokasi Kerja Balai Latihan Kerja (BLK) Otomotif dan Las",
+      "content": "Program kursus keahlian teknis montir motor dan pengelasan listrik bersertifikat BNSP secara gratis untuk pemuda menganggur agar siap masuk dunia industri manufaktur.",
+      "created_at": "2026-09-20T11:25:00Z"
+    },
+    {
+      "id": 43,
+      "category": "Ketenagakerjaan",
+      "title": "Posko Pengaduan Pembayaran THR Keagamaan Terlambat atau Dicicil",
+      "content": "Layanan mediasi bagi buruh pabrik dan pegawai kontrak yang hak tunjangan hari raya keagamaannya tidak dibayarkan penuh oleh manajemen perusahaan tempat bekerja.",
+      "created_at": "2026-09-20T11:30:00Z"
+    },
+    {
+      "id": 44,
+      "category": "Ketenagakerjaan",
+      "title": "Mediasi Sengketa Pemutusan Hubungan Kerja (PHK) Sepihak",
+      "content": "Fasilitasi perundingan tripartit antara pekerja dan pemberi kerja terkait perselisihan uang pesangon, uang penggantian hak, serta uang penghargaan masa kerja.",
+      "created_at": "2026-09-20T11:35:00Z"
+    },
+    {
+      "id": 45,
+      "category": "Ketenagakerjaan",
+      "title": "Klaim Jaminan Kehilangan Pekerjaan (JKP) BPJS Ketenagakerjaan",
+      "content": "Pencairan manfaat uang tunai bulanan, akses informasi lowongan kerja, dan pelatihan kerja khusus bagi peserta yang mengalami PHK resmi dari tempat kerja lama.",
+      "created_at": "2026-09-20T11:40:00Z"
+    },
+    {
+      "id": 46,
+      "category": "Ketenagakerjaan",
+      "title": "Program Pemagangan Kerja Luar Negeri Resmi ke Jepang",
+      "content": "Seleksi fisik, pembekalan bahasa, dan administrasi paspor tenaga kerja magang bidang konstruksi dan manufaktur dengan penjaminan perlindungan ketenagakerjaan resmi.",
+      "created_at": "2026-09-20T11:45:00Z"
+    },
+    {
+      "id": 47,
+      "category": "Ketenagakerjaan",
+      "title": "Pencairan Saldo Jaminan Hari Tua (JHT) Peserta Resign",
+      "content": "Panduan klaim tabungan hari tua BPJS Ketenagakerjaan bagi buruh yang telah berhenti bekerja atau mengundurkan diri dengan masa tunggu administrasi.",
+      "created_at": "2026-09-20T11:50:00Z"
+    },
+    {
+      "id": 48,
+      "category": "Ketenagakerjaan",
+      "title": "Pelatihan Keterampilan Menjahit dan Tata Boga Ibu Rumah Tangga",
+      "content": "Pemberdayaan ekonomi wanita prasejahtera melalui kursus dasar memasak kue dan menjahit pakaian konveksi dengan pinjaman modal peralatan kerja mandiri.",
+      "created_at": "2026-09-20T11:55:00Z"
+    },
+    {
+      "id": 49,
+      "category": "Ketenagakerjaan",
+      "title": "Pengaduan Penipuan Lowongan Kerja Palsu Berbayar",
+      "content": "Pusat pelaporan korban sindikat rekrutmen kerja fiktif yang memungut biaya psikotes palsu, uang seragam, atau penipuan kerja paruh waktu di internet.",
+      "created_at": "2026-09-20T12:00:00Z"
+    },
+    {
+      "id": 50,
+      "category": "Ketenagakerjaan",
+      "title": "Bursa Kerja Khusus (Job Fair) Lulusan SMK Baru",
+      "content": "Pameran perekrutan tenaga kerja massal yang mempertemukan alumni sekolah kejuruan dengan puluhan HRD perusahaan ritel, bengkel otomotif, dan logistik pergudangan.",
+      "created_at": "2026-09-20T12:05:00Z"
+    },
+    {
+      "id": 51,
+      "category": "Perizinan Usaha",
+      "title": "Pembuatan Nomor Induk Berusaha (NIB) Usaha Mikro OSS",
+      "content": "Penerbitan izin dasar usaha kilat tanpa biaya untuk pedagang kaki lima, warung kelontong, dan pelaku UMKM rumahan secara online melalui portal Single Submission.",
+      "created_at": "2026-09-20T12:10:00Z"
+    },
+    {
+      "id": 52,
+      "category": "Perizinan Usaha",
+      "title": "Sertifikasi Halal Gratis (SEHATI) Produk Makanan Minuman Rumahan",
+      "content": "Pendampingan proses audit bahan baku dan sanitasi olahan pangan lokal bagi produsen keripik, kue, dan katering kecil agar meraih sertifikat halal resmi BPJPH.",
+      "created_at": "2026-09-20T12:15:00Z"
+    },
+    {
+      "id": 53,
+      "category": "Perizinan Usaha",
+      "title": "Penerbitan Izin Edar PIRT (Pangan Industri Rumah Tangga)",
+      "content": "Pengujian kelayakan dapur dan label kemasan produk makanan kering olahan rumahan dari dinas kesehatan kabupaten/kota sebelum diedarkan ke pasar modern.",
+      "created_at": "2026-09-20T12:20:00Z"
+    },
+    {
+      "id": 54,
+      "category": "Perizinan Usaha",
+      "title": "Surat Keterangan Usaha (SKU) dari Kelurahan untuk Pengajuan KUR Bank",
+      "content": "Penerbitan bukti pengantar legalitas kegiatan usaha warga di domisili setempat sebagai kelengkapan berkas mencairkan pinjaman Kredit Usaha Rakyat (KUR) bank.",
+      "created_at": "2026-09-20T12:25:00Z"
+    },
+    {
+      "id": 55,
+      "category": "Perizinan Usaha",
+      "title": "Pendaftaran Hak Merek Dagang dan Hak Cipta UMKM Subsidi Daerah",
+      "content": "Fasilitasi pendaftaran logo brand dagang ke Dirjen Kekayaan Intelektual (DJKI) dengan tarif diskon khusus rekomendasi dinas koperasi dan UKM daerah.",
+      "created_at": "2026-09-20T12:30:00Z"
+    },
+    {
+      "id": 56,
+      "category": "Perizinan Usaha",
+      "title": "Izin Trayek Operasional Angkutan Kota dan Angkot Pedesaan",
+      "content": "Pembaruan rute izin trayek dan uji kelaikan jalan armada mobil angkutan umum penumpang di bawah pengawasan dinas perhubungan wilayah kota.",
+      "created_at": "2026-09-20T12:35:00Z"
+    },
+    {
+      "id": 57,
+      "category": "Perizinan Usaha",
+      "title": "Izin Reklame Papan Reklame Komersial dan Spanduk Promosi",
+      "content": "Pengurusan izin pemasangan papan nama toko, billboard pinggir jalan, spanduk diskon, serta penetapan pajak reklame promosi produk usaha di ruang milik jalan.",
+      "created_at": "2026-09-20T12:40:00Z"
+    },
+    {
+      "id": 58,
+      "category": "Perizinan Usaha",
+      "title": "Persetujuan Bangunan Gedung (PBG) Pengganti IMB Ruko dan Toko",
+      "content": "Pemeriksaan gambar teknik arsitektur dan struktur konstruksi ruko atau tempat usaha agar memenuhi standar teknis keselamatan sebelum proses konstruksi fisik dimulai.",
+      "created_at": "2026-09-20T12:45:00Z"
+    },
+    {
+      "id": 59,
+      "category": "Perizinan Usaha",
+      "title": "Izin Praktik Bidan dan Apoteker Mandiri di Klinik Lingkungan",
+      "content": "Penerbitan Surat Izin Praktik (SIP) bagi tenaga kesehatan yang akan melayani pasien secara mandiri di apotek perumahan atau klinik bersalin swasta.",
+      "created_at": "2026-09-20T12:50:00Z"
+    },
+    {
+      "id": 60,
+      "category": "Perizinan Usaha",
+      "title": "Pelatihan Digital Marketing dan Packaging Kemasan Produk UMKM",
+      "content": "Bimbingan teknis penjualan di e-commerce, foto produk profesional, dan perbaikan desain kemasan pouch bagi pedagang tradisional agar omzet penjualan naik.",
+      "created_at": "2026-09-20T12:55:00Z"
+    },
+    {
+      "id": 61,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Laporan Jalan Berlubang dan Aspal Ambles di Jalan Protokol",
+      "content": "Saluran aspirasi masyarakat untuk percepatan penambalan aspal rusak, aspal mengelupas, atau jalan bergelombang yang membahayakan pengendara motor.",
+      "created_at": "2026-09-20T13:00:00Z"
+    },
+    {
+      "id": 62,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Perbaikan Lampu Penerangan Jalan Umum (PJU) Mati dan Gelap",
+      "content": "Pengaduan bohlam PJU padam di sepanjang gang permukiman dan jalan raya yang memicu kerawanan tindak kejahatan begal pada malam hari.",
+      "created_at": "2026-09-20T13:05:00Z"
+    },
+    {
+      "id": 63,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Normalisasi Gorong-gorong dan Pengerukan Lumpur Saluran Air",
+      "content": "Permintaan pengiriman tim drainase dinas PUPR untuk membersihkan sedimentasi lumpur tebal dan sampah penyumbat parit penyebab genangan air pasca hujan lebat.",
+      "created_at": "2026-09-20T13:10:00Z"
+    },
+    {
+      "id": 64,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Permohonan Penebangan Pohon Rindang Rawan Tumbang di Pinggir Jalan",
+      "content": "Pemberitahuan kepada dinas pertamanan untuk memangkas dahan tua atau menebang pohon lapuk berukuran besar yang rawan menimpa kabel listrik dan pengendara.",
+      "created_at": "2026-09-20T13:15:00Z"
+    },
+    {
+      "id": 65,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Pelayanan Truk Sedot Tinja Tangki Septik (Septic Tank) Penuh",
+      "content": "Penyediaan jasa mobil tangki penyedot limbah kotoran rumah tangga berbayar resmi untuk mencegah kebocoran tinja yang mencemari air sumur warga sekitarnya.",
+      "created_at": "2026-09-20T13:20:00Z"
+    },
+    {
+      "id": 66,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Pengaduan Penumpukan Sampah Liar di Pinggir Jalan Perumahan",
+      "content": "Laporan tempat pembuangan sampah ilegal yang membusuk, berbau menyengat, dan menimbulkan lalat karena tidak diangkut truk kebersihan dinas lingkungan hidup.",
+      "created_at": "2026-09-20T13:25:00Z"
+    },
+    {
+      "id": 67,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Bantuan Pipa Sambungan Air Bersih PDAM Masyarakat Berpenghasilan Rendah",
+      "content": "Subsidi tarif pasang meteran air pipa ledeng baru untuk rumah tangga miskin yang selama ini mengalami krisis air tawar layak konsumsi saat musim kemarau.",
+      "created_at": "2026-09-20T13:30:00Z"
+    },
+    {
+      "id": 68,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Penyemprotan Disinfektan dan Pembersihan Pasca Banjir Luapan Sungai",
+      "content": "Pengerahan armada tangki air pemadam kebakaran untuk menyemprot endapan lumpur pekat di fasilitas ibadah, puskesmas, dan jalan umum yang terendam air bah.",
+      "created_at": "2026-09-20T13:35:00Z"
+    },
+    {
+      "id": 69,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Penertiban Polusi Asap Pembakaran Sampah Ilegal di Pekarangan",
+      "content": "Penindakan oleh satpol PP terhadap aktivitas tetangga yang membakar sampah plastik sembarangan yang menyebabkan sesak napas dan gangguan pernapasan warga sekitar.",
+      "created_at": "2026-09-20T13:40:00Z"
+    },
+    {
+      "id": 70,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Perbaikan Tutup Manhole Selokan Rusak dan Pembatas Trotoar Bolong",
+      "content": "Pemasangan kembali lempengan cor beton tutup saluran air trotoar yang hilang dicuri atau jebol agar pejalan kaki tidak terperosok ke dalam got.",
+      "created_at": "2026-09-20T13:45:00Z"
+    },
+    {
+      "id": 71,
+      "category": "Keamanan & Darurat",
+      "title": "Pelaporan Darurat Kebakaran Rumah ke Pemadam Kebakaran (Damkar)",
+      "content": "Layanan nomor darurat siaga 24 jam untuk mengerahkan armada pemadam memadamkan si jago merah yang membakar rumah warga, gedung, maupun korsleting trafo PLN.",
+      "created_at": "2026-09-20T13:50:00Z"
+    },
+    {
+      "id": 72,
+      "category": "Keamanan & Darurat",
+      "title": "Evakuasi Sarang Tawon Vespa dan Ular Berbisa Masuk Rumah Warga",
+      "content": "Bantuan penyelamatan non-kebakaran dari petugas damkar untuk menangkap reptil berbahaya atau memusnahkan sarang serangga penyengat di atap plafon warga.",
+      "created_at": "2026-09-20T13:55:00Z"
+    },
+    {
+      "id": 73,
+      "category": "Keamanan & Darurat",
+      "title": "Pendampingan Korban Kekerasan Dalam Rumah Tangga (KDRT) PPA",
+      "content": "Layanan perlindungan fisik terpadu, bantuan hukum cuma-cuma, dan terapi pemulihan mental bagi perempuan atau anak korban penganiayaan keluarga.",
+      "created_at": "2026-09-20T14:00:00Z"
+    },
+    {
+      "id": 74,
+      "category": "Keamanan & Darurat",
+      "title": "Laporan Balap Liar Motor Knalpot Brong Tengah Malam",
+      "content": "Aduan keresahan warga atas gerombolan pengendara sepeda motor berknalpot bising yang menggelar taruhan balap liar dan mengganggu waktu istirahat malam.",
+      "created_at": "2026-09-20T14:05:00Z"
+    },
+    {
+      "id": 75,
+      "category": "Keamanan & Darurat",
+      "title": "Posko Pengaduan Kasus Tawuran Antar Pelajar dan Remaja Gangster",
+      "content": "Koordinasi cepat babinsa dan bhabinkamtibmas untuk patroli razia senjata tajam di titik rawan nongkrong pemuda guna mencegah pertikaian berdarah.",
+      "created_at": "2026-09-20T14:10:00Z"
+    },
+    {
+      "id": 76,
+      "category": "Keamanan & Darurat",
+      "title": "Penertiban Pengemis Memaksa dan Pengamen Miras Resahkan Warga",
+      "content": "Operasi razia satpol PP terhadap orang-orang yang meminta uang secara paksa di persimpangan jalan dan mengintimidasi penumpang kendaraan umum.",
+      "created_at": "2026-09-20T14:15:00Z"
+    },
+    {
+      "id": 77,
+      "category": "Keamanan & Darurat",
+      "title": "Laporan Orang Hilang atau Lansia Pikun Terpisah dari Keluarga",
+      "content": "Penyebaran informasi orang hilang ke pos satpam, grup posko bencana, dan polsek untuk mempercepat pelacakan anggota keluarga yang belum pulang.",
+      "created_at": "2026-09-20T14:20:00Z"
+    },
+    {
+      "id": 78,
+      "category": "Keamanan & Darurat",
+      "title": "Bantuan Pelepasan Cincin Macet di Jari Tangan Bengkak",
+      "content": "Pelayanan pertolongan damkar memotong cincin logam yang tersangkut dan menjepit peredaran darah jari pasien menggunakan gerinda mini tanpa melukai kulit.",
+      "created_at": "2026-09-20T14:25:00Z"
+    },
+    {
+      "id": 79,
+      "category": "Keamanan & Darurat",
+      "title": "Pemasangan Pos Kamling Ronda Malam dan Pembagian Handy Talkie (HT)",
+      "content": "Fasilitasi pembinaan keamanan swakarsa dari kepolisian bagi pos satpam lingkungan RT untuk menjaga ketertiban dari pencurian kendaraan bermotor.",
+      "created_at": "2026-09-20T14:30:00Z"
+    },
+    {
+      "id": 80,
+      "category": "Keamanan & Darurat",
+      "title": "Pusat Panggilan Darurat Call Center Terpadu 112 Bebas Pulsa",
+      "content": "Satu saluran telepon bebas pulsa untuk melaporkan segala jenis insiden kegawatdaruratan medis, kecelakaan lalin, kebakaran, kriminalitas, hingga bencana alam.",
+      "created_at": "2026-09-20T14:35:00Z"
+    },
+    {
+      "id": 81,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Pembayaran Pajak Bumi dan Bangunan Perdesaan dan Perkotaan (PBB-P2)",
+      "content": "Penerbitan Surat Pemberitahuan Pajak Terhutang (SPPT) tahunan dan pembayaran retribusi tanah/bangunan milik pribadi maupun badan melalui loket perbankan.",
+      "created_at": "2026-09-20T14:40:00Z"
+    },
+    {
+      "id": 82,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Permohonan Keringanan dan Penghapusan Denda PBB Lansia",
+      "content": "Pengurangan beban pokok pajak tanah bagi pensiunan veteran pejuang, janda miskin, atau pemilik lahan pertanian kering yang tidak produktif secara ekonomi.",
+      "created_at": "2026-09-20T14:45:00Z"
+    },
+    {
+      "id": 83,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Perpanjangan STNK Tahunan di Layanan Samsat Keliling",
+      "content": "Loket mobil jemput bola pengesahan surat tanda nomor kendaraan dan pelunasan Pajak Kendaraan Bermotor (PKB) roda dua dan roda empat tanpa harus ke samsat induk.",
+      "created_at": "2026-09-20T14:50:00Z"
+    },
+    {
+      "id": 84,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Program Pemutihan Bebas Denda Pajak Kendaraan Bermotor",
+      "content": "Kebijakan dispensasi pemerintah provinsi yang menghapus tunggakan sanksi bunga denda PKB dan bea balik nama kendaraan bekas (BBNKB) periode terbatas.",
+      "created_at": "2026-09-20T14:55:00Z"
+    },
+    {
+      "id": 85,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Balik Nama Kepemilikan Sepeda Motor Bekas Antar Pemilik",
+      "content": "Proses mutasi kepemilikan dokumen BPKB dan pelat nomor kendaraan dari tangan pemilik lama ke pemilik baru dengan melampirkan kuitansi jual beli bermeterai.",
+      "created_at": "2026-09-20T15:00:00Z"
+    },
+    {
+      "id": 86,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Penerbitan Surat Keterangan Nilai Jual Objek Pajak (NJOP) Tanah",
+      "content": "Pemberian lembaran resmi nilai tanah per meter persegi dari badan pendapatan daerah sebagai dasar penetapan pajak transaksi jual beli rumah di hadapan notaris.",
+      "created_at": "2026-09-20T15:05:00Z"
+    },
+    {
+      "id": 87,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Penyetoran Pajak Restoran dan Warung Kopi Modern 10 Persen",
+      "content": "Pelaporan omzet penjualan bulanan usaha kuliner, kafe, dan rumah makan untuk kewajiban retribusi pajak daerah secara mandiri lewat mesin kasir tapping box.",
+      "created_at": "2026-09-20T15:10:00Z"
+    },
+    {
+      "id": 88,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Koreksi Luas Bangunan dan Luas Tanah pada Sertifikat PBB",
+      "content": "Penyesuaian luas meter bangunan yang tidak sesuai data lapangan akibat renovasi atau kesalahan pengukuran petugas ukur pada SPPT PBB tahun lalu.",
+      "created_at": "2026-09-20T15:15:00Z"
+    },
+    {
+      "id": 89,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Pelunasan Retribusi Sewa Lapak Kios Pasar Tradisional",
+      "content": "Pembayaran iuran kebersihan, keamanan, dan biaya sewa meja dagang bulanan para pedagang sayur dan sembako kepada pengelola dinas pasar rakyat daerah.",
+      "created_at": "2026-09-20T15:20:00Z"
+    },
+    {
+      "id": 90,
+      "category": "Pajak & Retribusi Daerah",
+      "title": "Pengecekan Legalitas Tanah Bebas Sengketa di Kantor Pertanahan BPN",
+      "content": "Validasi keaslian warkah sertifikat hak milik (SHM) untuk memastikan tanah bebas sita jaminan pengadilan sebelum dilakukan proses balik nama di kantor camat/PPAT.",
+      "created_at": "2026-09-20T15:25:00Z"
+    },
+    {
+      "id": 91,
+      "category": "Sosial & Kesejahteraan Warga",
+      "title": "Pelayanan Nikah Massal Gratis untuk Pasangan Tidak Mampu",
+      "content": "Pemberian fasilitas pencatatan pernikahan resmi di KUA dan catatan sipil, rias pengantin, serta pengurusan surat nikah tanpa biaya untuk pengantin prasejahtera.",
+      "created_at": "2026-09-20T15:30:00Z"
+    },
+    {
+      "id": 92,
+      "category": "Sosial & Kesejahteraan Warga",
+      "title": "Layanan Khitanan Massal Anak Libur Sekolah Bersama Baznas",
+      "content": "Bakti sosial sunatan medis aman bagi anak dari keluarga kurang mampu yang dilengkapi bingkisan baju koko, peci, sarung, serta uang saku pembinaan.",
+      "created_at": "2026-09-20T15:35:00Z"
+    },
+    {
+      "id": 93,
+      "category": "Sosial & Kesejahteraan Warga",
+      "title": "Pemberdayaan Lahan Kosong Pekarangan untuk Budidaya Ikan Lele",
+      "content": "Bantuan bibit ikan air tawar, terpal kolam, dan pakan pelet dari dinas ketahanan pangan bagi kelompok warga kampung untuk memperkuat pasokan pangan mandiri.",
+      "created_at": "2026-09-20T15:40:00Z"
+    },
+    {
+      "id": 94,
+      "category": "Sosial & Kesejahteraan Warga",
+      "title": "Pos Terpadu Bantuan Konsultasi Hukum Kasus Perceraian dan Waris",
+      "content": "Layanan pengacara pro bono bagi warga miskin yang menghadapi gugatan hak asuh anak, pembagian harta bersama, atau sengketa tanah warisan di pengadilan agama.",
+      "created_at": "2026-09-20T15:45:00Z"
+    },
+    {
+      "id": 95,
+      "category": "Sosial & Kesejahteraan Warga",
+      "title": "Fasilitasi Bank Sampah Warga untuk Penukaran Tabungan Emas",
+      "content": "Gerakan pemilahan sampah plastik dan kardus bernilai ekonomis di tingkat RW yang ditimbang secara berkala lalu dikonversikan menjadi tabungan tabungan uang.",
+      "created_at": "2026-09-20T15:50:00Z"
+    },
+    {
+      "id": 96,
+      "category": "Kependudukan & Komunikasi",
+      "title": "Aktivasi Identitas Kependudukan Digital (IKD) di Smartphone Warga",
+      "content": "Pemasangan aplikasi KTP digital di ponsel pintar yang memuat identitas KK, NPWP, kartu pemilih, dan sertifikat vaksin dengan scan QR code di loket kecamatan.",
+      "created_at": "2026-09-20T15:55:00Z"
+    },
+    {
+      "id": 97,
+      "category": "Kependudukan & Komunikasi",
+      "title": "Konsolidasi NIK Tidak Terdaftar Saat Buka Rekening Bank atau BPJS",
+      "content": "Sinkronisasi data kependudukan ke server pusat Kemendagri jika nomor NIK kartu tanda penduduk tidak terdeteksi di sistem perbankan, imigrasi, atau kartu SIM ponsel.",
+      "created_at": "2026-09-20T16:00:00Z"
+    },
+    {
+      "id": 98,
+      "category": "Infrastruktur & Lingkungan",
+      "title": "Permohonan Bantuan Air Tangki Bersih Darurat Saat Sumur Asat",
+      "content": "Pengiriman armada mobil tangki air bersih 5.000 liter dari BPBD untuk warga perkampungan yang sumur galiannya kering kerontang akibat kemarau panjang.",
+      "created_at": "2026-09-20T16:05:00Z"
+    },
+    {
+      "id": 99,
+      "category": "Keamanan & Darurat",
+      "title": "Posko Pengaduan Pinjaman Online (Pinjol) Ilegal dan Teror Debt Collector",
+      "content": "Layanan pelindungan hukum dari dinas komunikasi dan kepolisian terkait intimidasi penagihan utang rentenir online ilegal yang menyebarkan data pribadi kontak darurat.",
+      "created_at": "2026-09-20T16:10:00Z"
+    },
+    {
+      "id": 100,
+      "category": "Pendidikan & Sosial",
+      "title": "Bantuan Kuota Internet Belajar bagi Pelajar Prasejahtera",
+      "content": "Pemberian paket data seluler gratis bulanan untuk siswa sekolah negeri dari keluarga tidak mampu agar tetap bisa mengerjakan tugas dan materi pembelajaran online.",
+      "created_at": "2026-09-20T16:15:00Z"
+    }
+  ]
+}

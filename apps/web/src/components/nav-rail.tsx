@@ -10,6 +10,7 @@ const ITEMS: { href: string; label: string; icon: () => React.JSX.Element; soon?
   { href: '/contacts', label: 'Kontak', icon: IconUsers },
   { href: '/flows', label: 'Flow', icon: IconFlow },
   { href: '/ai', label: 'AI', icon: IconAi },
+  { href: '/knowledge', label: 'Basis Pengetahuan', icon: IconBook },
   { href: '/broadcast', label: 'Broadcast', icon: IconSend },
   { href: '/templates', label: 'Template', icon: IconTemplate },
   { href: '/channels', label: 'Nomor', icon: IconPhone },
@@ -113,6 +114,15 @@ function IconAi() {
     <svg {...svg}>
       <path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7-5.6-1.9L10.1 9 12 3.5Z" />
       <path d="M18.5 16.5 19 18l1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5Z" />
+    </svg>
+  )
+}
+
+function IconBook() {
+  return (
+    <svg {...svg}>
+      <path d="M5 19V5.5A2 2 0 0 1 7 3.5h12v13H7a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h12v-4.5" />
+      <path d="M9 8h6M9 11.5h4" />
     </svg>
   )
 }

@@ -19,6 +19,8 @@ apps/worker      Inbound processor, outbound sender (queue per channel), flow
                  engine, sweeper sesi, pengirim webhook keluar, CLI
 apps/web         Dashboard Next.js — inbox, nomor, flow builder, pengaturan
 apps/docs        Referensi Public API (Fumadocs) — `pnpm dev:docs`, buka :5000
+apps/ai-knowledge  Layanan Go: dokumen SOP + pencarian semantik (pgvector,
+                 Gemini) di balik node Tanya AI — `pnpm dev:ai`, butuh Go
 ```
 
 Yang belum: campaign runner, halaman Kontak dan Broadcast di dashboard.
@@ -169,6 +171,35 @@ pnpm webhook:fake -- --phone-id <PHONE_NUMBER_ID> --status delivered --wamid wam
 ```
 
 Worker harus menulis `inbound message stored`. Kirim wamid yang sama dua kali untuk membuktikan dedupe, dan kirim `--text STOP` untuk membuktikan opt-out.
+
+---
+
+## Basis pengetahuan
+
+Halaman **Basis Pengetahuan** (`/knowledge`) di dashboard mengelola dokumen SOP di layanan `apps/ai-knowledge` (Go + pgvector + Gemini) — sumber jawaban node Tanya AI. Dashboard memanggilnya lewat HTTP; isi di `.env` root:
+
+```bash
+AI_KNOWLEDGE_URL="https://<layanan ai-knowledge>"
+AI_KNOWLEDGE_API_KEY="<INTERNAL_API_KEY layanan itu>"
+```
+
+Menjalankan layanannya sendiri butuh Go (`winget install GoLang.Go`). Layanan ini membaca `.env` di foldernya sendiri, bukan `.env` root — salin `apps/ai-knowledge/.env.example` ke `apps/ai-knowledge/.env`, isi, lalu:
+
+```bash
+pnpm dev:ai
+```
+
+Isi `ADMIN_SECRET_KEY` di sana. Tanpa itu, `POST /documents/reset` (menghapus seluruh dokumen) terbuka bagi siapa pun yang memegang `INTERNAL_API_KEY`.
+
+Untuk mencoba tanpa menyentuh dokumen sungguhan maupun kuota Gemini, pakai tiruannya lalu isi `AI_KNOWLEDGE_URL="http://localhost:4020"`:
+
+```bash
+pnpm knowledge:fake
+```
+
+Admin bisa menambah, mengubah, dan menghapus dokumen; agen ke atas bisa menguji pertanyaan. Setiap perubahan dicatat lengkap dengan isinya di audit log, karena layanannya sendiri tidak menyimpan riwayat. Referensi API-nya ada di docs: **Layanan internal → Layanan pengetahuan**.
+
+> Layanan ini memakai database yang sama dengan platform. Ke database itu jalankan `pnpm --filter @wa/db deploy`, **bukan** `pnpm db:migrate`: `prisma migrate dev` menganggap tabel layanan pengetahuan sebagai drift dan menawarkan reset skema.
 
 ---
 

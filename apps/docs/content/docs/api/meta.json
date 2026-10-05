@@ -19,6 +19,8 @@
     "daftar-flow",
     "picu-flow",
     "---Webhook---",
-    "webhook-keluar"
+    "webhook-keluar",
+    "---Layanan internal---",
+    "layanan-pengetahuan"
   ]
 }

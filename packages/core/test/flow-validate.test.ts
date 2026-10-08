@@ -482,7 +482,17 @@ describe('terminal nodes', () => {
 describe('aiRoute and the fallback trigger', () => {
   const fallback = node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false })
   const route = (data: Partial<Extract<FlowNode['data'], { kind: 'aiRoute' }>> = {}) =>
-    node('r', { kind: 'aiRoute', endpointId: 'rt1', question: 'pesan_awal', minScore: 0.7, saveAs: 'arah_ai', ...data })
+    node('r', {
+      kind: 'aiRoute',
+      endpointId: 'rt1',
+      question: 'pesan_awal',
+      minScore: 0.7,
+      clarify: false,
+      clarifyMinScore: 0.5,
+      clarifyBody: 'Maksud Anda?',
+      saveAs: 'arah_ai',
+      ...data,
+    })
   const menu = node('m', {
     kind: 'sendList',
     body: 'Pilih:',
@@ -534,6 +544,12 @@ describe('aiRoute and the fallback trigger', () => {
 
   test('a minimum score outside 0 to 1 is an error', () => {
     assert.ok(errors(routed(route({ minScore: 1.5 }))).some((i) => /antara 0 dan 1/.test(i.message)))
+  })
+
+  test('asking back checks its own score and text, only when on', () => {
+    assert.ok(errors(routed(route({ clarify: true, clarifyMinScore: -0.1 }))).some((i) => /pilihan harus antara 0 dan 1/.test(i.message)))
+    assert.ok(errors(routed(route({ clarify: true, clarifyBody: 'x'.repeat(1025) }))).some((i) => /Maksud Anda/.test(i.message)))
+    assert.deepEqual(errors(routed(route({ clarify: false, clarifyMinScore: -0.1 }))), [])
   })
 
   test('a router in a flow without any menu list is an error', () => {

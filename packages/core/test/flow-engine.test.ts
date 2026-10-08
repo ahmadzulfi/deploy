@@ -31,6 +31,7 @@ function spy(
   const calls: string[] = []
   const requests: HttpCall[] = []
   const routes: RouteCall[] = []
+  const lists: ListCall[] = []
   const fx: EngineEffects = {
     async httpRequest(p) { requests.push(p); return http(p) },
     async askAi(p) { calls.push(`ai:${p.endpointId}:${p.question}`); return ai(p) },
@@ -38,16 +39,17 @@ function spy(
     async sendText(b) { calls.push(`text:${b}`) },
     async sendMedia(p) { calls.push(`media:${p.media}:${p.source}:${p.value}:${p.caption ?? ''}`) },
     async sendButtons(p) { calls.push(`buttons:${p.headerImage ? p.headerImage + ':' : ''}${p.body}[${p.buttons.map((b) => b.id).join('|')}]`) },
-    async sendList(p) { calls.push(`list:${p.body}`) },
+    async sendList(p) { lists.push(p); calls.push(`list:${p.body}`) },
     async sendTemplate(p) { calls.push(`template:${p.name}(${p.bodyParams.join(',')})`) },
     async changeTags(a, t) { calls.push(`tags:${a}:${t.join(',')}`) },
     async assign(u) { calls.push(`assign:${u ?? 'auto'}`) },
     async handover() { calls.push('handover') },
   }
-  return { calls, requests, routes, fx }
+  return { calls, requests, routes, lists, fx }
 }
 
 type RouteCall = Parameters<EngineEffects['routeAi']>[0]
+type ListCall = Parameters<EngineEffects['sendList']>[0]
 
 let state: SessionState
 beforeEach(() => {
@@ -634,11 +636,20 @@ describe('askAi', () => {
 })
 
 describe('aiRoute', () => {
-  const graph = (minScore = 0.7): FlowGraph => ({
+  const graph = (minScore = 0.7, clarify = false): FlowGraph => ({
     nodes: [
       node('kw', { kind: 'trigger', match: 'keyword', values: ['menu'], caseSensitive: false }),
       node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false }),
-      node('r', { kind: 'aiRoute', endpointId: 'rt1', question: 'pesan_awal', minScore, saveAs: 'arah_ai' }),
+      node('r', {
+        kind: 'aiRoute',
+        endpointId: 'rt1',
+        question: 'pesan_awal',
+        minScore,
+        clarify,
+        clarifyMinScore: 0.5,
+        clarifyBody: 'Maksud Anda?',
+        saveAs: 'arah_ai',
+      }),
       node('menu', {
         kind: 'sendList',
         body: 'Pilih layanan:',
@@ -737,5 +748,119 @@ describe('aiRoute', () => {
     await runFlow(graph(), asked('  '), start, ctx, fx)
 
     assert.deepEqual(calls, ['text:Maaf, coba pilih dari menu.', 'list:Pilih layanan:'])
+  })
+
+  describe('asking back when unsure', () => {
+    const unsure = (candidates: { id: string; score: number }[], destinationId: string | null = null) =>
+      async (): Promise<RoutePick> => ({ destinationId, score: candidates[0]?.score ?? 0, candidates })
+
+    test('offers the close candidates plus Lainnya, and waits', async () => {
+      const { calls, lists, fx } = spy(undefined, undefined, unsure([
+        { id: 'skck', score: 0.61 },
+        { id: 'paspor', score: 0.42 },
+      ]))
+
+      const r = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, fx)
+
+      assert.deepEqual(calls, ['route:rt1:surat polisi', 'list:Maksud Anda?'])
+      assert.deepEqual(r.outcome, { status: 'waiting' })
+      assert.equal(r.state.currentNodeId, 'r')
+      assert.deepEqual(lists[0]!.sections[0]!.rows.map((x) => x.id), ['skck', '__lainnya'])
+      assert.deepEqual((r.state.variables.arah_ai as { asked: string[] }).asked, ['skck'])
+    })
+
+    test('a pick under the jump bar comes first, without repeating it', async () => {
+      const { lists, fx } = spy(undefined, undefined, unsure([
+        { id: 'paspor', score: 0.66 },
+        { id: 'skck', score: 0.55 },
+      ], 'skck'))
+
+      await runFlow(graph(0.7, true), asked('surat'), start, ctx, fx)
+
+      assert.deepEqual(lists[0]!.sections[0]!.rows.map((x) => x.id), ['skck', 'paspor', '__lainnya'])
+    })
+
+    test('tapping a candidate continues at that destination', async () => {
+      const first = spy(undefined, undefined, unsure([{ id: 'skck', score: 0.61 }]))
+      const parked = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, first.fx)
+
+      const { calls, fx } = spy()
+      const r = await runFlow(graph(0.7, true), parked.state, { kind: 'reply', messageType: 'interactive', replyId: 'skck' }, ctx, fx)
+
+      assert.deepEqual(calls, ['text:Info SKCK', 'buttons:Ada lagi?[nav_menu]'])
+      assert.deepEqual(r.state.variables.arah_ai, {
+        id: 'skck',
+        score: 0.61,
+        path: 'SKCK',
+        candidates: [{ id: 'skck', score: 0.61 }],
+        asked: ['skck'],
+        chosenBy: 'contact',
+      })
+    })
+
+    for (const [why, reply] of [
+      ['Lainnya', { kind: 'reply', messageType: 'interactive', replyId: '__lainnya' }],
+      ['a typed reply', { kind: 'reply', messageType: 'text', text: 'bukan' }],
+      ['a row it did not offer', { kind: 'reply', messageType: 'interactive', replyId: 'paspor' }],
+    ] as const) {
+      test(`${why} takes the unsure branch`, async () => {
+        const first = spy(undefined, undefined, unsure([{ id: 'skck', score: 0.61 }]))
+        const parked = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, first.fx)
+
+        const { calls, fx } = spy()
+        const r = await runFlow(graph(0.7, true), parked.state, reply, ctx, fx)
+
+        assert.deepEqual(calls, ['list:Pilih layanan:'])
+        assert.equal((r.state.variables.arah_ai as { id: unknown }).id, null)
+      })
+    }
+
+    test('nothing close enough goes straight to the unsure branch', async () => {
+      const { calls, fx } = spy(undefined, undefined, unsure([{ id: 'skck', score: 0.45 }]))
+
+      await runFlow(graph(0.7, true), asked('cuaca hari ini'), start, ctx, fx)
+
+      assert.deepEqual(calls, ['route:rt1:cuaca hari ini', 'list:Pilih layanan:'])
+    })
+
+    test('rows are named by their menu row and described by the menus above', async () => {
+      const nested: FlowGraph = {
+        nodes: [
+          node('fb', { kind: 'trigger', match: 'fallback', values: [], caseSensitive: false }),
+          { ...graph(0.7, true).nodes.find((n) => n.id === 'r')! },
+          node('menu', {
+            kind: 'sendList',
+            body: 'Menu',
+            buttonText: 'Menu',
+            sections: [{ title: 'Instansi', rows: [{ id: 'polres', title: 'Polres Cimahi', description: 'Layanan polisi' }] }],
+          }),
+          node('polres_menu', {
+            kind: 'sendList',
+            body: 'Polres',
+            buttonText: 'Pilih',
+            sections: [{ title: 'Layanan', rows: [{ id: 'skck', title: 'SKCK' }] }],
+          }),
+          node('skck_txt', { kind: 'sendText', body: 'Info SKCK' }),
+        ],
+        edges: [
+          edge('1', 'fb', 'r'),
+          edge('2', 'r', 'menu', 'unsure'),
+          edge('3', 'menu', 'polres_menu', 'polres'),
+          edge('4', 'polres_menu', 'skck_txt', 'skck'),
+        ],
+      }
+      const { lists, fx } = spy(undefined, undefined, unsure([
+        { id: 'skck', score: 0.6 },
+        { id: 'polres', score: 0.58 },
+      ]))
+
+      await runFlow(nested, asked('surat kelakuan baik'), start, ctx, fx)
+
+      assert.deepEqual(lists[0]!.sections[0]!.rows, [
+        { id: 'skck', title: 'SKCK', description: 'Polres Cimahi' },
+        { id: 'polres', title: 'Polres Cimahi', description: 'Layanan polisi' },
+        { id: '__lainnya', title: 'Lainnya', description: 'Bukan yang di atas, lihat menu utama' },
+      ])
+    })
   })
 })

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
 import { prisma, Prisma } from '@wa/db'
-import { loadEnvFile, validateFlow, type FlowEdge, type FlowGraph, type FlowNode } from '@wa/core'
+import { loadEnvFile, ROUTE_CLARIFY_BODY, validateFlow, type FlowEdge, type FlowGraph, type FlowNode } from '@wa/core'
 
 /**
  * Fills a flow with the Cimahi city-services menu.
@@ -188,7 +188,17 @@ link('trigger_ai', 'arahkan')
 add({
   id: 'arahkan',
   type: 'aiRoute',
-  data: { kind: 'aiRoute', endpointId: router?.id ?? '', question: 'pesan_awal', minScore: 0.7, saveAs: 'arah_ai' },
+  data: {
+    kind: 'aiRoute',
+    endpointId: router?.id ?? '',
+    question: 'pesan_awal',
+    minScore: 0.7,
+    // Torn between a few rows, ask with one list rather than the whole menu.
+    clarify: true,
+    clarifyMinScore: 0.5,
+    clarifyBody: ROUTE_CLARIFY_BODY,
+    saveAs: 'arah_ai',
+  },
 })
 link('arahkan', 'welcome', 'unsure')
 link('arahkan', 'welcome', 'error')

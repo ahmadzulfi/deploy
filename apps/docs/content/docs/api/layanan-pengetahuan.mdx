@@ -193,7 +193,11 @@ Cara memilihnya:
 
 `score` adalah kemiripan tujuan yang dipilih, sehingga bisa lebih rendah dari
 kandidat pertama, seperti contoh di atas. `candidates` selalu tiga kemiripan
-tertinggi, untuk log.
+tertinggi. Kalau node Arahkan AI memakai **Kalau ragu, tanya balik dulu**, kandidat
+inilah yang ditawarkan ke warga saat router tidak yakin: list "Maksud Anda" berisi
+kandidat dengan skor minimal tertentu (bawaan 0,5), ditambah baris "Lainnya" yang
+membuka menu utama. `tools/route-eval.mjs --clarify-min 0.5` menghitung seberapa
+sering list itu memuat jawaban yang benar.
 
 Hasil `tools/route-eval.mjs` (23 soal, menu Cimahi 129 tujuan), 5 Oktober 2026:
 

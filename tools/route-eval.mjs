@@ -9,6 +9,11 @@
  *
  *   node tools/route-eval.mjs --url http://localhost:4010/route
  *   node tools/route-eval.mjs --url https://ai.contoh.id/route --token rahasia
+ *   node tools/route-eval.mjs --url http://localhost:8080/route --clarify-min 0.5
+ *
+ * With --clarify-min the table also shows what "Kalau ragu, tanya balik"
+ * would do: a question that does not jump gets a list of the candidates
+ * scoring at least that much, picked the same way the engine picks them.
  *
  * Defaults read the Cimahi menu and the 23 questions from
  * "Claude outputs/router-ai/"; --destinations and --tests take other files.
@@ -30,6 +35,7 @@ const destinations = JSON.parse(readFileSync(arg('destinations', new URL('cimahi
 const tests = JSON.parse(readFileSync(arg('tests', new URL('route-test-set.json', here)), 'utf8'))
 const token = arg('token')
 const timeoutMs = Number(arg('timeout', 8)) * 1000
+const clarifyMin = arg('clarify-min') === undefined ? null : Number(arg('clarify-min'))
 
 // Same fields and order the worker sends, so the hash matches a real call.
 const wire = destinations.map(({ id, path, description, content }) => ({ id, path, description, content }))
@@ -66,18 +72,44 @@ for (const r of results) {
   )
 }
 
-console.log('\nSkor minimal  benar  salah arah  jatuh ke menu')
+/** What the engine would offer as "Maksud Anda", in its order and limit. */
+function offered(a) {
+  if (clarifyMin === null || a.error) return []
+  const ranked = [...(a.destination_id ? [{ id: a.destination_id, score: a.score }] : []), ...(a.candidates ?? [])]
+  const out = []
+  for (const c of ranked) {
+    if (out.length === 3) break
+    if (c.score >= clarifyMin && pathOf.has(c.id) && !out.includes(c.id)) out.push(c.id)
+  }
+  return out
+}
+
+console.log(
+  clarifyMin === null
+    ? '\nSkor minimal  benar  salah arah  jatuh ke menu'
+    : `\nTanya balik untuk kandidat dengan skor >= ${clarifyMin}\n` +
+        'Skor minimal  benar  salah arah  tanya balik (ada yg benar)  tanya balik (tidak ada)  jatuh ke menu',
+)
 for (let min = 0.3; min <= 0.951; min += 0.05) {
   let right = 0
   let wrong = 0
   let menu = 0
+  let askedRight = 0
+  let askedWrong = 0
   for (const r of results) {
     const a = r.answer
     const jumped = !a.error && a.destination_id && a.score >= min && pathOf.has(a.destination_id) ? a.destination_id : null
-    if (r.expected === null ? jumped === null : r.expected.includes(jumped)) right++
+    const options = jumped ? [] : offered(a)
+    if (options.length) {
+      if (r.expected !== null && options.some((id) => r.expected.includes(id))) askedRight++
+      else askedWrong++
+    } else if (r.expected === null ? jumped === null : r.expected.includes(jumped)) right++
     else if (jumped) wrong++
     else menu++
   }
-  console.log(`${min.toFixed(2).padStart(11)}  ${String(right).padStart(5)}  ${String(wrong).padStart(10)}  ${String(menu).padStart(13)}`)
+  const cols = [min.toFixed(2).padStart(11), String(right).padStart(5), String(wrong).padStart(10)]
+  if (clarifyMin !== null) cols.push(String(askedRight).padStart(24), String(askedWrong).padStart(23))
+  cols.push(String(menu).padStart(13))
+  console.log(cols.join('  '))
 }
 console.log('\nPilih skor minimal terkecil yang "salah arah"-nya 0, lalu isi di node Arahkan AI.')

@@ -46,6 +46,9 @@ export type NodeKind = (typeof NODE_KINDS)[number]
  */
 export const ROUTE_QUESTION_VARIABLE = 'pesan_awal'
 
+/** What Arahkan AI says above the destinations it is unsure between. */
+export const ROUTE_CLARIFY_BODY = 'Maksud Anda yang mana? Pilih salah satu, atau "Lainnya" untuk melihat menu.'
+
 const position = z.object({ x: z.number(), y: z.number() })
 
 const triggerData = z.object({
@@ -187,8 +190,9 @@ const askAiData = z.object({
  * endpoint, then jumps straight to the destination it picks - skipping every
  * menu in between, each of which is a billed message.
  *
- * It sends nothing itself and has no "success" output: where it goes on
- * success is decided at runtime by the menu row picked, not by an edge.
+ * It has no "success" output: where it goes on success is decided at
+ * runtime by the menu row picked, not by an edge. The only message it sends
+ * itself is the "Maksud Anda" list, when `clarify` is on.
  */
 const aiRouteData = z.object({
   kind: z.literal('aiRoute'),
@@ -198,6 +202,16 @@ const aiRouteData = z.object({
   question: z.string().default(ROUTE_QUESTION_VARIABLE),
   /** A pick scoring below this takes the "unsure" branch instead. 0 to 1. */
   minScore: z.number().default(0.7),
+  /**
+   * When unsure, offer the router's closest destinations as a list ("Maksud
+   * Anda: ...") before giving up: one tap still lands on the right answer.
+   * Off unless set, so a worker deploy never changes what a published flow
+   * sends.
+   */
+  clarify: z.boolean().default(false),
+  /** Candidates scoring below this are not offered. 0 to 1. */
+  clarifyMinScore: z.number().default(0.5),
+  clarifyBody: z.string().default(ROUTE_CLARIFY_BODY),
   /** The decision is kept here: { id, score, path }. */
   saveAs: z.string().default('arah_ai'),
 })

@@ -1,4 +1,4 @@
-import { ROUTE_QUESTION_VARIABLE, type NodeData, type NodeKind } from '@wa/core/flow'
+import { ROUTE_CLARIFY_BODY, ROUTE_QUESTION_VARIABLE, type NodeData, type NodeKind } from '@wa/core/flow'
 
 /** Starting data for a freshly dropped node, valid enough not to error at once. */
 export function defaultData(kind: NodeKind): NodeData {
@@ -38,7 +38,16 @@ export function defaultData(kind: NodeKind): NodeData {
     case 'askAi':
       return { kind, endpointId: '', question: 'pertanyaan', sendAnswer: true, endButton: '', saveAs: 'jawaban_ai' }
     case 'aiRoute':
-      return { kind, endpointId: '', question: ROUTE_QUESTION_VARIABLE, minScore: 0.7, saveAs: 'arah_ai' }
+      return {
+        kind,
+        endpointId: '',
+        question: ROUTE_QUESTION_VARIABLE,
+        minScore: 0.7,
+        clarify: true,
+        clarifyMinScore: 0.5,
+        clarifyBody: ROUTE_CLARIFY_BODY,
+        saveAs: 'arah_ai',
+      }
     case 'delay':
       return { kind, seconds: 60 }
     case 'assign':

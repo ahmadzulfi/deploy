@@ -386,6 +386,18 @@ function checkNode(node: FlowNode, opts: ValidateOptions, assigned: Set<string>)
       if (!(d.minScore >= 0 && d.minScore <= 1)) {
         out.push({ severity: 'error', nodeId: node.id, message: 'Arahkan AI: batas skor harus antara 0 dan 1.' })
       }
+      if (d.clarify) {
+        if (!(d.clarifyMinScore >= 0 && d.clarifyMinScore <= 1)) {
+          out.push({ severity: 'error', nodeId: node.id, message: 'Arahkan AI: skor minimal pilihan harus antara 0 dan 1.' })
+        }
+        if (d.clarifyBody.length > WA_LIMITS.interactive.bodyMax) {
+          out.push({
+            severity: 'error',
+            nodeId: node.id,
+            message: `Arahkan AI: teks "Maksud Anda" lebih dari ${WA_LIMITS.interactive.bodyMax} karakter.`,
+          })
+        }
+      }
       if (!VARIABLE_NAME.test(d.saveAs)) {
         out.push({ severity: 'error', nodeId: node.id, message: `"${d.saveAs}" bukan nama variabel yang valid.` })
       } else if (['contact', 'channel', 'system'].includes(d.saveAs)) {

@@ -387,7 +387,10 @@ function parkMinutes(graph: FlowGraph, state: SessionState): number | null {
   if (node.data.kind === 'waitReply') return Math.max(1, node.data.timeoutMinutes)
   // Buttons and lists answer only to a tapped reply id, so without a deadline
   // of their own they park the conversation for good.
-  if (node.data.kind === 'sendButtons' || node.data.kind === 'sendList') return IDLE_TIMEOUT_MINUTES
+  // Arahkan AI parks only on its "Maksud Anda" list, which is no different.
+  if (node.data.kind === 'sendButtons' || node.data.kind === 'sendList' || node.data.kind === 'aiRoute') {
+    return IDLE_TIMEOUT_MINUTES
+  }
   return null
 }
 

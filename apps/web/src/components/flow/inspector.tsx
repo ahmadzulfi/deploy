@@ -833,14 +833,50 @@ function AiRouteFields({
         />
       </Field>
 
+      <Check
+        label="Kalau ragu, tanya balik dulu"
+        checked={data.clarify}
+        onChange={(v) => set({ clarify: v })}
+      />
+
+      {data.clarify && (
+        <>
+          <Field
+            label="Skor minimal pilihan"
+            hint="Tujuan dengan skor di bawah ini tidak ditawarkan. Kalau tidak ada yang tersisa, warga langsung dapat cabang 'tidak cocok'."
+          >
+            <input
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              className={input}
+              value={data.clarifyMinScore}
+              onChange={(e) => set({ clarifyMinScore: Number(e.target.value) })}
+            />
+          </Field>
+
+          <Field label="Teks pertanyaan">
+            <textarea
+              rows={3}
+              className={area}
+              value={data.clarifyBody}
+              onChange={(e) => set({ clarifyBody: e.target.value })}
+            />
+            <Counter value={data.clarifyBody.length} max={WA_LIMITS.interactive.bodyMax} />
+          </Field>
+        </>
+      )}
+
       <Field label="Simpan keputusan ke variabel">
         <input className={cn(input, 'font-mono')} value={data.saveAs} onChange={(e) => set({ saveAs: e.target.value })} />
       </Field>
 
       <p className="text-[10px] leading-4 text-fg-muted">
         Daftar tujuan diambil otomatis dari baris semua node Kirim list di flow ini. Kalau AI yakin, bot langsung
-        lompat ke tujuan itu tanpa mengirim menu. Sambungkan &lsquo;tidak cocok&rsquo; dan &lsquo;gagal&rsquo; ke
-        menu utama.
+        lompat ke tujuan itu tanpa mengirim menu. Kalau ragu dan tanya balik aktif, bot mengirim list berisi sampai 3
+        tujuan terdekat plus &lsquo;Lainnya&rsquo;; memilih &lsquo;Lainnya&rsquo; atau mengetik balasan masuk ke cabang
+        &lsquo;tidak cocok&rsquo;. Sambungkan &lsquo;tidak cocok&rsquo; dan &lsquo;gagal&rsquo; ke menu utama.
       </p>
     </>
   )

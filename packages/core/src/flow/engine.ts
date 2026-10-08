@@ -1,8 +1,8 @@
 import { WA_LIMITS } from '../providers/limits.js'
-import { buildRouteCatalog, type RouteDestination } from './catalog.js'
+import { buildRouteCatalog, ROUTE_PATH_SEPARATOR, type RouteDestination } from './catalog.js'
 import { nextNodeId } from './match.js'
 import { compare, interpolate, resolve, validateAnswer, type FlowContext } from './runtime.js'
-import type { FlowGraph, FlowNode } from './schema.js'
+import { ROUTE_CLARIFY_BODY, type FlowGraph, type FlowNode } from './schema.js'
 
 /**
  * The flow state machine.
@@ -218,8 +218,101 @@ async function resumeFrom(
     return { cursor: nextNodeId(graph, node.id, 'reply') }
   }
 
+  // Parked only while asking "Maksud Anda" - see the aiRoute case below.
+  if (node.data.kind === 'aiRoute') {
+    const d = node.data
+    const before = (state.variables[d.saveAs] ?? {}) as { asked?: unknown; score?: unknown; candidates?: unknown }
+    const asked = Array.isArray(before.asked) ? before.asked : []
+    const dest =
+      input.replyId && asked.includes(input.replyId)
+        ? buildRouteCatalog(graph).find((x) => x.id === input.replyId)
+        : undefined
+
+    // "Lainnya", a typed message, or a tap on some older list: the contact
+    // did not find their answer here, which is what "unsure" means.
+    if (!dest) {
+      state.variables[d.saveAs] = { ...before, id: null }
+      return { cursor: nextNodeId(graph, node.id, 'unsure') }
+    }
+
+    const candidates = Array.isArray(before.candidates) ? (before.candidates as { id: string; score: number }[]) : []
+    state.variables[d.saveAs] = {
+      ...before,
+      id: dest.id,
+      score: candidates.find((c) => c.id === dest.id)?.score ?? before.score ?? 0,
+      path: dest.path,
+      chosenBy: 'contact',
+    }
+    return { cursor: dest.target }
+  }
+
   // A reply arrived while parked somewhere that does not consume replies.
   return { outcome: { status: 'waiting' } }
+}
+
+/** Row id of "Lainnya" under the destinations Arahkan AI is unsure between. */
+export const ROUTE_OTHER_ID = '__lainnya'
+const ROUTE_CLARIFY_MAX = 3
+
+/**
+ * The destinations worth offering when the router would not commit: its pick
+ * first, then its other candidates, each one we actually sent and scoring at
+ * least `minScore`.
+ */
+function clarifyOptions(pick: RoutePick, destinations: RouteDestination[], minScore: number) {
+  const ranked = [...(pick.destinationId ? [{ id: pick.destinationId, score: pick.score }] : []), ...pick.candidates]
+  const out: RouteDestination[] = []
+  for (const c of ranked) {
+    if (out.length === ROUTE_CLARIFY_MAX) break
+    if (!(c.score >= minScore) || out.some((o) => o.id === c.id)) continue
+    const dest = destinations.find((x) => x.id === c.id)
+    if (dest) out.push(dest)
+  }
+  return out
+}
+
+/**
+ * One row per destination, titled by its own menu row and described by the
+ * menus above it - two "Cara Bayar" rows from different offices stay apart.
+ */
+function clarifyList(body: string, options: RouteDestination[]): Parameters<EngineEffects['sendList']>[0] {
+  const rows = options.map((o) => {
+    const parts = o.path.split(ROUTE_PATH_SEPARATOR)
+    const title = parts.pop() || o.path
+    const above = parts.join(ROUTE_PATH_SEPARATOR)
+    const description = above ? clipStart(above, WA_LIMITS.list.rowDescriptionMax) : o.description
+    return {
+      id: o.id,
+      title: clip(title, WA_LIMITS.list.rowTitleMax),
+      description: description ? clip(description, WA_LIMITS.list.rowDescriptionMax) : undefined,
+    }
+  })
+  rows.push({ id: ROUTE_OTHER_ID, title: 'Lainnya', description: 'Bukan yang di atas, lihat menu utama' })
+  return {
+    body: clip(body, WA_LIMITS.interactive.bodyMax),
+    buttonText: 'Pilih',
+    sections: [{ title: 'Pilihan', rows }],
+  }
+}
+
+/** At most `max` UTF-16 units, never splitting an emoji. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text
+  let out = ''
+  for (const ch of text) {
+    if (out.length + ch.length > max - 1) break
+    out += ch
+  }
+  return `${out.trimEnd()}…`
+}
+
+/** Like clip, but keeps the end: the nearest menu matters most. */
+function clipStart(text: string, max: number): string {
+  if (text.length <= max) return text
+  const chars = [...text]
+  let out = ''
+  while (chars.length && out.length + chars[chars.length - 1]!.length <= max - 1) out = chars.pop()! + out
+  return `…${out.trimStart()}`
 }
 
 type Step = { kind: 'next'; next: string | null } | { kind: 'halt'; outcome: EngineOutcome }
@@ -404,8 +497,15 @@ async function execute(
       const dest = destinations.find((x) => x.id === pick.destinationId)
       const candidates = pick.candidates.slice(0, 3)
       if (!dest || score < d.minScore) {
-        state.variables[d.saveAs] = { id: null, score, candidates }
-        return go('unsure')
+        const options = d.clarify ? clarifyOptions(pick, destinations, d.clarifyMinScore) : []
+        if (options.length === 0) {
+          state.variables[d.saveAs] = { id: null, score, candidates }
+          return go('unsure')
+        }
+        // Parks here; resumeFrom reads `asked` to know what the tap means.
+        state.variables[d.saveAs] = { id: null, score, candidates, asked: options.map((o) => o.id) }
+        await fx.sendList(clarifyList(interpolate(d.clarifyBody, ctx) || ROUTE_CLARIFY_BODY, options))
+        return { kind: 'halt', outcome: { status: 'waiting' } }
       }
 
       state.variables[d.saveAs] = { id: dest.id, score, path: dest.path, candidates }

@@ -169,6 +169,7 @@ function AiRouteSummary({ data }: { data: Extract<FlowNode['data'], { kind: 'aiR
       <p className="text-fg-muted">
         Arahkan {`{{${data.question}}}`} ke menu, skor minimal{' '}
         {data.minScore.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+        {data.clarify ? ', ragu → tanya balik' : ''}
       </p>
     </div>
   )

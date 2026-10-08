@@ -11,7 +11,7 @@ const edge = (source: string, target: string, sourceHandle: string | null = null
   target,
   sourceHandle,
 })
-const list = (id: string, rows: { id: string; title: string; description?: string }[]) =>
+const list = (id: string, rows: { id: string; title: string; description?: string; aiHint?: string }[]) =>
   node(id, { kind: 'sendList', body: 'Pilih:', buttonText: 'Menu', sections: [{ title: 'Pilihan', rows }] })
 const text = (id: string, body: string) => node(id, { kind: 'sendText', body })
 
@@ -84,6 +84,38 @@ describe('buildRouteCatalog', () => {
   test('a submenu destination carries the submenu text', () => {
     const lp = buildRouteCatalog(menu).find((d) => d.id === 'm_layanan')!
     assert.equal(lp.content, 'Pilih:')
+  })
+
+  test('a Petunjuk AI joins the description and replaces the message', () => {
+    const hinted: FlowGraph = {
+      ...menu,
+      nodes: menu.nodes.map((n) =>
+        n.id === 'lp'
+          ? list('lp', [
+              {
+                id: 'lp_skck',
+                title: 'SKCK',
+                description: 'Surat Keterangan Catatan Kepolisian',
+                aiHint: '  surat kelakuan baik, syarat melamar kerja  ',
+              },
+              { id: 'lp_back', title: 'Menu Utama' },
+            ])
+          : n,
+      ),
+    }
+    const skck = buildRouteCatalog(hinted).find((d) => d.id === 'lp_skck')!
+    assert.equal(skck.description, 'Surat Keterangan Catatan Kepolisian — surat kelakuan baik, syarat melamar kerja')
+    assert.equal(skck.content, '')
+  })
+
+  test('a blank Petunjuk AI changes nothing', () => {
+    const blank: FlowGraph = {
+      ...menu,
+      nodes: menu.nodes.map((n) => (n.id === 'menu' ? list('menu', [{ id: 'm_info', title: 'Informasi', aiHint: ' ' }]) : n)),
+    }
+    const info = buildRouteCatalog(blank).find((d) => d.id === 'm_info')!
+    assert.equal(info.description, '')
+    assert.equal(info.content, 'Info kota untuk .\nBuka situs kami.')
   })
 
   test('long content is cut to the limit', () => {

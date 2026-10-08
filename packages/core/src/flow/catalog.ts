@@ -20,8 +20,12 @@ export interface RouteDestination {
   id: string
   /** Row titles from the first menu down to this one, joined by " › ". */
   path: string
+  /** The row's description, then its Petunjuk AI, joined by " — ". */
   description: string
-  /** The start of what the contact receives there, as plain text. */
+  /**
+   * The start of what the contact receives there, as plain text. Empty when
+   * the row has a Petunjuk AI, which says the same thing better.
+   */
   content: string
   /** Node the engine continues at. Internal; never sent to the router. */
   target: string
@@ -29,6 +33,8 @@ export interface RouteDestination {
 
 export const ROUTE_PATH_SEPARATOR = ' › '
 export const ROUTE_CONTENT_MAX = 500
+/** Longest Petunjuk AI a row may carry. */
+export const ROUTE_HINT_MAX = 500
 
 /** Nodes a content lookup may walk past to reach the message behind them. */
 const SILENT_KINDS = new Set(['tag', 'setVariable', 'assign'])
@@ -67,11 +73,15 @@ export function buildRouteCatalog(graph: FlowGraph): RouteDestination[] {
           seen.add(edge.target)
 
           const rowPath = [...path, row.title]
+          const hint = row.aiHint?.trim() ?? ''
           out.push({
             id: (rowUses.get(row.id) ?? 0) > 1 ? `${row.id}@${node.id}` : row.id,
             path: rowPath.join(ROUTE_PATH_SEPARATOR),
-            description: row.description ?? '',
-            content: contentAt(edge.target, byId, outgoing),
+            description: [row.description?.trim(), hint].filter(Boolean).join(' — '),
+            // A hint is the admin saying what this row is about. The message
+            // then only adds noise: greetings like "Halo Wargi Cimahi!" read
+            // as close to every question.
+            content: hint ? '' : contentAt(edge.target, byId, outgoing),
             target: edge.target,
           })
           queue.push({ id: edge.target, path: rowPath })

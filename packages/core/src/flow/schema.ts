@@ -102,6 +102,12 @@ const listRow = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().optional(),
+  /**
+   * What Arahkan AI reads about this row instead of its message: the words
+   * residents use for it ("surat bebas narkoba, tes urine"). Never sent to
+   * WhatsApp - `description` is shown under the title and holds 72 chars.
+   */
+  aiHint: z.string().optional(),
 })
 
 const sendListData = z.object({

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { WA_LIMITS } from '@wa/core/limits'
-import { NODE_LABELS, type NodeData } from '@wa/core/flow'
+import { NODE_LABELS, ROUTE_HINT_MAX, type NodeData } from '@wa/core/flow'
 import { flowTemplateValues, renderTemplate, templateSlots } from '@wa/core/templates'
 import { cn } from '@/lib/utils'
 import { useTemplates } from './templates-context'
@@ -355,32 +355,43 @@ function Fields({
                     set({ sections })
                   }}
                 />
-                {s.rows.map((r, ri) => (
-                  <div key={ri} className="mb-1 flex gap-1">
-                    <input
-                      className={cn(input, 'h-7')}
-                      value={r.title}
-                      maxLength={WA_LIMITS.list.rowTitleMax}
-                      onChange={(e) => {
-                        const sections = [...data.sections]
-                        const rowList = [...s.rows]
-                        rowList[ri] = { ...r, title: e.target.value }
-                        sections[si] = { ...s, rows: rowList }
-                        set({ sections })
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        const sections = [...data.sections]
-                        sections[si] = { ...s, rows: s.rows.filter((_, j) => j !== ri) }
-                        set({ sections })
-                      }}
-                      className="shrink-0 px-1 text-[11px] text-fg-muted hover:text-danger"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {s.rows.map((r, ri) => {
+                  const setRow = (patch: Partial<typeof r>) => {
+                    const sections = [...data.sections]
+                    const rowList = [...s.rows]
+                    rowList[ri] = { ...r, ...patch }
+                    sections[si] = { ...s, rows: rowList }
+                    set({ sections })
+                  }
+                  return (
+                    <div key={ri} className="mb-1">
+                      <div className="flex gap-1">
+                        <input
+                          className={cn(input, 'h-7')}
+                          value={r.title}
+                          maxLength={WA_LIMITS.list.rowTitleMax}
+                          onChange={(e) => setRow({ title: e.target.value })}
+                        />
+                        <button
+                          onClick={() => {
+                            const sections = [...data.sections]
+                            sections[si] = { ...s, rows: s.rows.filter((_, j) => j !== ri) }
+                            set({ sections })
+                          }}
+                          className="shrink-0 px-1 text-[11px] text-fg-muted hover:text-danger"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <RowDetails
+                        description={r.description ?? ''}
+                        aiHint={r.aiHint ?? ''}
+                        onDescription={(v) => setRow({ description: v || undefined })}
+                        onAiHint={(v) => setRow({ aiHint: v || undefined })}
+                      />
+                    </div>
+                  )
+                })}
                 <button
                   disabled={rows >= WA_LIMITS.list.totalRowsMax}
                   onClick={() => {
@@ -771,6 +782,52 @@ function AskAiFields({
 }
 
 const MEDIA_LABEL = { image: 'gambar', video: 'video', document: 'dokumen' } as const
+
+/**
+ * A row's two optional texts, folded away: most rows need neither, and a
+ * menu of ten rows would otherwise be thirty fields tall.
+ */
+function RowDetails({
+  description,
+  aiHint,
+  onDescription,
+  onAiHint,
+}: {
+  description: string
+  aiHint: string
+  onDescription: (v: string) => void
+  onAiHint: (v: string) => void
+}) {
+  const filled = [description && 'keterangan', aiHint && 'petunjuk AI'].filter(Boolean).join(' + ')
+  return (
+    <details className="mt-0.5 pl-1 text-[11px]">
+      <summary className="cursor-pointer select-none text-fg-muted hover:text-fg">
+        {filled ? `Ada ${filled}` : 'Keterangan & petunjuk AI'}
+      </summary>
+      <div className="mt-1 space-y-1">
+        <input
+          className={cn(input, 'h-7')}
+          value={description}
+          maxLength={WA_LIMITS.list.rowDescriptionMax}
+          placeholder="Keterangan di bawah judul (tampil ke kontak)"
+          onChange={(e) => onDescription(e.target.value)}
+        />
+        <textarea
+          rows={2}
+          className={area}
+          value={aiHint}
+          maxLength={ROUTE_HINT_MAX}
+          placeholder="Petunjuk AI (tidak tampil): kata-kata yang dipakai warga, mis. surat bebas narkoba, tes urine"
+          onChange={(e) => onAiHint(e.target.value)}
+        />
+        <p className="text-[10px] leading-4 text-fg-muted">
+          Dibaca node Arahkan AI. Kalau diisi, isi pesan baris ini tidak lagi dikirim ke AI, jadi tulis semua kata
+          kunci pentingnya di sini.
+        </p>
+      </div>
+    </details>
+  )
+}
 
 function AiRouteFields({
   data,

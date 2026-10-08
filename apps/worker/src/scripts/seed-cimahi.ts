@@ -27,6 +27,11 @@ loadEnvFile()
 
 const here = dirname(fileURLToPath(import.meta.url))
 
+// What Arahkan AI reads about a row instead of its message, in residents'
+// words. Kept in a file of its own so apply-ai-hints.ts can put the same
+// hints on a draft without seeding it again.
+const aiHints = JSON.parse(readFileSync(resolve(here, 'cimahi-ai-hints.json'), 'utf8')) as Record<string, string>
+
 const FLOW_ID = process.argv[2]
 if (!FLOW_ID) {
   console.error('Usage: tsx src/scripts/seed-cimahi.ts <flowId>')
@@ -117,7 +122,10 @@ function list(
       footer: opts.footer,
       buttonText: opts.buttonText ?? 'Buka Menu',
       sections: [
-        { title: opts.sectionTitle ?? 'Pilihan', rows: opts.rows.map(({ to: _to, ...r }) => r) },
+        {
+          title: opts.sectionTitle ?? 'Pilihan',
+          rows: opts.rows.map(({ to: _to, ...r }) => (aiHints[r.id] ? { ...r, aiHint: aiHints[r.id] } : r)),
+        },
       ],
     },
   })

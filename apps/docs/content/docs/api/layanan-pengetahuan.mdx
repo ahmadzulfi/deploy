@@ -182,7 +182,10 @@ Cara memilihnya:
 1. **Basa-basi** ("terima kasih", "ok", "selamat pagi", emoji saja) langsung `null`,
    tanpa memakai kuota Gemini.
 2. Pertanyaan diubah jadi embedding dan dibandingkan dengan setiap tujuan menu. Teks
-   tujuan = `path` + `description` + `content`.
+   tujuan = `path` + `description` + `content`. Claudewa mengisi `description` dengan
+   keterangan baris list ditambah **Petunjuk AI** baris itu (diisi di editor flow, tidak
+   tampil ke warga). Kalau Petunjuk AI ada, `content` dikirim kosong supaya sapaan di
+   pesan seperti "Halo Wargi Cimahi!" tidak ikut dicocokkan.
 3. Kalau skor tertinggi di bawah `ROUTE_MIN_SCORE` (bawaan **0,62**), jawabannya `null`.
 4. Enam tujuan terdekat diberikan ke model teks Gemini (`ROUTE_CHOOSER_MODEL`) untuk
    dipilih satu, atau `null`. Ini yang membedakan "gadai emas" (KCA) dari "cicil

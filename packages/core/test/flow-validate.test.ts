@@ -552,6 +552,28 @@ describe('aiRoute and the fallback trigger', () => {
     assert.deepEqual(errors(routed(route({ clarify: false, clarifyMinScore: -0.1 }))), [])
   })
 
+  test('a row description WhatsApp would refuse, or an overlong Petunjuk AI, is an error', () => {
+    const withRow = (row: { description?: string; aiHint?: string }) => {
+      const g = routed()
+      return {
+        ...g,
+        nodes: g.nodes.map((n) =>
+          n.id === 'm'
+            ? node('m', {
+                kind: 'sendList',
+                body: 'Pilih:',
+                buttonText: 'Menu',
+                sections: [{ title: 'Layanan', rows: [{ id: 'skck', title: 'SKCK', ...row }] }],
+              })
+            : n,
+        ),
+      }
+    }
+    assert.ok(errors(withRow({ description: 'x'.repeat(73) })).some((i) => /Keterangan baris "SKCK"/.test(i.message)))
+    assert.ok(errors(withRow({ aiHint: 'x'.repeat(501) })).some((i) => /Petunjuk AI baris "SKCK"/.test(i.message)))
+    assert.deepEqual(errors(withRow({ description: 'x'.repeat(72), aiHint: 'surat kelakuan baik' })), [])
+  })
+
   test('a router in a flow without any menu list is an error', () => {
     const g = graph(
       [fallback, route(), end],

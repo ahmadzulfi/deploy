@@ -1,5 +1,5 @@
 import { WA_LIMITS } from '../providers/limits.js'
-import { buildRouteCatalog } from './catalog.js'
+import { buildRouteCatalog, ROUTE_HINT_MAX } from './catalog.js'
 import {
   handlesOf,
   isSendingNode,
@@ -258,6 +258,22 @@ function checkNode(node: FlowNode, opts: ValidateOptions, assigned: Set<string>)
           nodeId: node.id,
           message: `${rows} baris di semua seksi — WhatsApp maksimum ${WA_LIMITS.list.totalRowsMax}.`,
         })
+      }
+      for (const r of d.sections.flatMap((s) => s.rows)) {
+        if ((r.description?.length ?? 0) > WA_LIMITS.list.rowDescriptionMax) {
+          out.push({
+            severity: 'error',
+            nodeId: node.id,
+            message: `Keterangan baris "${r.title}" lebih dari ${WA_LIMITS.list.rowDescriptionMax} karakter.`,
+          })
+        }
+        if ((r.aiHint?.length ?? 0) > ROUTE_HINT_MAX) {
+          out.push({
+            severity: 'error',
+            nodeId: node.id,
+            message: `Petunjuk AI baris "${r.title}" lebih dari ${ROUTE_HINT_MAX} karakter.`,
+          })
+        }
       }
       break
     }

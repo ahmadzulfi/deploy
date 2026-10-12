@@ -1,5 +1,5 @@
 import { Worker, type Job } from 'bullmq'
-import { prisma, Prisma, Direction, MessageStatus, OptInStatus } from '@wa/db'
+import { prisma, Prisma, ConversationStatus, Direction, MessageStatus, OptInStatus } from '@wa/db'
 import {
   applyTemplateStatusUpdate,
   emitEvent,
@@ -164,6 +164,9 @@ async function ingestMessage(
       // Every inbound message restarts the 24h free-form window.
       windowExpiresAt: windowExpiryFrom(e.timestamp),
       unreadCount: { increment: 1 },
+      // A contact writing again after the agent ended the session starts a
+      // new one; the conversation goes back to the Terbuka tab.
+      status: ConversationStatus.OPEN,
     },
   })
 

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { prisma, Direction, MessageStatus, Prisma } from '@wa/db'
+import { prisma, ConversationStatus, Direction, MessageStatus, Prisma, SessionStatus } from '@wa/db'
 import {
   buildTemplateComponents,
   credentialsFor,
@@ -225,4 +225,75 @@ export async function resumeBot(conversationId: string) {
     data: { botPaused: false, botPausedAt: null },
   })
   revalidatePath(`/inbox/${conversationId}`)
+}
+
+/**
+ * Closes the conversation: it moves to the Selesai tab, any flow it is in the
+ * middle of stops, and the bot takes the next message from the top. The next
+ * inbound message reopens it.
+ */
+export async function endConversation(conversationId: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  if (user.role === 'VIEWER') return { error: 'Peran kamu hanya bisa membaca.' }
+
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: { channel: { select: { orgId: true } } },
+  })
+  if (!conversation || conversation.channel.orgId !== user.orgId) return { error: 'Percakapan tidak ditemukan.' }
+  if (conversation.status === ConversationStatus.CLOSED) return {}
+
+  const [, sessions] = await prisma.$transaction([
+    prisma.conversation.update({
+      where: { id: conversationId },
+      data: { status: ConversationStatus.CLOSED, botPaused: false, botPausedAt: null },
+    }),
+    // A flow left WAITING would swallow the contact's next message as the
+    // answer to a question asked before the session ended.
+    prisma.flowSession.updateMany({
+      where: { conversationId, status: { in: [SessionStatus.ACTIVE, SessionStatus.WAITING] } },
+      data: { status: SessionStatus.EXPIRED },
+    }),
+  ])
+
+  await prisma.auditLog.create({
+    data: {
+      orgId: user.orgId,
+      actorId: user.id,
+      action: 'conversation.close',
+      resourceType: 'Conversation',
+      resourceId: conversationId,
+      diff: { flowSessionsEnded: sessions.count },
+    },
+  })
+
+  revalidatePath(`/inbox/${conversationId}`)
+  revalidatePath('/inbox', 'layout')
+  return {}
+}
+
+/** Puts a closed conversation back in the Terbuka tab without waiting for the contact. */
+export async function reopenConversation(conversationId: string): Promise<{ error?: string }> {
+  const user = await requireUser()
+  if (user.role === 'VIEWER') return { error: 'Peran kamu hanya bisa membaca.' }
+
+  const { count } = await prisma.conversation.updateMany({
+    where: { id: conversationId, channel: { orgId: user.orgId }, status: ConversationStatus.CLOSED },
+    data: { status: ConversationStatus.OPEN },
+  })
+  if (count) {
+    await prisma.auditLog.create({
+      data: {
+        orgId: user.orgId,
+        actorId: user.id,
+        action: 'conversation.reopen',
+        resourceType: 'Conversation',
+        resourceId: conversationId,
+      },
+    })
+  }
+
+  revalidatePath(`/inbox/${conversationId}`)
+  revalidatePath('/inbox', 'layout')
+  return {}
 }

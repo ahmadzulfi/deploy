@@ -5,6 +5,7 @@ import { WindowBadge, windowState } from '@/components/window-badge'
 import { MessageBubble } from '@/components/message-bubble'
 import { Composer } from '@/components/composer'
 import { BotToggle } from '@/components/bot-toggle'
+import { EndSession } from '@/components/end-session'
 import { MarkRead } from '@/components/mark-read'
 import { LabelPicker } from '@/components/labels/label-picker'
 
@@ -60,6 +61,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               {conversation.contact.name || conversation.contact.waId}
             </span>
             <WindowBadge expiresAt={conversation.windowExpiresAt} />
+            {conversation.status === 'CLOSED' && (
+              <span className="shrink-0 rounded bg-muted px-1.5 py-px text-[10px] text-fg-muted">selesai</span>
+            )}
           </div>
           <div className="mt-0.5 truncate text-[11px] text-fg-muted">
             <span className="font-mono">{conversation.contact.waId}</span> ·{' '}
@@ -76,6 +80,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             readOnly={user.role === 'VIEWER'}
             canManage={hasRole(user, 'SUPERVISOR')}
           />
+          {user.role !== 'VIEWER' && (
+            <EndSession conversationId={conversation.id} closed={conversation.status === 'CLOSED'} />
+          )}
           <BotToggle conversationId={conversation.id} paused={conversation.botPaused} />
         </div>
       </header>

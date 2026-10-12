@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <div className="flex items-center gap-2">
+            <Link href="/profile" title="Profil" className="flex items-center gap-2 rounded-md hover:opacity-80">
               <span className="flex size-7 items-center justify-center rounded-full bg-accent-bg text-[11px] font-medium text-fg">
                 {initials(session.user.name, session.user.email)}
               </span>
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <span className="block text-fg">{session.user.name}</span>
                 <span className="block text-[10px] text-fg-muted">{session.user.role.toLowerCase()}</span>
               </span>
-            </div>
+            </Link>
             <form
               action={async () => {
                 'use server'

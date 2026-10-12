@@ -15,7 +15,7 @@ declare module 'next-auth' {
   }
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update: updateSession } = NextAuth({
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
   providers: [
@@ -41,10 +41,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = (user as { role: Role }).role
         token.orgId = (user as { orgId: string }).orgId
+      }
+      // Only the name is taken from an update: role and org come from the
+      // database at sign-in, never from what the page sends back.
+      if (trigger === 'update' && typeof session?.user?.name === 'string') {
+        token.name = session.user.name
       }
       return token
     },

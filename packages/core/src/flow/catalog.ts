@@ -148,6 +148,17 @@ export function maskRouteQuestion(text: string): string {
   return masked.length > ROUTE_QUESTION_KEEP_MAX ? masked.slice(0, ROUTE_QUESTION_KEEP_MAX) : masked
 }
 
+/** Longest example question an admin may save. */
+export const ROUTE_EXAMPLE_MAX = 300
+
+/**
+ * An example question as it is stored and sent to the router: masked again,
+ * since an admin may paste a contact's words straight in, and on one line.
+ */
+export function cleanRouteExample(text: string): string {
+  return maskRouteQuestion(text).replace(/\s+/g, ' ').trim()
+}
+
 /** WhatsApp markup and {{variables}} out, one line break at most. */
 function plain(text: string): string {
   const clean = text

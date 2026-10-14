@@ -2,8 +2,10 @@ import { prisma } from '@wa/db'
 import { AI_PRESETS, aiConfigOf, headerNames } from '@wa/core'
 import { hasRole, requireUser } from '@/lib/auth'
 import { aiUsage } from '@/lib/ai'
+import { pendingPicks } from '@/lib/route-review'
 import { shortTime } from '@/lib/utils'
 import { AiEndpoints } from '@/components/ai/ai-endpoints'
+import { AiTabs } from '@/components/ai/ai-tabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,9 +21,10 @@ export default async function AiPage() {
   const user = await requireUser()
   const canManage = hasRole(user, 'ADMIN')
 
-  const [rows, usage] = await Promise.all([
+  const [rows, usage, pending] = await Promise.all([
     prisma.aiEndpoint.findMany({ where: { orgId: user.orgId }, orderBy: { name: 'asc' } }),
     aiUsage(user.orgId),
+    canManage ? pendingPicks(user.orgId) : 0,
   ])
 
   return (
@@ -36,6 +39,8 @@ export default async function AiPage() {
             jawaban di menu tanpa mengirim menu bertingkat. URL dan API key hanya diatur di halaman ini.
           </p>
         </div>
+
+        {canManage && <AiTabs active="/ai" pending={pending} />}
 
         <AiEndpoints
           canManage={canManage}

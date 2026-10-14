@@ -1,6 +1,12 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRouteCatalog, maskRouteQuestion, ROUTE_CONTENT_MAX, ROUTE_QUESTION_KEEP_MAX } from '../src/flow/catalog.ts'
+import {
+  buildRouteCatalog,
+  cleanRouteExample,
+  maskRouteQuestion,
+  ROUTE_CONTENT_MAX,
+  ROUTE_QUESTION_KEEP_MAX,
+} from '../src/flow/catalog.ts'
 import type { FlowGraph, FlowNode } from '../src/flow/schema.ts'
 
 const at = { x: 0, y: 0 }
@@ -181,5 +187,11 @@ describe('maskRouteQuestion', () => {
 
   test('caps what is kept', () => {
     assert.equal(maskRouteQuestion('a'.repeat(ROUTE_QUESTION_KEEP_MAX + 50)).length, ROUTE_QUESTION_KEEP_MAX)
+  })
+})
+
+describe('cleanRouteExample', () => {
+  test('masks again and keeps it on one line', () => {
+    assert.equal(cleanRouteExample('  ktp hilang\n  nik 3277012345670001  '), 'ktp hilang nik [angka]')
   })
 })

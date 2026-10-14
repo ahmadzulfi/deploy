@@ -151,6 +151,7 @@ model Organization {
   aiEndpoints      AiEndpoint[]
   labels           Label[]
   routeDecisions   RouteDecision[]
+  routeExamples    RouteExample[]
 }
 
 model User {
@@ -175,6 +176,7 @@ model User {
   messages      Message[]       @relation("SentByUser")
   auditLogs     AuditLog[]
   labelsAdded   ConversationLabel[]
+  routeExamples RouteExample[]
 
   @@index([orgId])
 }
@@ -452,6 +454,7 @@ model Flow {
   publishedVersion FlowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   triggers         Trigger[]
   routeDecisions   RouteDecision[]
+  routeExamples    RouteExample[]
 
   @@index([orgId, status])
 }
@@ -868,4 +871,31 @@ model RouteDecision {
   @@index([orgId, flowId, outcome, createdAt])
   // The 90-day purge.
   @@index([createdAt])
+}
+
+/// A question an admin confirmed belongs to one menu destination. Sent to
+/// the router with the menu, so a question worded like it lands there
+/// without asking back.
+model RouteExample {
+  id            String @id @default(cuid())
+  orgId         String
+  flowId        String
+  /// A destination id as buildRouteCatalog names it - the menu row id.
+  destinationId String
+  /// What the router is shown. Approved, and possibly reworded, by an admin.
+  question      String
+
+  /// The decision it came from, if any. Not a relation: decisions are
+  /// deleted after 90 days and the example must outlive them.
+  sourceDecisionId String?
+  createdById      String?
+  createdAt        DateTime @default(now())
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  flow      Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  /// One question, one destination: the same words cannot teach two answers.
+  @@unique([flowId, question])
+  @@index([orgId, flowId, destinationId])
 }

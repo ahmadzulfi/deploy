@@ -150,6 +150,7 @@ model Organization {
   webhookEndpoints WebhookEndpoint[]
   aiEndpoints      AiEndpoint[]
   labels           Label[]
+  routeDecisions   RouteDecision[]
 }
 
 model User {
@@ -306,6 +307,7 @@ model Contact {
   conversations Conversation[]
   flowSessions  FlowSession[]
   recipients    CampaignRecipient[]
+  routeDecisions RouteDecision[]
 
   @@unique([orgId, waId])
   @@index([orgId, optInStatus])
@@ -449,6 +451,7 @@ model Flow {
   versions         FlowVersion[] @relation("FlowVersions")
   publishedVersion FlowVersion?  @relation("PublishedVersion", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   triggers         Trigger[]
+  routeDecisions   RouteDecision[]
 
   @@index([orgId, status])
 }
@@ -794,4 +797,75 @@ model ConversationLabel {
   @@id([conversationId, labelId])
   // The inbox filter goes from a label to its conversations.
   @@index([labelId])
+}
+
+// ============================================================
+// Arahkan AI - what the router decided, kept for review
+// ============================================================
+
+enum RouteOutcome {
+  /// The score cleared the bar; the contact went straight to the destination.
+  JUMPED
+  /// Unsure, so the contact was shown "Maksud Anda" and has not answered yet.
+  ASKED
+  /// The contact tapped one of the "Maksud Anda" rows.
+  PICKED
+  /// "Maksud Anda" answered with Lainnya, a typed message, or an old row.
+  OTHER
+  /// Unsure with nothing close enough to offer; the contact got the menu.
+  UNSURE
+  /// The router failed or answered outside the contract.
+  ERROR
+  /// Too short or meaningless to route ("P", "ok"); never sent anywhere.
+  SKIPPED
+}
+
+enum RouteReview {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// One Arahkan AI decision, kept so an admin can turn what contacts picked
+/// into examples the router learns from.
+///
+/// Holds the contact's own words, so they are masked of long digit runs and
+/// emails before being written, and the worker's sweeper deletes rows older
+/// than 90 days.
+model RouteDecision {
+  id            String @id @default(cuid())
+  orgId         String
+  flowId        String
+  /// The published graph that decided; destination ids only mean something
+  /// against it.
+  flowVersionId String
+  sessionId     String
+  contactId     String
+  endpointId    String
+
+  /// Masked. Null when SKIPPED - there was nothing worth keeping.
+  question        String?
+  outcome         RouteOutcome
+  destinationId   String?
+  destinationPath String?
+  score           Float
+  /// The router's top candidates, as [{ id, score }].
+  candidates      Json         @default("[]")
+  /// The destination ids shown in "Maksud Anda", in order.
+  offered         String[]     @default([])
+  reviewStatus    RouteReview  @default(PENDING)
+
+  createdAt  DateTime  @default(now())
+  /// When the contact answered "Maksud Anda".
+  resolvedAt DateTime?
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  flow    Flow         @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  // A contact who is deleted takes their words with them.
+  contact Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  // The review page lists one flow's decisions by outcome, newest first.
+  @@index([orgId, flowId, outcome, createdAt])
+  // The 90-day purge.
+  @@index([createdAt])
 }

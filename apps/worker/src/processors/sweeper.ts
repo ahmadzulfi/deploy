@@ -112,11 +112,27 @@ export async function resumeIdleHandovers(now = new Date()) {
   return stale.length
 }
 
-/** Runs both sweeps on an interval until `stop()`. Safe to call once at boot. */
+/**
+ * How long Arahkan AI decisions are kept. They hold contacts' own words, so
+ * they go once they are too old to be worth reviewing; examples an admin
+ * approved from them live on in their own table.
+ */
+export const ROUTE_DECISION_KEEP_DAYS = 90
+
+export async function purgeOldRouteDecisions(now = new Date()) {
+  const { count } = await prisma.routeDecision.deleteMany({
+    where: { createdAt: { lt: new Date(now.getTime() - ROUTE_DECISION_KEEP_DAYS * 24 * 60 * 60_000) } },
+  })
+  if (count > 0) log.info({ count }, 'keputusan Arahkan AI lama dihapus')
+  return count
+}
+
+/** Runs every sweep on an interval until `stop()`. Safe to call once at boot. */
 export function startSessionSweeper() {
   const run = () => {
     void sweepStaleSessions().catch((err) => log.error(err, 'sweep sesi gagal'))
     void resumeIdleHandovers().catch((err) => log.error(err, 'sweep handover gagal'))
+    void purgeOldRouteDecisions().catch((err) => log.error(err, 'hapus keputusan Arahkan AI gagal'))
   }
 
   run()

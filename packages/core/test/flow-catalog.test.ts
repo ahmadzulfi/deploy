@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRouteCatalog, ROUTE_CONTENT_MAX } from '../src/flow/catalog.ts'
+import { buildRouteCatalog, maskRouteQuestion, ROUTE_CONTENT_MAX, ROUTE_QUESTION_KEEP_MAX } from '../src/flow/catalog.ts'
 import type { FlowGraph, FlowNode } from '../src/flow/schema.ts'
 
 const at = { x: 0, y: 0 }
@@ -158,5 +158,28 @@ describe('buildRouteCatalog', () => {
       edges: [edge('t', 'a')],
     }
     assert.deepEqual(buildRouteCatalog(plain), [])
+  })
+})
+
+describe('maskRouteQuestion', () => {
+  for (const [why, input, expected] of [
+    ['an NIK', 'NIK saya 3277012345670001 tidak terdaftar', 'NIK saya [angka] tidak terdaftar'],
+    ['a spaced NIK', 'nik 3277 0123 4567 0001', 'nik [angka]'],
+    ['a phone number', 'hubungi 0812-3456-7890 ya', 'hubungi [angka] ya'],
+    ['an international number', 'wa +62 812 3456 7890', 'wa [angka]'],
+    ['an email', 'kirim ke budi.s@mail.co.id dong', 'kirim ke [email] dong'],
+    ['several at once', 'ktp 3277012345670001, hp 081234567890', 'ktp [angka], hp [angka]'],
+  ] as const) {
+    test(`hides ${why}`, () => {
+      assert.equal(maskRouteQuestion(input), expected)
+    })
+  }
+
+  test('keeps the short numbers that help read a question', () => {
+    assert.equal(maskRouteQuestion('bikin SIM C 2026 di RT 05 RW 07'), 'bikin SIM C 2026 di RT 05 RW 07')
+  })
+
+  test('caps what is kept', () => {
+    assert.equal(maskRouteQuestion('a'.repeat(ROUTE_QUESTION_KEEP_MAX + 50)).length, ROUTE_QUESTION_KEEP_MAX)
   })
 })

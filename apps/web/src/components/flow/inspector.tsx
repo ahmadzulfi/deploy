@@ -935,6 +935,11 @@ function AiRouteFields({
         tujuan terdekat plus &lsquo;Lainnya&rsquo;; memilih &lsquo;Lainnya&rsquo; atau mengetik balasan masuk ke cabang
         &lsquo;tidak cocok&rsquo;. Sambungkan &lsquo;tidak cocok&rsquo; dan &lsquo;gagal&rsquo; ke menu utama.
       </p>
+      <p className="text-[10px] leading-4 text-fg-muted">
+        Pesan yang terlalu tipis untuk diarahkan (&lsquo;P&rsquo;, &lsquo;ok&rsquo;, &lsquo;?&rsquo;, angka saja) tidak
+        dikirim ke AI dan langsung masuk &lsquo;tidak cocok&rsquo;. Setiap keputusan dicatat untuk ditinjau admin;
+        nomor panjang dan email di pertanyaan disamarkan, dan catatan dihapus setelah 90 hari.
+      </p>
     </>
   )
 }

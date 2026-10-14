@@ -1,5 +1,5 @@
 import { Worker, type Job } from 'bullmq'
-import { prisma, Prisma, FlowStatus, OptInStatus, SessionStatus, type Channel, type Contact } from '@wa/db'
+import { prisma, Prisma, FlowStatus, OptInStatus, RouteOutcome, SessionStatus, type Channel, type Contact } from '@wa/db'
 import {
   aiConfigOf,
   buildTemplateComponents,
@@ -9,6 +9,7 @@ import {
   flowTemplateValues,
   IDLE_TIMEOUT_MINUTES,
   logger,
+  maskRouteQuestion,
   matchTrigger,
   nextNodeId,
   ROUTE_QUESTION_VARIABLE,
@@ -19,6 +20,7 @@ import {
   type FlowGraph,
   type FlowNode,
   type InboundSignal,
+  type RouteOutcome as EngineRouteOutcome,
   type SessionState,
 } from '@wa/core'
 import { QUEUE, flowQueue, workerOptions } from '@wa/core/queues'
@@ -288,7 +290,7 @@ async function tick(session: SessionRow, input: EngineInput, conversation: Conve
     channel: { name: conversation.channel.name, displayPhone: conversation.channel.displayPhone },
   }
 
-  const result = await runFlow(graph, state, input, ctx, effectsFor(conversation, session.id))
+  const result = await runFlow(graph, state, input, ctx, effectsFor(conversation, session))
 
   const variables = { ...result.state.variables, __retries: result.state.retries }
   const base = {
@@ -426,7 +428,8 @@ async function fail(sessionId: string, error: string) {
 }
 
 /** Binds the engine's abstract effects to this conversation. */
-function effectsFor(conversation: Conversation, sessionId: string): EngineEffects {
+function effectsFor(conversation: Conversation, session: SessionRow): EngineEffects {
+  const sessionId = session.id
   const send = (message: Parameters<typeof enqueueSend>[0]['message']) =>
     enqueueSend({
       channelId: conversation.channelId,
@@ -557,12 +560,56 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
         throw new Error(result.error)
       }
       // Never the question itself: a contact's words may carry their name,
-      // address or complaint. The pick and its score are enough to review.
+      // address or complaint. Only recordRoute keeps them, masked, where
+      // admins alone read them and they expire.
       log.info(
         { sessionId, ai: endpoint.name, destinationId: result.destinationId, score: result.score, ms: result.ms },
         'Arahkan AI menjawab',
       )
       return { destinationId: result.destinationId, score: result.score, candidates: result.candidates }
+    },
+
+    async recordRoute(p) {
+      try {
+        const row = await prisma.routeDecision.create({
+          data: {
+            orgId: conversation.channel.orgId,
+            flowId: session.flowVersion.flowId,
+            flowVersionId: session.flowVersion.id,
+            sessionId,
+            contactId: conversation.contactId,
+            endpointId: p.endpointId,
+            question: p.outcome === 'skipped' ? null : maskRouteQuestion(p.question),
+            outcome: ROUTE_OUTCOME[p.outcome],
+            destinationId: p.destinationId,
+            destinationPath: p.destinationPath,
+            score: p.score,
+            candidates: p.candidates,
+            offered: p.offered,
+          },
+          select: { id: true },
+        })
+        return row.id
+      } catch (err) {
+        log.warn({ sessionId, err: String(err) }, 'keputusan Arahkan AI gagal dicatat')
+        return null
+      }
+    },
+
+    async settleRoute(p) {
+      // updateMany, not update: the row may already be purged, and an answer
+      // to a list that was settled once must not overwrite it.
+      await prisma.routeDecision
+        .updateMany({
+          where: { id: p.decisionId, outcome: RouteOutcome.ASKED },
+          data: {
+            outcome: ROUTE_OUTCOME[p.outcome],
+            destinationId: p.destinationId,
+            destinationPath: p.destinationPath,
+            resolvedAt: new Date(),
+          },
+        })
+        .catch((err) => log.warn({ sessionId, err: String(err) }, 'jawaban "Maksud Anda" gagal dicatat'))
     },
 
     async changeTags(action, tags) {
@@ -595,3 +642,14 @@ function effectsFor(conversation: Conversation, sessionId: string): EngineEffect
 export function mayRunFor(contact: { optInStatus: OptInStatus }) {
   return contact.optInStatus !== OptInStatus.OPTED_OUT
 }
+
+const ROUTE_OUTCOME = {
+  jumped: RouteOutcome.JUMPED,
+  asked: RouteOutcome.ASKED,
+  picked: RouteOutcome.PICKED,
+  other: RouteOutcome.OTHER,
+  unsure: RouteOutcome.UNSURE,
+  error: RouteOutcome.ERROR,
+  skipped: RouteOutcome.SKIPPED,
+} as const satisfies Record<EngineRouteOutcome, RouteOutcome>
+

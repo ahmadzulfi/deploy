@@ -177,7 +177,12 @@ Authorization: Bearer <INTERNAL_API_KEY>
 Jawaban asli untuk menu Cimahi. Menurut embedding, "Cicil Emas" dan "Kredit Cepat
 Aman (gadai)" nyaris sama (selisih 0,0001); pemilih AI yang menentukan KCA.
 
-Cara memilihnya:
+Sebelum memanggil `/route`, claudewa sendiri menyaring pesan yang terlalu tipis untuk
+diarahkan: pesan tanpa satu kata pun yang terdiri dari tiga huruf atau lebih (dan bukan
+huruf yang sama diulang), seperti "P", "ok", "?", atau angka saja. Pesan seperti itu
+langsung masuk cabang **tidak cocok**, tanpa memanggil router.
+
+Cara router memilih:
 
 1. **Basa-basi** ("terima kasih", "ok", "selamat pagi", emoji saja) langsung `null`,
    tanpa memakai kuota Gemini.

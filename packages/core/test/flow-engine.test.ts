@@ -1,6 +1,14 @@
 import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { runFlow, MAX_STEPS_PER_TICK, type EngineEffects, type RoutePick, type SessionState } from '../src/flow/engine.ts'
+import {
+  runFlow,
+  MAX_STEPS_PER_TICK,
+  type EngineEffects,
+  type RoutePick,
+  type RouteRecord,
+  type RouteSettlement,
+  type SessionState,
+} from '../src/flow/engine.ts'
 import { findFallbackTrigger, matchTrigger } from '../src/flow/match.ts'
 import type { FlowGraph, FlowNode } from '../src/flow/schema.ts'
 import type { FlowContext } from '../src/flow/runtime.ts'
@@ -27,15 +35,20 @@ function spy(
   http: (p: HttpCall) => Promise<{ status: number; data: unknown }> = async () => ({ status: 200, data: {} }),
   ai: (p: { endpointId: string; question: string }) => Promise<{ answer: string }> = async () => ({ answer: '' }),
   route: (p: RouteCall) => Promise<RoutePick> = async () => ({ destinationId: null, score: 0, candidates: [] }),
+  keep: (p: RouteRecord) => Promise<string | null> = async () => null,
 ) {
   const calls: string[] = []
   const requests: HttpCall[] = []
   const routes: RouteCall[] = []
   const lists: ListCall[] = []
+  const records: RouteRecord[] = []
+  const settles: RouteSettlement[] = []
   const fx: EngineEffects = {
     async httpRequest(p) { requests.push(p); return http(p) },
     async askAi(p) { calls.push(`ai:${p.endpointId}:${p.question}`); return ai(p) },
     async routeAi(p) { routes.push(p); calls.push(`route:${p.endpointId}:${p.question}`); return route(p) },
+    async recordRoute(p) { records.push(p); return keep(p) },
+    async settleRoute(p) { settles.push(p) },
     async sendText(b) { calls.push(`text:${b}`) },
     async sendMedia(p) { calls.push(`media:${p.media}:${p.source}:${p.value}:${p.caption ?? ''}`) },
     async sendButtons(p) { calls.push(`buttons:${p.headerImage ? p.headerImage + ':' : ''}${p.body}[${p.buttons.map((b) => b.id).join('|')}]`) },
@@ -45,7 +58,7 @@ function spy(
     async assign(u) { calls.push(`assign:${u ?? 'auto'}`) },
     async handover() { calls.push('handover') },
   }
-  return { calls, requests, routes, lists, fx }
+  return { calls, requests, routes, lists, records, settles, fx }
 }
 
 type RouteCall = Parameters<EngineEffects['routeAi']>[0]
@@ -861,6 +874,146 @@ describe('aiRoute', () => {
         { id: 'polres', title: 'Polres Cimahi', description: 'Layanan polisi' },
         { id: '__lainnya', title: 'Lainnya', description: 'Bukan yang di atas, lihat menu utama' },
       ])
+    })
+  })
+
+  describe('messages too thin to route', () => {
+    for (const q of ['P', 'Q', 'ok', '?', '11', 'ppp', 'p p p']) {
+      test(`"${q}" gets the menu without asking the router`, async () => {
+        const { calls, routes, records, fx } = spy(undefined, undefined, pick('skck', 0.99))
+
+        const r = await runFlow(graph(0.7, true), asked(q), start, ctx, fx)
+
+        assert.equal(routes.length, 0)
+        assert.deepEqual(calls, ['list:Pilih layanan:'])
+        assert.deepEqual(r.state.variables.arah_ai, { id: null, score: 0 })
+        assert.deepEqual(records.map((x) => [x.outcome, x.question]), [['skipped', '']])
+      })
+    }
+
+    for (const q of ['ktp', 'SKCK', 'sim c', 'KK hilang', 'hmm ktp']) {
+      test(`"${q}" is routed`, async () => {
+        const { routes, fx } = spy(undefined, undefined, pick('skck', 0.9))
+
+        await runFlow(graph(), asked(q), start, ctx, fx)
+
+        assert.equal(routes.length, 1)
+      })
+    }
+  })
+
+  describe('keeping decisions for review', () => {
+    const reply = (replyId: string) => ({ kind: 'reply', messageType: 'interactive', replyId }) as const
+    const offer = async (): Promise<RoutePick> => ({
+      destinationId: null,
+      score: 0.58,
+      candidates: [
+        { id: 'skck', score: 0.58 },
+        { id: 'paspor', score: 0.51 },
+      ],
+    })
+
+    test('a jump is kept with where it went', async () => {
+      const { records, fx } = spy(undefined, undefined, pick('skck', 0.82))
+
+      await runFlow(graph(), asked('cara bikin skck'), start, ctx, fx)
+
+      assert.deepEqual(records, [
+        {
+          endpointId: 'rt1',
+          question: 'cara bikin skck',
+          outcome: 'jumped',
+          destinationId: 'skck',
+          destinationPath: 'SKCK',
+          score: 0.82,
+          candidates: [{ id: 'skck', score: 0.82 }],
+          offered: [],
+        },
+      ])
+    })
+
+    test('unsure with nothing to offer is kept as unsure', async () => {
+      const { records, fx } = spy(undefined, undefined, pick(null, 0.3))
+
+      await runFlow(graph(), asked('cuaca hari ini'), start, ctx, fx)
+
+      assert.deepEqual(records.map((x) => [x.outcome, x.question, x.destinationId, x.score]), [
+        ['unsure', 'cuaca hari ini', null, 0.3],
+      ])
+    })
+
+    test('a failing router is kept as an error', async () => {
+      const { records, fx } = spy(undefined, undefined, async () => {
+        throw new Error('timeout')
+      })
+
+      await runFlow(graph(), asked('skck'), start, ctx, fx)
+
+      assert.deepEqual(records.map((x) => [x.outcome, x.question]), [['error', 'skck']])
+    })
+
+    test('asking back keeps what was offered and parks the decision id', async () => {
+      const { records, fx } = spy(undefined, undefined, offer, async () => 'dec_1')
+
+      const r = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, fx)
+
+      assert.deepEqual(records.map((x) => [x.outcome, x.offered]), [['asked', ['skck', 'paspor']]])
+      assert.equal((r.state.variables.arah_ai as { decisionId?: string }).decisionId, 'dec_1')
+    })
+
+    test('a tap settles the decision as picked', async () => {
+      const first = spy(undefined, undefined, offer, async () => 'dec_1')
+      const parked = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, first.fx)
+
+      const { settles, fx } = spy()
+      await runFlow(graph(0.7, true), parked.state, reply('paspor'), ctx, fx)
+
+      assert.deepEqual(settles, [
+        { decisionId: 'dec_1', outcome: 'picked', destinationId: 'paspor', destinationPath: 'Paspor' },
+      ])
+    })
+
+    for (const [why, input] of [
+      ['Lainnya', reply('__lainnya')],
+      ['a typed reply', { kind: 'reply', messageType: 'text', text: 'bukan dua-duanya' }],
+    ] as const) {
+      test(`${why} settles the decision as other`, async () => {
+        const first = spy(undefined, undefined, offer, async () => 'dec_1')
+        const parked = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, first.fx)
+
+        const { settles, fx } = spy()
+        await runFlow(graph(0.7, true), parked.state, input, ctx, fx)
+
+        assert.deepEqual(settles, [
+          { decisionId: 'dec_1', outcome: 'other', destinationId: null, destinationPath: null },
+        ])
+      })
+    }
+
+    test('nothing kept means nothing to settle, and the tap still works', async () => {
+      const first = spy(undefined, undefined, offer)
+      const parked = await runFlow(graph(0.7, true), asked('surat polisi'), start, ctx, first.fx)
+      assert.equal('decisionId' in (parked.state.variables.arah_ai as object), false)
+
+      const { calls, settles, fx } = spy()
+      await runFlow(graph(0.7, true), parked.state, reply('skck'), ctx, fx)
+
+      assert.deepEqual(settles, [])
+      assert.equal(calls[0], 'text:Info SKCK')
+    })
+
+    test('a keeper that fails never costs the contact their answer', async () => {
+      const { calls, fx } = spy(undefined, undefined, pick('skck', 0.82), async () => {
+        throw new Error('database down')
+      })
+      fx.settleRoute = async () => {
+        throw new Error('database down')
+      }
+
+      const r = await runFlow(graph(), asked('cara bikin skck'), start, ctx, fx)
+
+      assert.deepEqual(calls, ['route:rt1:cara bikin skck', 'text:Info SKCK', 'buttons:Ada lagi?[nav_menu]'])
+      assert.deepEqual(r.outcome, { status: 'waiting' })
     })
   })
 })

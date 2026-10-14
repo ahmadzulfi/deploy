@@ -1,5 +1,5 @@
 import { WA_LIMITS } from '../providers/limits.js'
-import { buildRouteCatalog, ROUTE_PATH_SEPARATOR, type RouteDestination } from './catalog.js'
+import { buildRouteCatalog, isRoutableQuestion, ROUTE_PATH_SEPARATOR, type RouteDestination } from './catalog.js'
 import { nextNodeId } from './match.js'
 import { compare, interpolate, resolve, validateAnswer, type FlowContext } from './runtime.js'
 import { ROUTE_CLARIFY_BODY, type FlowGraph, type FlowNode } from './schema.js'
@@ -59,6 +59,15 @@ export interface EngineEffects {
    * and score itself. Rejects when there was no usable answer at all.
    */
   routeAi(p: { endpointId: string; question: string; destinations: RouteDestination[] }): Promise<RoutePick>
+  /**
+   * Keeps one Arahkan AI decision for an admin to review. Resolves with its
+   * id, which a later "Maksud Anda" answer passes to `settleRoute`, or null
+   * when nothing was kept. The question arrives raw; masking it is the
+   * keeper's job.
+   */
+  recordRoute(p: RouteRecord): Promise<string | null>
+  /** Settles a decision kept as "asked" once the contact answers the list. */
+  settleRoute(p: RouteSettlement): Promise<void>
   changeTags(action: 'add' | 'remove', tags: string[]): Promise<void>
   assign(userId: string | null, note?: string): Promise<void>
   handover(): Promise<void>
@@ -68,6 +77,32 @@ export interface RoutePick {
   destinationId: string | null
   score: number
   candidates: { id: string; score: number }[]
+}
+
+/**
+ * How one Arahkan AI decision ended. "asked" is provisional: the contact's
+ * answer to "Maksud Anda" settles it as "picked" or "other".
+ */
+export type RouteOutcome = 'jumped' | 'asked' | 'picked' | 'other' | 'unsure' | 'error' | 'skipped'
+
+export interface RouteRecord {
+  endpointId: string
+  /** Empty when skipped: a message too thin to route is not worth keeping. */
+  question: string
+  outcome: Exclude<RouteOutcome, 'picked' | 'other'>
+  destinationId: string | null
+  destinationPath: string | null
+  score: number
+  candidates: { id: string; score: number }[]
+  /** Destination ids shown in "Maksud Anda", in order. */
+  offered: string[]
+}
+
+export interface RouteSettlement {
+  decisionId: string
+  outcome: 'picked' | 'other'
+  destinationId: string | null
+  destinationPath: string | null
 }
 
 export interface SessionState {
@@ -221,12 +256,25 @@ async function resumeFrom(
   // Parked only while asking "Maksud Anda" - see the aiRoute case below.
   if (node.data.kind === 'aiRoute') {
     const d = node.data
-    const before = (state.variables[d.saveAs] ?? {}) as { asked?: unknown; score?: unknown; candidates?: unknown }
+    const before = (state.variables[d.saveAs] ?? {}) as {
+      asked?: unknown
+      score?: unknown
+      candidates?: unknown
+      decisionId?: unknown
+    }
     const asked = Array.isArray(before.asked) ? before.asked : []
     const dest =
       input.replyId && asked.includes(input.replyId)
         ? buildRouteCatalog(graph).find((x) => x.id === input.replyId)
         : undefined
+    if (typeof before.decisionId === 'string') {
+      await settle(fx, {
+        decisionId: before.decisionId,
+        outcome: dest ? 'picked' : 'other',
+        destinationId: dest?.id ?? null,
+        destinationPath: dest?.path ?? null,
+      })
+    }
 
     // "Lainnya", a typed message, or a tap on some older list: the contact
     // did not find their answer here, which is what "unsure" means.
@@ -248,6 +296,24 @@ async function resumeFrom(
 
   // A reply arrived while parked somewhere that does not consume replies.
   return { outcome: { status: 'waiting' } }
+}
+
+// Keeping a decision for review must never stand between the contact and
+// their answer, so a failure to keep one is swallowed here.
+async function record(fx: EngineEffects, p: RouteRecord): Promise<string | null> {
+  try {
+    return await fx.recordRoute(p)
+  } catch {
+    return null
+  }
+}
+
+async function settle(fx: EngineEffects, p: RouteSettlement): Promise<void> {
+  try {
+    await fx.settleRoute(p)
+  } catch {
+    // As in record().
+  }
 }
 
 /** Row id of "Lainnya" under the destinations Arahkan AI is unsure between. */
@@ -481,11 +547,22 @@ async function execute(
         return go('error')
       }
 
+      const decided = (p: Omit<RouteRecord, 'endpointId' | 'question'>) =>
+        record(fx, { endpointId: d.endpointId, question: p.outcome === 'skipped' ? '' : question, ...p })
+      const none = { destinationId: null, destinationPath: null, score: 0, candidates: [], offered: [] }
+
+      if (!isRoutableQuestion(question)) {
+        await decided({ outcome: 'skipped', ...none })
+        state.variables[d.saveAs] = { id: null, score: 0 }
+        return go('unsure')
+      }
+
       let pick: RoutePick
       try {
         pick = await fx.routeAi({ endpointId: d.endpointId, question, destinations })
       } catch {
         // The worker has logged why and recorded it on the endpoint.
+        await decided({ outcome: 'error', ...none })
         state.variables[d.saveAs] = { id: null, score: 0 }
         return go('error')
       }
@@ -498,16 +575,29 @@ async function execute(
       const candidates = pick.candidates.slice(0, 3)
       if (!dest || score < d.minScore) {
         const options = d.clarify ? clarifyOptions(pick, destinations, d.clarifyMinScore) : []
+        const unsure = { destinationId: null, destinationPath: null, score, candidates }
         if (options.length === 0) {
+          await decided({ outcome: 'unsure', ...unsure, offered: [] })
           state.variables[d.saveAs] = { id: null, score, candidates }
           return go('unsure')
         }
-        // Parks here; resumeFrom reads `asked` to know what the tap means.
-        state.variables[d.saveAs] = { id: null, score, candidates, asked: options.map((o) => o.id) }
+        const asked = options.map((o) => o.id)
+        const decisionId = await decided({ outcome: 'asked', ...unsure, offered: asked })
+        // Parks here; resumeFrom reads `asked` to know what the tap means,
+        // and settles the kept decision with it.
+        state.variables[d.saveAs] = { id: null, score, candidates, asked, ...(decisionId ? { decisionId } : {}) }
         await fx.sendList(clarifyList(interpolate(d.clarifyBody, ctx) || ROUTE_CLARIFY_BODY, options))
         return { kind: 'halt', outcome: { status: 'waiting' } }
       }
 
+      await decided({
+        outcome: 'jumped',
+        destinationId: dest.id,
+        destinationPath: dest.path,
+        score,
+        candidates,
+        offered: [],
+      })
       state.variables[d.saveAs] = { id: dest.id, score, path: dest.path, candidates }
       return { kind: 'next', next: dest.target }
     }

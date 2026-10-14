@@ -114,6 +114,40 @@ function contentAt(start: string, byId: Map<string, FlowNode>, outgoing: Map<str
   return ''
 }
 
+/**
+ * Whether a message carries enough to route at all.
+ *
+ * "P", "Q", "ok", "?" and "11" are how people nudge a chat, not questions,
+ * yet embeddings score them close to real menus: "P" got 0.61 against the
+ * Cimahi menu, a hair under the bar. Routing one costs a call and, with
+ * "Maksud Anda" on, shows three random menus whose random tap would then be
+ * kept as if the contact meant it. One word of three letters or more, not
+ * all the same letter, is enough: "ktp", "skck", "sim".
+ */
+export function isRoutableQuestion(text: string): boolean {
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}]+/u)
+    .some((w) => [...w].length >= 3 && new Set(w).size >= 2)
+}
+
+/** Longest question kept for review. */
+export const ROUTE_QUESTION_KEEP_MAX = 1000
+
+/**
+ * A contact's question as it may be kept for review. Digit runs long enough
+ * to be an NIK, a phone or an account number, and email addresses, are
+ * replaced; short numbers stay, since "RT 05" or "SIM C 2026" help an admin
+ * read the question.
+ */
+export function maskRouteQuestion(text: string): string {
+  const masked = text
+    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[email]')
+    .replace(/\+?\d(?:[\s.-]?\d){5,}/g, '[angka]')
+    .trim()
+  return masked.length > ROUTE_QUESTION_KEEP_MAX ? masked.slice(0, ROUTE_QUESTION_KEEP_MAX) : masked
+}
+
 /** WhatsApp markup and {{variables}} out, one line break at most. */
 function plain(text: string): string {
   const clean = text

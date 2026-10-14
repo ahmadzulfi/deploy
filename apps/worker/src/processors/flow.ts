@@ -10,6 +10,7 @@ import {
   IDLE_TIMEOUT_MINUTES,
   logger,
   maskRouteQuestion,
+  routeExamplesFor,
   matchTrigger,
   nextNodeId,
   ROUTE_QUESTION_VARIABLE,
@@ -545,7 +546,16 @@ function effectsFor(conversation: Conversation, session: SessionRow): EngineEffe
         throw new Error('AI tidak ditemukan')
       }
 
-      const result = await callRoute(aiConfigOf(endpoint), { question, destinations })
+      // Examples only sharpen the answer; without them the router still has
+      // the menu, so a failed lookup costs nothing but that.
+      const examples = await routeExamplesFor(
+        session.flowVersion.flowId,
+        destinations.map((d) => d.id),
+      ).catch((err) => {
+        log.warn({ sessionId, err: String(err) }, 'contoh Arahkan AI tidak terbaca, dikirim tanpa contoh')
+        return []
+      })
+      const result = await callRoute(aiConfigOf(endpoint), { question, destinations, examples })
 
       const now = new Date()
       await prisma.aiEndpoint.update({
@@ -563,7 +573,14 @@ function effectsFor(conversation: Conversation, session: SessionRow): EngineEffe
       // address or complaint. Only recordRoute keeps them, masked, where
       // admins alone read them and they expire.
       log.info(
-        { sessionId, ai: endpoint.name, destinationId: result.destinationId, score: result.score, ms: result.ms },
+        {
+          sessionId,
+          ai: endpoint.name,
+          examples: examples.length,
+          destinationId: result.destinationId,
+          score: result.score,
+          ms: result.ms,
+        },
         'Arahkan AI menjawab',
       )
       return { destinationId: result.destinationId, score: result.score, candidates: result.candidates }

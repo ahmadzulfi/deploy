@@ -4,6 +4,7 @@ import { Agent, fetch } from 'undici'
 import { z } from 'zod'
 import { buildAiRequest, parseHeaderLines, renderAnswer, type AiEndpointConfig, type AiVars } from '../ai.js'
 import type { RouteDestination } from '../flow/catalog.js'
+import type { RouteWireExample } from './route-examples.js'
 import { isLocalhostUrl, isPrivateAddress, publicOnlyLookup } from './public-url.js'
 
 /**
@@ -167,7 +168,12 @@ export type RouteResult =
  */
 export async function callRoute(
   cfg: Pick<AiEndpointConfig, 'url' | 'headers' | 'timeoutSeconds'>,
-  req: { question: string; destinations: RouteDestination[] | RouteWireDestination[] },
+  req: {
+    question: string
+    destinations: RouteDestination[] | RouteWireDestination[]
+    /** Approved examples for this menu. Left out of the body when there are none. */
+    examples?: RouteWireExample[]
+  },
 ): Promise<RouteResult> {
   const started = Date.now()
   const ms = () => Date.now() - started
@@ -175,10 +181,13 @@ export async function callRoute(
   // The node a destination leads to is ours; the router only sees the menu.
   const destinations = req.destinations.map(({ id, path, description, content }) => ({ id, path, description, content }))
   const headers: Record<string, string> = { ...parseHeaderLines(cfg.headers), 'Content-Type': 'application/json' }
+  // The hash stays the menu's own: examples change far more often, and a
+  // router caching per menu should not rebuild it for every approval.
   const body = JSON.stringify({
     question: req.question,
     catalog_hash: routeCatalogHash(destinations),
     destinations,
+    ...(req.examples?.length ? { examples: req.examples } : {}),
   })
 
   let res: SafeResponse

@@ -2,10 +2,11 @@
 /**
  * A stand-in for the POST /route service, for local end-to-end runs.
  *
- * Speaks the same contract as the real router - question, catalog_hash and
- * destinations in; destination_id, score and candidates out - but scores by
- * plain word overlap, so the whole Arahkan AI path can be exercised before
- * the real embedding service exists. Do not judge accuracy with it.
+ * Speaks the same contract as the real router - question, catalog_hash,
+ * destinations and optional examples in; destination_id, score and candidates
+ * out - but scores by plain word overlap, so the whole Arahkan AI path can be
+ * exercised before the real embedding service exists. An example counts like
+ * its destination's own text. Do not judge accuracy with it.
  *
  *   node tools/fake-route.mjs                 # http://localhost:4010/route
  *   node tools/fake-route.mjs --port 4011 --token rahasia --min 0.5
@@ -32,12 +33,18 @@ const words = (s) =>
     .split(/\s+/)
     .filter((w) => w.length >= 3)
 
-/** Share of the question's words found in what the destination says about itself. */
-function score(question, d) {
+/** Share of the question's words found in a text. */
+function overlap(question, text) {
   const asked = [...new Set(words(question))]
   if (!asked.length) return 0
-  const known = new Set(words(`${d.path} ${d.description} ${d.content}`))
+  const known = new Set(words(text))
   return asked.filter((w) => known.has(w)).length / asked.length
+}
+
+/** The destination's own text, or the closest of its approved examples. */
+function score(question, d, examples) {
+  const mine = examples.filter((e) => e.destination_id === d.id).map((e) => overlap(question, e.question))
+  return Math.max(overlap(question, `${d.path} ${d.description} ${d.content}`), ...mine)
 }
 
 const send = (res, status, body) => {
@@ -59,11 +66,12 @@ createServer((req, res) => {
       return send(res, 400, { error: 'body bukan JSON' })
     }
     const { question, destinations } = body
+    const examples = Array.isArray(body.examples) ? body.examples : []
     if (typeof question !== 'string' || !question.trim()) return send(res, 400, { error: 'question kosong' })
     if (!Array.isArray(destinations) || !destinations.length) return send(res, 400, { error: 'destinations kosong' })
 
     const ranked = destinations
-      .map((d) => ({ id: d.id, score: Number(score(question, d).toFixed(3)) }))
+      .map((d) => ({ id: d.id, score: Number(score(question, d, examples).toFixed(3)) }))
       .sort((a, b) => b.score - a.score)
     const best = ranked[0]
     const answer = {
@@ -74,7 +82,7 @@ createServer((req, res) => {
 
     console.log(
       `${new Date().toLocaleTimeString('id-ID')}  "${question}" -> ${answer.destination_id ?? 'null'} (${best.score}) ` +
-        `[${destinations.length} tujuan, hash ${String(body.catalog_hash).slice(0, 8)}]`,
+        `[${destinations.length} tujuan, ${examples.length} contoh, hash ${String(body.catalog_hash).slice(0, 8)}]`,
     )
     setTimeout(() => (fail ? send(res, 500, { error: 'gagal (--fail)' }) : send(res, 200, answer)), slowMs)
   })

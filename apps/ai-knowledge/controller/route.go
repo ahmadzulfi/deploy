@@ -30,6 +30,8 @@ type routeRequest struct {
 	// from the destinations, so a wrong hash cannot mix two menus up.
 	CatalogHash  string               `json:"catalog_hash"`
 	Destinations []router.Destination `json:"destinations"`
+	// Optional: questions an admin confirmed belong to a destination.
+	Examples []router.Example `json:"examples"`
 }
 
 // HandleRoute answers which destination a question belongs to. Errors follow
@@ -49,8 +51,12 @@ func (c *RouteController) HandleRoute(w http.ResponseWriter, r *http.Request) {
 		routeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := router.ValidateExamples(req.Examples); err != nil {
+		routeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
-	res, err := c.router.Route(r.Context(), req.Question, req.Destinations)
+	res, err := c.router.Route(r.Context(), req.Question, req.Destinations, req.Examples)
 	if err != nil {
 		var limited interface{ RetryAfter() time.Duration }
 		switch {
@@ -72,7 +78,7 @@ func (c *RouteController) HandleRoute(w http.ResponseWriter, r *http.Request) {
 	}
 	// The question is deliberately not logged: residents put names, addresses
 	// and complaints into it.
-	log.Printf("[ROUTE] %d tujuan -> %s (%.3f, %s) %d ms", len(req.Destinations), picked, res.Score, res.Via, time.Since(started).Milliseconds())
+	log.Printf("[ROUTE] %d tujuan, %d contoh -> %s (%.3f, %s) %d ms", len(req.Destinations), len(req.Examples), picked, res.Score, res.Via, time.Since(started).Milliseconds())
 	WriteJSON(w, http.StatusOK, res)
 }
 

@@ -8,6 +8,7 @@ import {
   checkPublicUrl,
   checkRouteConfig,
   encrypt,
+  routeExamplesFor,
   type AiEndpointConfig,
   type AiEndpointKind,
 } from '@wa/core'
@@ -31,6 +32,8 @@ export type RouteTestResult =
       /** Which menu the question was routed against, e.g. a flow's name. */
       catalog: string
       count: number
+      /** Approved examples sent along with the menu. */
+      examples: number
       /** The router's own score, also when it picked nothing. */
       score: number
       pick: { id: string; score: number; path: string | null } | null
@@ -209,7 +212,10 @@ export async function testRouteEndpoint(formData: FormData): Promise<RouteTestRe
   if (parsed.kind !== 'ROUTE') return { ok: false, error: 'AI ini jenis Jawab pertanyaan.' }
 
   const catalog = await routeTestCatalog(user.orgId)
-  const result = await callRoute(parsed.cfg, { question, destinations: catalog.destinations })
+  const examples = catalog.flowId
+    ? await routeExamplesFor(catalog.flowId, catalog.destinations.map((d) => d.id))
+    : []
+  const result = await callRoute(parsed.cfg, { question, destinations: catalog.destinations, examples })
   const raw = result.data === undefined ? undefined : pretty(result.data)
   if (!result.ok) return { ok: false, error: result.error, status: result.status, ms: result.ms, raw, catalog: catalog.label }
 
@@ -222,6 +228,7 @@ export async function testRouteEndpoint(formData: FormData): Promise<RouteTestRe
     raw: raw ?? '',
     catalog: catalog.label,
     count: catalog.destinations.length,
+    examples: examples.length,
     score: result.score,
     pick: result.destinationId ? named(result.destinationId, result.score) : null,
     candidates: result.candidates.map((c) => named(c.id, c.score)),

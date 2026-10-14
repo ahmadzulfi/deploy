@@ -47,6 +47,17 @@ func asRateLimited(err error) error {
 // allows, so a menu of a hundred-odd destinations costs two requests instead
 // of a hundred. The result is in the same order as texts.
 func (e *GeminiEmbedder) EmbedDocuments(ctx context.Context, texts []string) ([][]float32, error) {
+	return e.embedMany(ctx, texts, "RETRIEVAL_DOCUMENT")
+}
+
+// EmbedQueries embeds many texts the way a question is embedded. A question
+// compared with another question must be embedded alike: as query against
+// document, two identical sentences score only about 0.86.
+func (e *GeminiEmbedder) EmbedQueries(ctx context.Context, texts []string) ([][]float32, error) {
+	return e.embedMany(ctx, texts, "RETRIEVAL_QUERY")
+}
+
+func (e *GeminiEmbedder) embedMany(ctx context.Context, texts []string, taskType string) ([][]float32, error) {
 	dim := e.dimension
 	out := make([][]float32, 0, len(texts))
 	for start := 0; start < len(texts); start += embedBatchMax {
@@ -58,10 +69,10 @@ func (e *GeminiEmbedder) EmbedDocuments(ctx context.Context, texts []string) ([]
 
 		res, err := e.client.Models.EmbedContent(ctx, e.model, contents, &genai.EmbedContentConfig{
 			OutputDimensionality: &dim,
-			TaskType:             "RETRIEVAL_DOCUMENT",
+			TaskType:             taskType,
 		})
 		if err != nil {
-			return nil, asRateLimited(fmt.Errorf("failed to embed documents %d-%d: %w", start, end, err))
+			return nil, asRateLimited(fmt.Errorf("failed to embed %d-%d as %s: %w", start, end, taskType, err))
 		}
 		if len(res.Embeddings) != end-start {
 			return nil, fmt.Errorf("expected %d embeddings from Gemini, got %d", end-start, len(res.Embeddings))

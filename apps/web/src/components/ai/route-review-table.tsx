@@ -131,7 +131,7 @@ export function RouteReviewTable({
         open={approving !== null}
         onClose={() => setApproving(null)}
         title="Jadikan contoh"
-        description="Pertanyaan yang mirip dengan ini nanti langsung diarahkan ke tujuan yang dipilih, tanpa tanya balik."
+        description="Pertanyaan yang hampir sama dengan ini langsung diarahkan ke tujuan yang dipilih. Yang hanya mirip dipakai AI sebagai petunjuk."
       >
         {approving && (
           <RouteExampleForm

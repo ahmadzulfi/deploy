@@ -52,6 +52,19 @@ describe('callRoute', () => {
     assert.equal(received!.headers['content-type'], 'application/json')
   })
 
+  test('sends approved examples, and leaves the field out when there are none', async () => {
+    reply = { status: 200, body: JSON.stringify({ destination_id: 'mp_polres', score: 0.93 }) }
+    const examples = [{ destination_id: 'mp_polres', question: 'bikin skck dimana' }]
+
+    await callRoute(cfg(), { question: 'bikin skck dmn', destinations, examples })
+    assert.deepEqual(received!.body.examples, examples)
+    // The hash is the menu's alone, so approving an example does not change it.
+    assert.equal(received!.body.catalog_hash, routeCatalogHash(received!.body.destinations as never))
+
+    await callRoute(cfg(), { question: 'skck', destinations, examples: [] })
+    assert.equal('examples' in received!.body, false)
+  })
+
   test('reads the pick, score and candidates', async () => {
     reply = {
       status: 200,

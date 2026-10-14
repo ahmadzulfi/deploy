@@ -159,13 +159,22 @@ router yang disepakati untuk claudewa:
 POST /route
 Authorization: Bearer <INTERNAL_API_KEY>
 
-{ "question": "mau gadai emas", "catalog_hash": "…", "destinations": [ { "id", "path", "description", "content" }, … ] }
+{
+  "question": "mau gadai emas",
+  "catalog_hash": "…",
+  "destinations": [ { "id", "path", "description", "content" }, … ],
+  "examples": [ { "destination_id", "question" }, … ]
+}
 ```
+
+`examples` boleh tidak dikirim. Isinya contoh pertanyaan yang sudah disetujui admin di
+halaman **AI → Pilihan warga** (lihat [Contoh pertanyaan](#contoh-pertanyaan)).
+`catalog_hash` tetap dihitung dari `destinations` saja.
 
 ```json
 {
   "destination_id": "pd_kca",
-  "score": 0.7188,
+  "score": 0.7189,
   "candidates": [
     { "id": "pd_cicil", "score": 0.7189 },
     { "id": "pd_kca", "score": 0.7188 },
@@ -199,9 +208,12 @@ Cara router memilih:
    habis, router memakai pilihan embedding. Dua kandidat yang berimbang (selisih di
    bawah `ROUTE_MIN_MARGIN`) dari menu utama berbeda lalu dijawab `null`.
 
-`score` adalah kemiripan tujuan yang dipilih, sehingga bisa lebih rendah dari
-kandidat pertama, seperti contoh di atas. `candidates` selalu tiga kemiripan
-tertinggi. Kalau node Arahkan AI memakai **Kalau ragu, tanya balik dulu**, kandidat
+Kalau pemilih AI yang memutuskan, `score` adalah kemiripan **tertinggi**, bukan
+kemiripan tujuan yang dipilih: di contoh di atas KCA dipilih dengan skor 0,7189 milik
+Cicil Emas. Batas sudah dilewati oleh tujuan terdekat, lalu pemilih AI menentukan
+tujuan mana yang dimaksud. Kalau yang dikirim kemiripan KCA sendiri, claudewa yang
+memakai batas yang sama bisa menolak keputusan itu setiap kali pilihannya bukan yang
+terdekat. `candidates` selalu tiga kemiripan tertinggi. Kalau node Arahkan AI memakai **Kalau ragu, tanya balik dulu**, kandidat
 inilah yang ditawarkan ke warga saat router tidak yakin: list "Maksud Anda" berisi
 kandidat dengan skor minimal tertentu (bawaan 0,5), ditambah baris "Lainnya" yang
 membuka menu utama. `tools/route-eval.mjs --clarify-min 0.5` menghitung seberapa
@@ -218,6 +230,41 @@ Hasil `tools/route-eval.mjs` (23 soal, menu Cimahi 129 tujuan), 5 Oktober 2026:
 
 Batas 0,62 disetel dari soal-soal ini: pertanyaan di luar topik berskor 0,61, dan
 pertanyaan benar terendah 0,64. Pantau log setelah dipakai warga, lalu sesuaikan.
+
+### Contoh pertanyaan
+
+Claudewa mencatat setiap keputusan Arahkan AI. Admin lalu menjadikan pertanyaan yang
+tujuannya benar sebagai contoh di halaman **AI → Pilihan warga**. Contoh dikirim
+bersama menu di setiap `/route`, maksimal 500 contoh terbaru per flow, dan hanya untuk
+tujuan yang masih ada di menu. Router memakainya begini:
+
+1. Contoh di-embedding sekali lalu disimpan, sama seperti tujuan menu, tapi sebagai
+   **query**: sama dengan cara pertanyaan warga di-embedding. Kalau contoh di-embedding
+   sebagai dokumen, kalimat yang identik pun hanya berskor ±0,86. Kalau belum selesai
+   dalam 1,5 detik (misalnya kuota Gemini habis), pertanyaan itu dijawab tanpa contoh
+   dan embedding contoh dilanjutkan di belakang.
+2. Pertanyaan yang kemiripannya dengan sebuah contoh minimal `ROUTE_EXAMPLE_MIN`
+   (bawaan **0,9**) langsung diarahkan ke tujuan contoh itu, kecuali ada contoh dari
+   tujuan lain yang selisihnya kurang dari `ROUTE_MIN_MARGIN`.
+3. Dari `ROUTE_EXAMPLE_HINT` (bawaan **0,8**) sampai di bawah `ROUTE_EXAMPLE_MIN`, contoh
+   hanya **membantu**. Skor tujuan untuk batas, kandidat, dan urutan pemilih AI adalah
+   yang tertinggi antara teks menunya dan contohnya. Pemilih AI melihat dua contoh
+   terdekat di setiap tujuan dan tetap menentukan maksudnya. Di bawah 0,8 contoh
+   diabaikan, karena pertanyaan yang tidak berkaitan pun berskor 0,55–0,72.
+4. Kalau pemilih AI gagal, router kembali memakai teks menu saja. Contoh yang tidak cukup
+   dekat tidak pernah menjadi alasan untuk mengarahkan sendiri.
+
+Angka-angka itu diukur di menu Cimahi dengan dua contoh ("ktp saya hilang" → Disdukcapil,
+"bikin skck dimana" → Polres), 14 Oktober 2026:
+
+| Pertanyaan | Mirip contoh | Hasil |
+|---|---|---|
+| "Bikin SKCK di mana ya", "ktp ku ilang gmn", "mau buat skck syaratnya apa", "skck" | 0,91–0,99 | langsung ke tujuan contoh, tanpa pemilih AI |
+| "kk saya hilang" | 0,86 | pemilih AI → Disdukcapil (tanpa contoh: menu utama) |
+| "sim saya hilang" | 0,82 | pemilih AI → Disdukcapil, **salah**; tanpa contoh pun sama |
+| "perpanjang paspor dimana", "cara bayar pajak motor", "harga cabai hari ini" | 0,55–0,72 | contoh diabaikan, hasil sama dengan tanpa contoh |
+
+Ukur lagi dengan soal uji yang lebih banyak sebelum dipakai warga.
 
 ### Menu yang belum pernah dilihat
 

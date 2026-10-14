@@ -7,8 +7,8 @@ import { RouteExamples } from '@/components/ai/route-examples'
 export const dynamic = 'force-dynamic'
 
 const INTRO =
-  'Contoh pertanyaan yang sudah disetujui admin, dikelompokkan per menu tujuan. Contoh ini menjadi bahan Arahkan AI ' +
-  'untuk mengenali pertanyaan warga yang mirip.'
+  'Contoh pertanyaan yang sudah disetujui admin, dikelompokkan per menu tujuan. Contoh dikirim ke router Arahkan AI ' +
+  'bersama daftar menu: pertanyaan warga yang hampir sama langsung diarahkan, yang hanya mirip dipakai sebagai petunjuk.'
 
 export default async function RouteExamplesPage({ searchParams }: { searchParams: Promise<{ flow?: string }> }) {
   const user = await requireUser()

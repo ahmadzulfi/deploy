@@ -141,6 +141,8 @@ func main() {
 	routeCfg := router.Config{
 		MinScore:      envFloat("ROUTE_MIN_SCORE", 0.62),
 		MinMargin:     envFloat("ROUTE_MIN_MARGIN", 0.02),
+		ExampleMin:    envFloat("ROUTE_EXAMPLE_MIN", 0.9),
+		ExampleHint:   envFloat("ROUTE_EXAMPLE_HINT", 0.8),
 		Namespace:     modelName + "/768/RETRIEVAL_DOCUMENT",
 		ChooseTimeout: time.Duration(envFloat("ROUTE_CHOOSER_TIMEOUT", 2.5) * float64(time.Second)),
 	}
@@ -166,7 +168,7 @@ func main() {
 	fmt.Printf(" [POST]   http://localhost%s/documents/reset   -> Hapus & reset bersih tabel database (Protected)\n", addr)
 	fmt.Printf(" [POST]   http://localhost%s/documents/seed    -> Otomatis masukkan data dummy SOP Layanan Publik\n", addr)
 	fmt.Printf(" [POST]   http://localhost%s/documents/search  -> Pencarian Semantik & AI Feedback Assistant\n", addr)
-	fmt.Printf(" [POST]   http://localhost%s/route             -> Router menu Arahkan AI (skor min %.2f, pemilih AI: %s)\n", addr, routeCfg.MinScore, chooserModel)
+	fmt.Printf(" [POST]   http://localhost%s/route             -> Router menu Arahkan AI (skor min %.2f, contoh min %.2f, pemilih AI: %s)\n", addr, routeCfg.MinScore, routeCfg.ExampleMin, chooserModel)
 	fmt.Println("-----------------------------------------------------------------")
 
 	if os.Getenv("INTERNAL_API_KEY") != "" || os.Getenv("AI_SERVICE_API_KEY") != "" {

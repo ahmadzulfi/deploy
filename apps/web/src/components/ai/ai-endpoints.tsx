@@ -489,7 +489,7 @@ function RouteTestView({ result }: { result: RouteTestResult }) {
     <div className="mt-3 space-y-2">
       <p className="text-[11px] text-fg-muted">
         {result.catalog && `Diuji dengan ${result.catalog}`}
-        {result.ok && ` (${result.count} tujuan)`}
+        {result.ok && ` (${result.count} tujuan${result.examples ? `, ${result.examples} contoh` : ""})`}
         {result.status !== undefined && ` · HTTP ${result.status}`}
         {result.ms !== undefined && ` · ${(result.ms / 1000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} detik`}
       </p>

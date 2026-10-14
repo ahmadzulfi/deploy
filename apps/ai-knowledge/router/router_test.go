@@ -85,6 +85,14 @@ func (f *fakeEmbedder) EmbedQuery(_ context.Context, text string) ([]float32, er
 	return vec(text), nil
 }
 
+func (f *fakeEmbedder) EmbedQueries(_ context.Context, texts []string) ([][]float32, error) {
+	out := make([][]float32, len(texts))
+	for i, t := range texts {
+		out[i] = vec(t)
+	}
+	return out, nil
+}
+
 var menu = []Destination{
 	{ID: "mp_polres", Path: "Layanan Publik › Polres Cimahi (SKCK)", Content: "Pelayanan SKCK di MPP"},
 	{ID: "mp_imigrasi", Path: "Layanan Publik › Imigrasi", Content: "Perpanjang paspor"},
@@ -93,7 +101,7 @@ var menu = []Destination{
 
 func route(t *testing.T, r *Router, q string, dests []Destination) *Result {
 	t.Helper()
-	res, err := r.Route(context.Background(), q, dests)
+	res, err := r.Route(context.Background(), q, dests, nil)
 	if err != nil {
 		t.Fatalf("Route(%q): %v", q, err)
 	}
@@ -166,7 +174,7 @@ func TestFailedMenuBuildIsRetriedOnNextQuestion(t *testing.T) {
 	emb.failNext.Store(true)
 	r := New(emb, nil, Config{MinScore: 0.5})
 
-	if _, err := r.Route(context.Background(), "skck", menu); err == nil {
+	if _, err := r.Route(context.Background(), "skck", menu, nil); err == nil {
 		t.Fatal("want an error while Gemini is down")
 	}
 	if res := route(t, r, "skck", menu); res.DestinationID == nil {
@@ -214,7 +222,7 @@ func TestSlowMenuAnswersNotReadyThenServes(t *testing.T) {
 	emb := &fakeEmbedder{delay: 150 * time.Millisecond}
 	r := New(emb, nil, Config{MinScore: 0.5})
 
-	if _, err := r.Route(context.Background(), "skck", menu); !errors.Is(err, ErrNotReady) {
+	if _, err := r.Route(context.Background(), "skck", menu, nil); !errors.Is(err, ErrNotReady) {
 		t.Fatalf("err = %v, want ErrNotReady", err)
 	}
 	time.Sleep(250 * time.Millisecond)
@@ -246,10 +254,12 @@ type fakeChooser struct {
 	answer string
 	err    error
 	calls  atomic.Int32
+	prompt string
 }
 
-func (c *fakeChooser) Generate(context.Context, string) (string, error) {
+func (c *fakeChooser) Generate(_ context.Context, prompt string) (string, error) {
 	c.calls.Add(1)
+	c.prompt = prompt
 	return c.answer, c.err
 }
 
@@ -271,8 +281,10 @@ func TestChooserCanOverrulePlainSimilarity(t *testing.T) {
 	if res.DestinationID == nil || *res.DestinationID != "pd_kca" {
 		t.Fatalf("destination = %v, want pd_kca", res.DestinationID)
 	}
-	if res.Score >= plain.Score {
-		t.Errorf("score %v should be pd_kca's own, below pd_cicil's %v", res.Score, plain.Score)
+	// pd_kca is less similar than pd_cicil, but the chooser decided. Its own
+	// similarity would let claudewa, applying the same bar, overrule that.
+	if res.Score != plain.Score {
+		t.Errorf("score = %v, want the closest destination's %v", res.Score, plain.Score)
 	}
 }
 
@@ -334,5 +346,161 @@ func TestNormalizeKeepsPunctuation(t *testing.T) {
 	want := "bagaimana buat skck surat keterangan catatan kepolisian?"
 	if got != want {
 		t.Errorf("Normalize = %q, want %q", got, want)
+	}
+}
+
+// routeWith is route with approved examples.
+func routeWith(t *testing.T, r *Router, q string, dests []Destination, examples []Example) *Result {
+	t.Helper()
+	res, err := r.Route(context.Background(), q, dests, examples)
+	if err != nil {
+		t.Fatalf("Route(%q): %v", q, err)
+	}
+	return res
+}
+
+func TestExampleNearlyTheSameJumpsStraightThere(t *testing.T) {
+	examples := []Example{{DestinationID: "pd_kca", Question: "Mau gadai emas"}}
+	r := New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, ExampleMin: 0.9})
+
+	res := routeWith(t, r, "mau gadai emas", gadaiMenu, examples)
+
+	if res.DestinationID == nil || *res.DestinationID != "pd_kca" {
+		t.Fatalf("destination = %v, want pd_kca from the example", res.DestinationID)
+	}
+	if res.Via != "contoh" || res.Score < 0.9 {
+		t.Errorf("via %q, score %v; want contoh at or above 0.9", res.Via, res.Score)
+	}
+}
+
+func TestExamplesForDestinationsNotSentAreIgnored(t *testing.T) {
+	examples := []Example{{DestinationID: "kantor_lain", Question: "mau gadai emas"}, {DestinationID: "pd_kca"}}
+	r := New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, ExampleMin: 0.9})
+
+	res := routeWith(t, r, "mau gadai emas", gadaiMenu, examples)
+
+	if res.DestinationID == nil || *res.DestinationID != "pd_cicil" || res.Via == "contoh" {
+		t.Fatalf("destination = %v via %q, want the plain embedding pick pd_cicil", res.DestinationID, res.Via)
+	}
+}
+
+func TestExamplesThatDisagreeDoNotJump(t *testing.T) {
+	examples := []Example{
+		{DestinationID: "pd_kca", Question: "gadai emas"},
+		{DestinationID: "pd_cicil", Question: "gadai emas"},
+	}
+	r := New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, MinMargin: 0.02, ExampleMin: 0.9})
+
+	if res := routeWith(t, r, "gadai emas", gadaiMenu, examples); res.Via == "contoh" {
+		t.Fatalf("jumped to %v on two equally close examples", *res.DestinationID)
+	}
+}
+
+func TestLooseExampleOnlyHelpsTheChooser(t *testing.T) {
+	// "gadai" alone is about 0.71 from "gadai emas": a hint, not a match.
+	examples := []Example{{DestinationID: "pd_kca", Question: "gadai"}}
+
+	c := &fakeChooser{answer: `{"id": "pd_kca"}`}
+	res := routeWith(t, New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, ExampleMin: 0.9, Chooser: c}), "gadai emas", gadaiMenu, examples)
+	if res.Via != "pemilih AI" || *res.DestinationID != "pd_kca" {
+		t.Fatalf("destination = %v via %q, want the chooser's pd_kca", res.DestinationID, res.Via)
+	}
+	if !strings.Contains(c.prompt, `contoh pertanyaan warga: "gadai"`) || !strings.Contains(c.prompt, "5. Contoh pertanyaan") {
+		t.Errorf("the chooser was not shown the example:\n%s", c.prompt)
+	}
+
+	plain := routeWith(t, New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, ExampleMin: 0.9}), "gadai emas", gadaiMenu, examples)
+	if plain.DestinationID == nil || *plain.DestinationID != "pd_cicil" {
+		t.Errorf("without the chooser destination = %v, want the menu's own pick pd_cicil", plain.DestinationID)
+	}
+}
+
+func TestChooserPromptWithoutExamplesIsUnchanged(t *testing.T) {
+	c := &fakeChooser{answer: `{"id": "pd_kca"}`}
+	routeWith(t, New(&fakeEmbedder{}, nil, Config{MinScore: 0.1, Chooser: c}), "gadai emas", gadaiMenu, nil)
+	if strings.Contains(c.prompt, "contoh") {
+		t.Errorf("prompt mentions examples although none were sent:\n%s", c.prompt)
+	}
+}
+
+// blankMenu has no word the fake embedder knows, so it scores 0 against any
+// question: only examples can get a question past the bar.
+var blankMenu = []Destination{
+	{ID: "a", Path: "Kantor A", Content: "layanan umum"},
+	{ID: "b", Path: "Kantor B", Content: "layanan lain"},
+}
+
+func TestExamplesCanLiftAQuestionPastTheBar(t *testing.T) {
+	examples := []Example{{DestinationID: "a", Question: "skck"}}
+
+	c := &fakeChooser{answer: `{"id": "a"}`}
+	r := New(&fakeEmbedder{}, nil, Config{MinScore: 0.5, ExampleMin: 0.99, Chooser: c})
+	res := routeWith(t, r, "skck paspor", blankMenu, examples)
+	if res.DestinationID == nil || *res.DestinationID != "a" {
+		t.Fatalf("destination = %v, want a", res.DestinationID)
+	}
+
+	// Without the chooser the menu text alone decides, and it knows nothing.
+	failing := New(&fakeEmbedder{}, nil, Config{MinScore: 0.5, ExampleMin: 0.99, Chooser: &fakeChooser{err: errors.New("timeout")}})
+	if res := routeWith(t, failing, "skck paspor", blankMenu, examples); res.DestinationID != nil {
+		t.Fatalf("destination = %q, want null when only an example cleared the bar", *res.DestinationID)
+	}
+}
+
+// exampleTrouble fails every batch holding the marked example.
+type exampleTrouble struct {
+	fakeEmbedder
+}
+
+func (e *exampleTrouble) EmbedQueries(ctx context.Context, texts []string) ([][]float32, error) {
+	for _, t := range texts {
+		if strings.Contains(t, "rusak") {
+			return nil, errors.New("gemini down")
+		}
+	}
+	return e.fakeEmbedder.EmbedQueries(ctx, texts)
+}
+
+func TestExamplesThatCannotBeEmbeddedAreLeftOut(t *testing.T) {
+	examples := []Example{{DestinationID: "pd_kca", Question: "mau gadai emas rusak"}}
+	r := New(&exampleTrouble{}, nil, Config{MinScore: 0.1, ExampleMin: 0.5})
+
+	res := routeWith(t, r, "mau gadai emas", gadaiMenu, examples)
+
+	if res.Via == "contoh" || res.DestinationID == nil || *res.DestinationID != "pd_cicil" {
+		t.Fatalf("destination = %v via %q, want an answer without the example", res.DestinationID, res.Via)
+	}
+}
+
+func TestValidateExamples(t *testing.T) {
+	if err := ValidateExamples(make([]Example, MaxExamples)); err != nil {
+		t.Errorf("%d examples: %v", MaxExamples, err)
+	}
+	if err := ValidateExamples(make([]Example, MaxExamples+1)); err == nil {
+		t.Error("too many examples accepted")
+	}
+}
+
+func TestExamplesBelowTheHintAreIgnored(t *testing.T) {
+	// "skck" against "skck paspor" is about 0.71: under a 0.8 hint it must
+	// neither lift the question past the bar nor reach the chooser's prompt.
+	examples := []Example{{DestinationID: "a", Question: "skck"}}
+	c := &fakeChooser{answer: `{"id": "a"}`}
+	r := New(&fakeEmbedder{}, nil, Config{MinScore: 0.5, ExampleMin: 0.99, ExampleHint: 0.8, Chooser: c})
+
+	res := routeWith(t, r, "skck paspor", blankMenu, examples)
+
+	if res.DestinationID != nil || res.Via != "skor rendah" {
+		t.Fatalf("destination = %v via %q, want null on a low score", res.DestinationID, res.Via)
+	}
+	if n := c.calls.Load(); n != 0 {
+		t.Errorf("chooser asked %d times, want 0", n)
+	}
+}
+
+func TestExamplesAndMenuNeverShareACacheRow(t *testing.T) {
+	r := New(&fakeEmbedder{}, nil, Config{})
+	if r.textKey("skck", true) == r.textKey("skck", false) {
+		t.Error("the same text embedded as a query and as a document got one key")
 	}
 }

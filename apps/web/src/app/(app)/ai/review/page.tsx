@@ -21,7 +21,8 @@ export const dynamic = 'force-dynamic'
 
 const INTRO =
   'Setiap keputusan Arahkan AI dicatat di sini selama 90 hari. Jadikan contoh pertanyaan yang tujuannya benar, supaya ' +
-  'pertanyaan yang mirip nanti langsung diarahkan tanpa tanya balik. Nomor panjang dan email sudah disamarkan.'
+  'pertanyaan serupa berikutnya lebih sering langsung diarahkan tanpa tanya balik. Nomor panjang dan email sudah ' +
+  'disamarkan.'
 
 const VIEW_HINT: Record<ReviewView, string> = {
   picked: 'Warga tidak langsung diarahkan, lalu memilih sendiri dari list "Maksud Anda". Pilihannya biasanya benar.',

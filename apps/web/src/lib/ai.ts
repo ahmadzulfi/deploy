@@ -59,23 +59,25 @@ const SAMPLE_CATALOG: RouteDestination[] = [
  * The menu the AI page tests a router against: the first flow using Arahkan
  * AI (published graph first), else the first flow with any menu.
  */
-export async function routeTestCatalog(orgId: string): Promise<{ label: string; destinations: RouteDestination[] }> {
+export async function routeTestCatalog(
+  orgId: string,
+): Promise<{ label: string; destinations: RouteDestination[]; flowId: string | null }> {
   const flows = await prisma.flow.findMany({
     where: { orgId, status: { not: FlowStatus.ARCHIVED } },
     orderBy: { updatedAt: 'desc' },
-    select: { name: true, draftGraph: true, publishedVersion: { select: { graph: true } } },
+    select: { id: true, name: true, draftGraph: true, publishedVersion: { select: { graph: true } } },
   })
 
   const graphs = flows.flatMap((f) => {
     const g = parse(f.publishedVersion?.graph) ?? parse(f.draftGraph)
-    return g ? [{ name: f.name, graph: g }] : []
+    return g ? [{ id: f.id, name: f.name, graph: g }] : []
   })
   const routed = graphs.find((f) => f.graph.nodes.some((n) => n.data.kind === 'aiRoute'))
   for (const f of routed ? [routed, ...graphs] : graphs) {
     const destinations = buildRouteCatalog(f.graph)
-    if (destinations.length) return { label: `menu flow "${f.name}"`, destinations }
+    if (destinations.length) return { label: `menu flow "${f.name}"`, destinations, flowId: f.id }
   }
-  return { label: 'menu contoh (belum ada flow bermenu)', destinations: SAMPLE_CATALOG }
+  return { label: 'menu contoh (belum ada flow bermenu)', destinations: SAMPLE_CATALOG, flowId: null }
 }
 
 function parse(graph: unknown): FlowGraph | null {

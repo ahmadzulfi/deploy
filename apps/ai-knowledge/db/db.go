@@ -82,11 +82,25 @@ func EnsureDatabaseAndExtension(ctx context.Context, connStr string) error {
 	defer rawConn.Close(ctx)
 
 	// Cek apakah ekstensi vector tersedia di host PostgreSQL
-	if _, err := rawConn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS vector;"); err == nil {
-		HasPgVector = true
+	_, extErr := rawConn.Exec(ctx, "CREATE EXTENSION IF NOT EXISTS vector;")
+	HasPgVector = extErr == nil
+
+	// Tabel yang sudah ada menentukan mode, bukan ekstensinya: pgvector bisa
+	// dipasang belakangan sementara kolom embedding lama masih array biasa,
+	// dan query mode pgvector gagal semua terhadap kolom seperti itu.
+	if HasPgVector {
+		var udt string
+		err := rawConn.QueryRow(ctx, `SELECT udt_name FROM information_schema.columns
+			WHERE table_schema = current_schema() AND table_name = 'docs-gemini-001' AND column_name = 'embedding'`).Scan(&udt)
+		if err == nil && udt != "vector" {
+			HasPgVector = false
+			fmt.Printf(" pgvector terpasang, tapi kolom embedding masih %s - tetap pakai mode array\n", udt)
+		}
+	}
+
+	if HasPgVector {
 		fmt.Println(" Mode Aktif: pgvector Extension (HNSW Indexing)")
 	} else {
-		HasPgVector = false
 		fmt.Println(" Mode Aktif: Native PostgreSQL Float Array + Cosine Similarity Function")
 		funcQuery := `
 CREATE OR REPLACE FUNCTION cosine_similarity(a double precision[], b double precision[])

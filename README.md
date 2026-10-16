@@ -2,7 +2,7 @@
 
 Platform WhatsApp internal: multi-nomor WABA, shared inbox, flow builder drag-and-drop, broadcast.
 
-Fondasi, round-trip pesan, dashboard, flow builder, broadcast, dan Public API sudah ada. Sisa yang besar: paket deploy produksi dan uji nyata fitur yang belum pernah mengirim sungguhan (lihat `BACKLOG.md`).
+Fondasi, round-trip pesan, dashboard, flow builder, broadcast, dan Public API sudah ada. Sisa yang besar: uji nyata fitur yang belum pernah mengirim sungguhan (lihat `BACKLOG.md`).
 
 ---
 
@@ -25,8 +25,10 @@ apps/ai-knowledge  Layanan Go: dokumen SOP + pencarian semantik (pgvector,
                  Gemini) di balik node Tanya AI — `pnpm dev:ai`, butuh Go
 ```
 
-Yang belum: paket deploy produksi (Dockerfile, compose, nginx), dan uji nyata
-broadcast, Public API, serta webhook keluar. Rinciannya di `BACKLOG.md`.
+Deploy produksi (Docker Compose + nginx + HTTPS): lihat `deploy/README.md`.
+
+Yang belum: uji nyata broadcast, Public API, dan webhook keluar. Rinciannya di
+`BACKLOG.md`.
 
 Referensi Public API — endpoint, contoh kode, dan playground — ada di `apps/docs`,
 di-generate dari `apps/docs/openapi.yaml`. Buka http://localhost:5000.

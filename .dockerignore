@@ -1,0 +1,25 @@
+# Rahasia tidak boleh masuk image; nilainya datang dari deploy/.env saat jalan.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+.git
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+*.log
+**/*.log
+
+# Tidak dipakai saat jalan, dan sebagian berisi data
+Claude outputs
+supabase/*-data.sql
+supabase/claudewa-lengkap.sql
+deploy/backups
+
+# Punya image sendiri (apps/ai-knowledge/Dockerfile)
+apps/ai-knowledge

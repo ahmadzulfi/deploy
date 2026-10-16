@@ -17,3 +17,6 @@ supabase/claudewa-lengkap.sql
 
 # TypeScript incremental build
 *.tsbuildinfo
+
+# Cadangan database di server (deploy/backup.sh)
+deploy/backups/

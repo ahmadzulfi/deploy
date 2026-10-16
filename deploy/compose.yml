@@ -1,0 +1,141 @@
+# Produksi: semua layanan claudewa dalam satu server.
+#
+#   cp deploy/.env.example deploy/.env      # lalu isi
+#   docker compose -f deploy/compose.yml up -d --build
+#
+# Hanya web (:3002) dan webhook (:3001) yang dibuka, itu pun ke 127.0.0.1
+# saja - nginx di host yang meneruskannya ke internet dengan HTTPS.
+# Postgres, Redis, dan ai-knowledge hanya bisa dijangkau antarcontainer.
+# Langkah lengkapnya ada di deploy/README.md.
+
+name: claudewa
+
+x-app: &app
+  image: claudewa-app:latest
+  build:
+    context: ..
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  init: true
+  env_file: .env
+  environment: &app-env
+    NODE_ENV: production
+    DATABASE_URL: postgresql://wa:${POSTGRES_PASSWORD:?isi POSTGRES_PASSWORD di deploy/.env}@postgres:5432/wa_platform?schema=public
+    REDIS_URL: redis://redis:6379
+    AUTH_URL: https://${DOMAIN:?isi DOMAIN di deploy/.env}
+    # Di belakang nginx: percayai header Host dari proxy.
+    AUTH_TRUST_HOST: "true"
+    PUBLIC_WEBHOOK_ORIGIN: https://${DOMAIN}
+    AI_KNOWLEDGE_URL: http://ai-knowledge:8080
+    # Supaya node Arahkan AI / Tanya AI boleh memanggil router lewat http
+    # internal. URL AI di dashboard: http://ai-knowledge:8080/route
+    INTERNAL_SERVICE_HOSTS: ai-knowledge:8080
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+
+services:
+  postgres:
+    # Postgres 16 yang sudah membawa ekstensi pgvector untuk ai-knowledge.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: wa_platform
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wa -d wa_platform']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF: antrean BullMQ tidak hilang saat Redis restart.
+    command: redis-server --appendonly yes
+    volumes: ['redisdata:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Menjalankan migrasi Prisma lalu selesai; layanan lain menunggunya.
+  migrate:
+    <<: *app
+    restart: 'no'
+    working_dir: /app/packages/db
+    command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  webhook:
+    <<: *app
+    working_dir: /app/apps/webhook
+    command: ['node', '--import', 'tsx', 'src/server.ts']
+    environment:
+      <<: *app-env
+      WEBHOOK_PORT: '3001'
+    ports: ['127.0.0.1:3001:3001']
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    <<: *app
+    working_dir: /app/apps/worker
+    command: ['node', '--import', 'tsx', 'src/index.ts']
+    # Tidak membuka port; antrean di Redis yang menyambungkannya.
+
+  web:
+    <<: *app
+    working_dir: /app/apps/web
+    command: ['./node_modules/.bin/next', 'start', '--port', '3002']
+    ports: ['127.0.0.1:3002:3002']
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3002/login').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  ai-knowledge:
+    image: claudewa-ai-knowledge:latest
+    build:
+      context: ../apps/ai-knowledge
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      # Driver Go tidak mengenal parameter khusus Prisma, jadi URL-nya sendiri.
+      DATABASE_URL: postgresql://wa:${POSTGRES_PASSWORD}@postgres:5432/wa_platform?sslmode=disable
+      # Wajib: layanan ini berhenti saat start kalau kosong.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?isi GEMINI_API_KEY di deploy/.env}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-embedding-001}
+      INTERNAL_API_KEY: ${AI_KNOWLEDGE_API_KEY:?isi AI_KNOWLEDGE_API_KEY di deploy/.env}
+      ADMIN_SECRET_KEY: ${AI_ADMIN_SECRET_KEY:-}
+      ROUTE_MIN_SCORE: ${ROUTE_MIN_SCORE:-0.62}
+      ROUTE_MIN_MARGIN: ${ROUTE_MIN_MARGIN:-0.02}
+      ROUTE_EXAMPLE_MIN: ${ROUTE_EXAMPLE_MIN:-0.9}
+      ROUTE_EXAMPLE_HINT: ${ROUTE_EXAMPLE_HINT:-0.8}
+      ROUTE_CHOOSER_MODEL: ${ROUTE_CHOOSER_MODEL:-gemini-flash-lite-latest}
+      ROUTE_CHOOSER_TIMEOUT: ${ROUTE_CHOOSER_TIMEOUT:-2.5}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      # "/" sengaja dibiarkan terbuka tanpa API key untuk health check.
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  pgdata:
+  redisdata:

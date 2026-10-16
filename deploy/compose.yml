@@ -6,7 +6,7 @@
 # Hanya web (:3002) dan webhook (:3001) yang dibuka, itu pun ke 127.0.0.1
 # saja - nginx di host yang meneruskannya ke internet dengan HTTPS.
 # Postgres, Redis, dan ai-knowledge hanya bisa dijangkau antarcontainer.
-# Langkah lengkapnya ada di deploy/README.md.
+# Langkah lengkapnya ada di README.md di root repo.
 
 name: claudewa
 

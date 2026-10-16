@@ -1,244 +1,337 @@
-# wa-platform
+# claudewa — Panduan Deploy
 
-Platform WhatsApp internal: multi-nomor WABA, shared inbox, flow builder drag-and-drop, broadcast.
+Panduan ini menjelaskan cara memasang **claudewa** di server Linux sampai
+siap menerima pesan WhatsApp warga, lalu cara merawatnya sehari-hari. Ditulis
+untuk admin server, termasuk yang tidak ikut menulis kodenya. Panduan
+menjalankan di laptop untuk pengembangan ada di [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Fondasi, round-trip pesan, dashboard, flow builder, broadcast, dan Public API sudah ada. Sisa yang besar: uji nyata fitur yang belum pernah mengirim sungguhan (lihat `BACKLOG.md`).
+**claudewa** adalah platform WhatsApp (Cloud API resmi Meta) dengan
+multi-nomor, inbox bersama, flow builder untuk bot, broadcast, Public API,
+dan AI (basis pengetahuan dan router "Arahkan AI").
 
----
+## Daftar isi
 
-## Yang sudah ada
-
-```
-packages/db      Prisma schema — seluruh model (channel, contact, conversation,
-                 message, template, flow, campaign, audit)
-packages/core    ChannelProvider abstraction, CloudApiProvider, webhook
-                 normalizer, WhatsApp limits, crypto, queues
-apps/webhook     Fastify receiver — verifikasi signature, simpan raw, enqueue,
-                 plus Public API /api/v1
-apps/worker      Inbound processor, outbound sender (queue per channel), flow
-                 engine, campaign runner, sweeper sesi, pengirim webhook
-                 keluar, CLI
-apps/web         Dashboard Next.js — inbox, nomor, kontak, template,
-                 broadcast, flow builder, AI, basis pengetahuan, pengaturan
-apps/docs        Referensi Public API (Fumadocs) — `pnpm dev:docs`, buka :5000
-apps/ai-knowledge  Layanan Go: dokumen SOP + pencarian semantik (pgvector,
-                 Gemini) di balik node Tanya AI — `pnpm dev:ai`, butuh Go
-```
-
-Deploy produksi (Docker Compose + nginx + HTTPS): lihat `deploy/README.md`.
-
-Yang belum: uji nyata broadcast, Public API, dan webhook keluar. Rinciannya di
-`BACKLOG.md`.
-
-Referensi Public API — endpoint, contoh kode, dan playground — ada di `apps/docs`,
-di-generate dari `apps/docs/openapi.yaml`. Buka http://localhost:5000.
+1. [Gambaran arsitektur](#1-gambaran-arsitektur)
+2. [Kebutuhan server](#2-kebutuhan-server)
+3. [Siapkan server](#3-siapkan-server)
+4. [Ambil kode dan isi konfigurasi](#4-ambil-kode-dan-isi-konfigurasi)
+5. [Pindahkan data lama (opsional)](#5-pindahkan-data-lama-opsional)
+6. [Build dan nyalakan](#6-build-dan-nyalakan)
+7. [Buat akun dashboard](#7-buat-akun-dashboard)
+8. [Pasang nginx dan HTTPS](#8-pasang-nginx-dan-https)
+9. [Sambungkan ke Meta](#9-sambungkan-ke-meta)
+10. [Arahkan AI ke layanan internal](#10-arahkan-ai-ke-layanan-internal)
+11. [Jadwalkan cadangan](#11-jadwalkan-cadangan)
+12. [Operasional harian](#12-operasional-harian)
+13. [Update dan rollback](#13-update-dan-rollback)
+14. [Kalau ada masalah](#14-kalau-ada-masalah)
 
 ---
 
-## Setup
+## 1. Gambaran arsitektur
 
-### 1. Infra
-
-```bash
-docker compose up -d
+```
+internet ──443──> nginx (host) ──┬─ /webhooks/, /api/v1/, /health ──> webhook :3001
+                                 └─ selebihnya ───────────────────> web     :3002
+                                                                       │
+          container (jaringan internal, tidak terbuka ke luar):        │
+          worker ── redis ── postgres+pgvector ── ai-knowledge :8080 ──┘
+          migrate (jalan sekali tiap deploy, lalu berhenti)
 ```
 
-Postgres :5435, Redis :6381, MinIO :9000 (console :9001, login `wa_minio` / `wa_minio_dev_password`). Semua di-bind ke `127.0.0.1` saja.
-
-Port-nya sengaja bukan default: mesin ini sudah menjalankan stack lain (chatwoot di 5433/6379, wa_bridge di 5434/6380) dan 6379 akan bentrok.
-
-> Image MinIO ditarik dari Docker Hub — compose ini memakai `quay.io/minio/*`, registry resmi mereka, dengan tag di-pin. Rilis community terakhir di sana bertanggal September 2025, jadi jangan heran kalau `latest` tidak bergerak. Untuk produksi, S3/R2/Spaces lebih aman daripada bergantung pada MinIO community.
-
-### 2. Env
-
-```bash
-cp .env.example .env
-```
-
-Generate `ENCRYPTION_KEY`:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-Isi juga `META_APP_SECRET` (App Dashboard → Settings → Basic) dan `WEBHOOK_VERIFY_TOKEN` (bebas, string apa saja — nanti dipaste ke Meta).
-
-Yang **tidak** masuk `.env`: access token, phone number ID, dan WABA ID. Ketiganya milik masing-masing nomor, bukan milik aplikasi, jadi tempatnya di database lewat `pnpm channel:add` (langkah 5). Itulah yang membuat satu instance bisa memegang banyak nomor sekaligus.
-
-| Punya kamu | Tujuan |
+| Layanan | Tugas |
 |---|---|
-| `WA_APP_SECRET` | `.env` → `META_APP_SECRET` |
-| `WA_API_VERSION` | `.env` → `META_GRAPH_VERSION` |
-| `WA_ACCESS_TOKEN` | `channel:add --token` (DB, terenkripsi) |
-| `WA_PHONE_NUMBER_ID` | `channel:add --phone-id` |
-| `WA_BUSINESS_ACCOUNT_ID` | `channel:add --waba` |
+| **webhook** | Menerima pesan dari Meta dan melayani Public API |
+| **worker** | Menjalankan bot (flow), mengirim pesan, broadcast, webhook keluar |
+| **web** | Dashboard admin dan petugas |
+| **ai-knowledge** | Basis pengetahuan SOP dan router menu "Arahkan AI" (Go + Gemini) |
+| **postgres** | Database, sudah membawa ekstensi pgvector |
+| **redis** | Antrean pesan (BullMQ) |
+| **migrate** | Menerapkan migrasi database tiap kali deploy, lalu berhenti |
 
-> Jangan menaruh nilai asli di `.env.example` — file itu ikut ter-commit. Hanya `.env` yang di-gitignore.
+Hanya nginx yang terbuka ke internet. Web dan webhook hanya mendengarkan di
+`127.0.0.1`, sedangkan layanan lain hanya bisa dijangkau antarcontainer.
 
-> `ENCRYPTION_KEY` mengenkripsi seluruh token channel. Kehilangan key ini = semua channel harus didaftar ulang. Backup terpisah dari repo.
+### Isi paket deploy
 
-### 3. Install & migrate
+| Berkas | Isi |
+|---|---|
+| [`Dockerfile`](Dockerfile) | Image Node: web, webhook, worker, migrate |
+| [`apps/ai-knowledge/Dockerfile`](apps/ai-knowledge/Dockerfile) | Image layanan Go |
+| [`deploy/compose.yml`](deploy/compose.yml) | Semua layanan beserta volume dan health check |
+| [`deploy/.env.example`](deploy/.env.example) | Variabel yang harus diisi, disalin ke `deploy/.env` |
+| [`deploy/nginx/claudewa.conf`](deploy/nginx/claudewa.conf) | Reverse proxy di host |
+| [`deploy/deploy.sh`](deploy/deploy.sh) | Pasang/perbarui: tarik kode, build, migrasi, restart |
+| [`deploy/backup.sh`](deploy/backup.sh) | Cadangan database harian |
 
-Butuh pnpm (`npm i -g pnpm`) dan Node 22+.
+## 2. Kebutuhan server
 
-```bash
-pnpm install
-```
+| Kebutuhan | Minimal | Saran |
+|---|---|---|
+| OS | Ubuntu 22.04/24.04 atau Debian 12 | |
+| CPU / RAM | 2 vCPU / 4 GB | 4 vCPU / 8 GB |
+| Disk | 40 GB | 60 GB |
 
-```bash
-pnpm db:migrate --name init
-```
+Selain itu:
 
-Beri `--name`, kalau tidak Prisma akan meminta nama migrasi secara interaktif. Hasilnya 17 tabel + 14 enum.
+- **Subdomain** yang A record-nya mengarah ke IP publik server, misalnya
+  `wa.contoh.go.id`.
+- **Port 80 dan 443** terbuka dari internet. Meta mengirim webhook ke 443.
+  Port lain tidak perlu dibuka.
+- **Akses keluar** ke `graph.facebook.com`, `generativelanguage.googleapis.com`
+  (Gemini), Docker Hub, registry npm, dan GitHub.
+- **Kunci API Gemini** untuk layanan AI.
 
-Butuh pnpm tapi tidak mau install global? `corepack prepare pnpm@9.12.0 --activate` sudah cukup.
+Build image pertama butuh sekitar 2 GB RAM dan 5–10 menit.
 
-### 4. Expose webhook
+## 3. Siapkan server
 
-```bash
-pnpm dev:webhook
-```
-
-Di terminal lain, buka tunnel HTTPS. Pakai **cloudflared** — tanpa akun, tanpa authtoken:
-
-```bash
-cloudflared tunnel --url http://localhost:3001
-```
-
-Ambil URL `https://<acak>.trycloudflare.com` dari outputnya.
-
-<details>
-<summary>Kenapa bukan ngrok?</summary>
-
-Bisa saja, tapi di mesin ini ngrok bermasalah berlapis: versi Laragon (3.1.0) ditolak server karena akun mensyaratkan minimum 3.20.0, dan setelah `ngrok update` berhasil, Windows Defender memblokir binary barunya sebagai *potentially unwanted software* — false positive yang lazim untuk tool tunneling.
-
-Kalau tetap mau ngrok: izinkan `C:\laragon\bin\ngrok\ngrok.exe` di Windows Security, atau install ulang lewat `winget install ngrok.ngrok`. Config-nya sudah diturunkan ke `version: "2"` (backup di `ngrok.yml.bak`); agent baru tetap menerima format itu.
-</details>
-
-Lalu di Meta App Dashboard → WhatsApp → Configuration → Webhook:
-
-- Callback URL: `https://<acak>.trycloudflare.com/webhooks/whatsapp`
-- Verify token: nilai `WEBHOOK_VERIFY_TOKEN` dari `.env`
-- Subscribe ke field: **messages**
-
-> URL tunnel gratis berubah setiap kali dijalankan ulang — begitu restart, callback URL di Meta harus diperbarui juga.
-
-Kalau handshake sukses, log webhook menulis `webhook verification handshake succeeded`.
-
-### 5. Daftarkan nomor
+Masuk ke server lewat SSH, lalu pasang Docker, nginx, certbot, dan git:
 
 ```bash
-pnpm channel:add --name "CS Utama" --waba <WABA_ID> --phone-id <PHONE_NUMBER_ID> --token <SYSTEM_USER_TOKEN>
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+sudo apt install -y nginx certbot python3-certbot-nginx git
 ```
 
-Pakai **System User token**, bukan token sementara dari Graph API Explorer — yang itu expire 24 jam dan besoknya semua pengiriman gagal tanpa pesan error yang menyebut expiry. Buat di Business Settings → System Users → Generate Token, pilih asset WABA, scope `whatsapp_business_messaging` + `whatsapp_business_management`.
-
-Script ini memverifikasi kredensial ke Graph API dan auto-subscribe app ke WABA sebelum menyimpan. Ulangi untuk tiap nomor.
+Logout lalu login lagi supaya grup `docker` berlaku, kemudian cek:
 
 ```bash
-pnpm channel:list
+docker compose version
 ```
 
-### 6. Round-trip test
+Kalau server memakai firewall `ufw`, buka hanya SSH, HTTP, dan HTTPS:
 
 ```bash
-pnpm dev:worker
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
 ```
+
+## 4. Ambil kode dan isi konfigurasi
 
 ```bash
-pnpm send:test --channel <channelId> --to <nomor HP kamu, contoh 6285111213481> --buttons
+git clone <url-repo> claudewa
+cd claudewa
+cp deploy/.env.example deploy/.env
+chmod 600 deploy/.env
+nano deploy/.env
 ```
 
-Nomor dalam format E.164 tanpa `+` dan tanpa spasi.
+Kalau repo-nya private, `git clone` akan meminta username dan *personal
+access token* GitHub sebagai pengganti kata sandi.
 
-⚠️ **Kirim pesan apa pun dari HP itu ke nomor bisnismu dulu.** Tombol dan teks biasa adalah pesan free-form, hanya boleh dikirim dalam 24 jam setelah kontak menghubungi lebih dulu. Kalau belum, Meta menolak dengan `131047` dan satu-satunya jalan adalah template yang sudah disetujui.
-
-Balas dari WhatsApp. Log worker harus menulis `inbound message stored`.
-
-**Milestone fase 1 tercapai kalau ini jalan di dua nomor berbeda secara bersamaan** — itu membuktikan routing multi-WABA lewat `phone_number_id` sudah benar, dan sisanya tinggal fitur di atas fondasi yang sama.
-
----
-
-## Smoke test tanpa WhatsApp
-
-Jalankan `pnpm dev:webhook` dan `pnpm dev:worker`, lalu kirim webhook bertanda tangan ke receiver lokal — tanpa ngrok, tanpa Meta, tanpa memakai kuota percakapan:
+Isi setiap nilai di `deploy/.env` sesuai komentar di dalamnya. Rahasia bisa
+dibuat langsung di server:
 
 ```bash
-pnpm webhook:fake -- --phone-id <PHONE_NUMBER_ID> --from 628123456789 --text "menu"
+openssl rand -hex 24      # POSTGRES_PASSWORD
+openssl rand -base64 32   # ENCRYPTION_KEY (install baru) dan AUTH_SECRET
+openssl rand -hex 32      # AI_KNOWLEDGE_API_KEY
 ```
+
+Tiga nilai yang paling penting:
+
+- **`DOMAIN`**: subdomain tanpa `https://`, misalnya `wa.contoh.go.id`.
+- **`ENCRYPTION_KEY`**: kalau memindahkan data dari server lama, **salin persis
+  dari `.env` lama**, jangan membuat yang baru. Simpan juga salinannya di tempat
+  lain. Kalau kunci ini hilang, semua nomor WA harus didaftarkan ulang.
+- **`GEMINI_API_KEY`**: wajib diisi. Layanan AI langsung berhenti kalau kosong.
+
+`POSTGRES_PASSWORD` cukup huruf dan angka, karena ikut disusun ke dalam URL
+koneksi database.
+
+## 5. Pindahkan data lama (opsional)
+
+Lewati langkah ini kalau install baru. Kalau ada data dari server lama
+(nomor, flow, kontak, riwayat chat, basis pengetahuan), pindahkan **sebelum**
+aplikasi dinyalakan pertama kali.
+
+Di mesin yang bisa menjangkau database lama:
 
 ```bash
-pnpm webhook:fake -- --phone-id <PHONE_NUMBER_ID> --from 628123456789 --button btn_yes
+pg_dump -Fc --no-owner --no-acl "postgresql://USER:PASS@HOST:5432/DB" > lama.dump
 ```
+
+Salin `lama.dump` ke server, lalu di folder `claudewa`:
 
 ```bash
-pnpm webhook:fake -- --phone-id <PHONE_NUMBER_ID> --status delivered --wamid wamid.XXX
+docker compose -f deploy/compose.yml up -d postgres
+docker compose -f deploy/compose.yml exec -T postgres \
+  pg_restore -U wa -d wa_platform --no-owner --no-acl < lama.dump
 ```
 
-Worker harus menulis `inbound message stored`. Kirim wamid yang sama dua kali untuk membuktikan dedupe, dan kirim `--text STOP` untuk membuktikan opt-out.
+Kalau database lama dipakai bersama aplikasi lain, tabel aplikasi itu ikut
+terbawa. Itu tidak merusak dan bisa dihapus belakangan.
 
----
-
-## Basis pengetahuan
-
-Halaman **Basis Pengetahuan** (`/knowledge`) di dashboard mengelola dokumen SOP di layanan `apps/ai-knowledge` (Go + pgvector + Gemini) — sumber jawaban node Tanya AI. Dashboard memanggilnya lewat HTTP; isi di `.env` root:
+## 6. Build dan nyalakan
 
 ```bash
-AI_KNOWLEDGE_URL="https://<layanan ai-knowledge>"
-AI_KNOWLEDGE_API_KEY="<INTERNAL_API_KEY layanan itu>"
+chmod +x deploy/*.sh
+./deploy/deploy.sh --no-pull
 ```
 
-Menjalankan layanannya sendiri butuh Go (`winget install GoLang.Go`). Layanan ini membaca `.env` di foldernya sendiri, bukan `.env` root — salin `apps/ai-knowledge/.env.example` ke `apps/ai-knowledge/.env`, isi, lalu:
+Perintah ini membangun image, menjalankan migrasi database, lalu menyalakan
+semua layanan. Setelah selesai, cek statusnya:
 
 ```bash
-pnpm dev:ai
+docker compose -f deploy/compose.yml ps
 ```
 
-Isi `ADMIN_SECRET_KEY` di sana. Tanpa itu, `POST /documents/reset` (menghapus seluruh dokumen) terbuka bagi siapa pun yang memegang `INTERNAL_API_KEY`.
+Hasil yang benar:
 
-Untuk mencoba tanpa menyentuh dokumen sungguhan maupun kuota Gemini, pakai tiruannya lalu isi `AI_KNOWLEDGE_URL="http://localhost:4020"`:
+- `migrate` berstatus *Exited (0)*. Itu normal karena tugasnya memang hanya
+  sekali jalan.
+- `postgres`, `redis`, `webhook`, `web`, dan `ai-knowledge` berstatus
+  *healthy*.
+- `worker` berstatus *Up*.
+
+Uji dari server:
 
 ```bash
-pnpm knowledge:fake
+curl http://127.0.0.1:3001/health                                   # {"ok":true,...}
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3002/login   # 200
 ```
 
-Admin bisa menambah, mengubah, dan menghapus dokumen; agen ke atas bisa menguji pertanyaan. Setiap perubahan dicatat lengkap dengan isinya di audit log, karena layanannya sendiri tidak menyimpan riwayat. Referensi API-nya ada di docs: **Layanan internal → Layanan pengetahuan**.
+## 7. Buat akun dashboard
 
-> Layanan ini memakai database yang sama dengan platform. Ke database itu jalankan `pnpm --filter @wa/db deploy`, **bukan** `pnpm db:migrate`: `prisma migrate dev` menganggap tabel layanan pengetahuan sebagai drift dan menawarkan reset skema.
-
----
-
-## Test
-
-Validator limit WhatsApp dan normalizer webhook murni logika, jadi bisa dites tanpa infra apa pun:
+Lewati kalau data lama sudah dipindahkan, karena akunnya ikut terbawa.
 
 ```bash
-node --experimental-strip-types --test packages/core/test/*.test.ts
+docker compose -f deploy/compose.yml run --rm web \
+  node --import tsx src/scripts/user-add.ts \
+  --email admin@contoh.go.id --name "Admin" --password "minimal-8-karakter"
 ```
 
-20 test, tidak butuh Postgres/Redis/Meta. Jalankan ini dulu sebelum menyalahkan Meta kalau ada payload yang tidak terbaca.
+Akun ini berperan OWNER. Tambahkan `--role ADMIN` (atau `SUPERVISOR`,
+`AGENT`, `VIEWER`) untuk peran lain.
 
-Seluruh source sengaja bebas dari sintaks TS yang tidak bisa dihapus begitu saja (`erasableSyntaxOnly` di `tsconfig.base.json`), supaya Node bisa menjalankannya langsung tanpa build step.
+## 8. Pasang nginx dan HTTPS
 
----
+Ganti `DOMAIN-ANDA` dengan subdomain yang sama dengan `DOMAIN` di
+`deploy/.env`:
 
-## Catatan desain
+```bash
+sudo cp deploy/nginx/claudewa.conf /etc/nginx/sites-available/claudewa
+sudo sed -i 's/wa.contoh.go.id/DOMAIN-ANDA/' /etc/nginx/sites-available/claudewa
+sudo ln -s /etc/nginx/sites-available/claudewa /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d DOMAIN-ANDA
+```
 
-**Kenapa webhook dipisah dari worker.** Meta retry kalau endpoint lambat dan akhirnya menonaktifkan subscription. Receiver hanya verifikasi signature → simpan raw → enqueue → 200. Semua interpretasi payload terjadi di worker, di mana kegagalan bisa di-retry tanpa membuat Meta marah.
+Certbot memasang sertifikat Let's Encrypt, mengalihkan HTTP ke HTTPS, dan
+memperpanjangnya otomatis. Kalau `nginx -t` mengeluh `$connection_upgrade`
+sudah didefinisikan, hapus blok `map` di bagian bawah berkas konfigurasi.
 
-**Kenapa satu queue per channel.** Blast 50k di satu nomor tidak boleh menahan balasan live di nomor lain. Queue terpisah + rate limiter per channel (`throughputPerSec`) menjamin itu; satu queue bersama akan tetap menyerialkan keduanya berapa pun prioritas job-nya.
+Buka `https://DOMAIN-ANDA`, lalu login dengan akun dari langkah 7.
 
-**Kenapa `WA_LIMITS` ada di satu file.** Flow builder membacanya untuk men-disable tombol ke-4, provider membacanya untuk menolak payload sebelum memanggil API. Dua titik penegakan, satu sumber kebenaran.
+## 9. Sambungkan ke Meta
 
-**Kenapa `FlowSession` menunjuk ke `FlowVersion`, bukan `Flow`.** Publish flow baru saat ada ratusan orang di tengah percakapan tidak boleh membuat mereka nyangkut di node yang sudah dihapus.
+1. Di dashboard, buka halaman **Nomor**. Salin *Callback URL* tiap koneksi WABA
+   (bentuknya `https://DOMAIN/webhooks/whatsapp/<id>`) beserta *Verify token*-nya.
+   Kalau belum ada koneksi, buat dulu di halaman itu.
+2. Di Meta App → WhatsApp → Configuration, isi Callback URL dan Verify token
+   tersebut. Kalau sebelumnya memakai URL cloudflared, ganti dengan yang baru.
+   Klik *Verify and save*.
+3. Pastikan field `messages` tercentang di bagian Webhook fields.
+4. Kirim pesan uji ke nomor WA itu. Pesan harus muncul di **Inbox**, dan bot
+   membalas kalau ada flow yang aktif.
 
-**Dedupe.** `Message.waMessageId` unique. Meta bisa mengirim payload yang sama dua kali; unique violation di inbound processor ditangani sebagai "sudah pernah" dan bukan error.
+## 10. Arahkan AI ke layanan internal
 
----
+Di server ini layanan AI dipanggil lewat nama container, bukan `localhost`.
+Di halaman **AI** pada dashboard, ubah URL setiap endpoint:
 
-## Urutan berikutnya
+| Jenis endpoint | URL |
+|---|---|
+| Arahkan ke menu (router) | `http://ai-knowledge:8080/route` |
+| Jawab pertanyaan (pencarian SOP) | `http://ai-knowledge:8080/documents/search` (sesuaikan path/query yang dipakai) |
 
-1. `apps/web` — Next.js, auth, halaman Channels (baca model yang sudah ada)
-2. Inbox + realtime
-3. Template sync (`provider.listTemplates()` sudah siap, tinggal dipanggil terjadwal)
-4. Flow builder + engine
+Header `X-Internal-API-Key` di endpoint itu harus sama dengan
+`AI_KNOWLEDGE_API_KEY` di `deploy/.env`. Pakai tombol uji di halaman yang sama
+untuk memastikan jawabannya keluar.
+
+`http://` ke `ai-knowledge:8080` diizinkan karena compose mengisi
+`INTERNAL_SERVICE_HOSTS`. Alamat internal lain, seperti database dan Redis,
+tetap ditolak.
+
+## 11. Jadwalkan cadangan
+
+```bash
+crontab -e
+```
+
+Tambahkan baris berikut (sesuaikan path):
+
+```
+30 1 * * * /home/USER/claudewa/deploy/backup.sh >> /home/USER/claudewa-backup.log 2>&1
+```
+
+Cadangan disimpan di `deploy/backups/` selama 14 hari. Sesekali salin ke luar
+server. `ENCRYPTION_KEY` tidak ikut tercadang, jadi simpan salinannya
+terpisah.
+
+Untuk memulihkan dari cadangan:
+
+```bash
+docker compose -f deploy/compose.yml exec -T postgres \
+  pg_restore -U wa -d wa_platform --clean --if-exists < deploy/backups/<file>.dump
+```
+
+## 12. Operasional harian
+
+Jalankan dari folder `claudewa`:
+
+| Keperluan | Perintah |
+|---|---|
+| Status layanan | `docker compose -f deploy/compose.yml ps` |
+| Log satu layanan | `docker compose -f deploy/compose.yml logs -f --tail=100 worker` |
+| Log semua layanan | `docker compose -f deploy/compose.yml logs -f --tail=50` |
+| Restart satu layanan | `docker compose -f deploy/compose.yml restart worker` |
+| Matikan semua | `docker compose -f deploy/compose.yml down` (data tetap aman di volume) |
+| Masuk ke database | `docker compose -f deploy/compose.yml exec postgres psql -U wa wa_platform` |
+| Pemakaian disk Docker | `docker system df` |
+
+> **Jangan** menjalankan `docker compose ... down -v`. Opsi `-v` menghapus
+> volume database dan Redis beserta seluruh isinya.
+
+Semua layanan otomatis menyala lagi setelah server reboot.
+
+## 13. Update dan rollback
+
+**Update ke kode terbaru:**
+
+```bash
+./deploy/deploy.sh
+```
+
+Skrip ini menarik kode (`git pull`), membangun ulang image, menjalankan
+migrasi, lalu me-restart layanan yang berubah. Selama restart, bot berhenti
+beberapa detik. Pesan yang sudah masuk antrean diproses setelahnya, dan Meta
+mengirim ulang webhook yang sempat gagal diterima.
+
+**Kembali ke versi sebelumnya:**
+
+```bash
+git log --oneline -5                  # pilih commit tujuan
+git checkout <commit>
+./deploy/deploy.sh --no-pull
+```
+
+Migrasi database tidak ikut mundur. Kalau versi yang dibatalkan mengubah
+skema, pulihkan cadangan dari sebelum update (langkah 11). Untuk kembali ke
+versi terbaru: `git checkout main && ./deploy/deploy.sh`.
+
+## 14. Kalau ada masalah
+
+| Gejala | Periksa |
+|---|---|
+| `migrate` gagal dan layanan lain tidak naik | `logs migrate`. Biasanya `POSTGRES_PASSWORD` diganti setelah volume dibuat; password lama tetap berlaku di volume itu. |
+| `ai-knowledge` terus restart | `logs ai-knowledge`. Biasanya `GEMINI_API_KEY` kosong. |
+| Pesan warga tidak masuk | Callback URL di Meta, `logs webhook`, dan `curl https://DOMAIN/health`. |
+| Pesan masuk tapi bot diam | `logs worker`. Apakah flow sudah terbit dan aktif? |
+| Arahkan AI selalu jatuh ke menu | URL di halaman AI (langkah 10), `logs ai-knowledge`, dan `GEMINI_API_KEY`. |
+| Login berputar kembali ke halaman login | `DOMAIN` di `deploy/.env` harus sama persis dengan alamat yang dibuka di browser. |
+| Token nomor WA "tidak bisa didekripsi" | `ENCRYPTION_KEY` berbeda dari yang dipakai saat nomor didaftarkan. |
+| Build gagal karena kehabisan memori | Tambahkan swap 2 GB, atau build di mesin lain. |
+| Disk penuh | `docker system df`, lalu `docker image prune -a` untuk image lama. |

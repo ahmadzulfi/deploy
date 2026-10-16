@@ -5,7 +5,11 @@
 #
 # Hanya web (:3002) dan webhook (:3001) yang dibuka, itu pun ke 127.0.0.1
 # saja - nginx di host yang meneruskannya ke internet dengan HTTPS.
-# Postgres, Redis, dan ai-knowledge hanya bisa dijangkau antarcontainer.
+# Redis dan ai-knowledge hanya bisa dijangkau antarcontainer.
+#
+# Database: bawaannya memakai Postgres yang sudah ada (DATABASE_URL dan
+# AI_DATABASE_URL di deploy/.env). Postgres di container ini hanya ikut
+# jalan kalau profil "db-lokal" dinyalakan - lihat README.
 # Langkah lengkapnya ada di README.md di root repo.
 
 name: claudewa
@@ -20,7 +24,7 @@ x-app: &app
   env_file: .env
   environment: &app-env
     NODE_ENV: production
-    DATABASE_URL: postgresql://wa:${POSTGRES_PASSWORD:?isi POSTGRES_PASSWORD di deploy/.env}@postgres:5432/wa_platform?schema=public
+    DATABASE_URL: ${DATABASE_URL:?isi DATABASE_URL di deploy/.env}
     REDIS_URL: redis://redis:6379
     AUTH_URL: https://${DOMAIN:?isi DOMAIN di deploy/.env}
     # Di belakang nginx: percayai header Host dari proxy.
@@ -31,20 +35,26 @@ x-app: &app
     # internal. URL AI di dashboard: http://ai-knowledge:8080/route
     INTERNAL_SERVICE_HOSTS: ai-knowledge:8080
   depends_on:
-    postgres: { condition: service_healthy }
+    # required: false - ditunggu hanya kalau profil db-lokal menyala.
+    postgres: { condition: service_healthy, required: false }
     redis: { condition: service_healthy }
     migrate: { condition: service_completed_successfully }
 
 services:
+  # Opsional: hanya untuk server yang tidak punya Postgres sendiri.
+  #   COMPOSE_PROFILES=db-lokal di deploy/.env, lalu arahkan DATABASE_URL ke
+  #   postgresql://wa:<POSTGRES_PASSWORD>@postgres:5432/wa_platform
   postgres:
-    # Postgres 16 yang sudah membawa ekstensi pgvector untuk ai-knowledge.
-    image: pgvector/pgvector:pg16
+    profiles: [db-lokal]
+    # Versi 18, sama dengan DB yang dipakai sekarang, plus pgvector.
+    image: pgvector/pgvector:pg18
     restart: unless-stopped
     environment:
       POSTGRES_USER: wa
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: wa_platform
-    volumes: ['pgdata:/var/lib/postgresql/data']
+    # Image Postgres 18 menyimpan data di bawah /var/lib/postgresql/18/.
+    volumes: ['pgdata:/var/lib/postgresql']
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U wa -d wa_platform']
       interval: 5s
@@ -70,7 +80,7 @@ services:
     working_dir: /app/packages/db
     command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres: { condition: service_healthy, required: false }
 
   webhook:
     <<: *app
@@ -113,8 +123,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: '8080'
-      # Driver Go tidak mengenal parameter khusus Prisma, jadi URL-nya sendiri.
-      DATABASE_URL: postgresql://wa:${POSTGRES_PASSWORD}@postgres:5432/wa_platform?sslmode=disable
+      # Database yang sama, tetapi tanpa parameter khusus Prisma
+      # (connection_limit) yang ditolak driver Go.
+      DATABASE_URL: ${AI_DATABASE_URL:?isi AI_DATABASE_URL di deploy/.env}
       # Wajib: layanan ini berhenti saat start kalau kosong.
       GEMINI_API_KEY: ${GEMINI_API_KEY:?isi GEMINI_API_KEY di deploy/.env}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-embedding-001}
@@ -127,7 +138,10 @@ services:
       ROUTE_CHOOSER_MODEL: ${ROUTE_CHOOSER_MODEL:-gemini-flash-lite-latest}
       ROUTE_CHOOSER_TIMEOUT: ${ROUTE_CHOOSER_TIMEOUT:-2.5}
     depends_on:
-      postgres: { condition: service_healthy }
+      postgres: { condition: service_healthy, required: false }
+      # Tabelnya dibuat sendiri saat start. Kalau sempat mendahului Prisma
+      # di database kosong, migrasi menolak jalan (P3005: schema not empty).
+      migrate: { condition: service_completed_successfully }
     healthcheck:
       # "/" sengaja dibiarkan terbuka tanpa API key untuk health check.
       test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/']

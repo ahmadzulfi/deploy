@@ -106,6 +106,29 @@ export function isLocalhostUrl(url: URL) {
 }
 
 /**
+ * Whether the server admin vouched for this host in INTERNAL_SERVICE_HOSTS -
+ * our own services next to the platform, such as the ai-knowledge router at
+ * "localhost:8080" or "ai-knowledge:8080" inside docker compose.
+ *
+ * Comma-separated host:port pairs. A host without a port stands for 80/443
+ * only, so naming "localhost" does not open every port on the machine. It is
+ * read from the environment rather than the dashboard on purpose: whoever can
+ * edit flows must not be able to widen it.
+ */
+export function isTrustedInternalUrl(url: URL, list = process.env.INTERNAL_SERVICE_HOSTS ?? ''): boolean {
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
+  if (url.username || url.password) return false
+  const host = url.hostname.toLowerCase()
+  // URL leaves port empty when it is the protocol's default.
+  const target = `${host}:${url.port || (url.protocol === 'https:' ? '443' : '80')}`
+  return list
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .some((entry) => (/:\d+$/.test(entry) ? entry === target : entry === host && url.port === ''))
+}
+
+/**
  * Validates a webhook target. Returns an error message for the admin, or null.
  * Resolves the hostname, so it is async and needs working DNS.
  */

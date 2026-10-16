@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkPublicUrl, isPrivateAddress } from '../src/lib/public-url.ts'
+import { checkPublicUrl, isPrivateAddress, isTrustedInternalUrl } from '../src/lib/public-url.ts'
 
 describe('isPrivateAddress', () => {
   it('refuses the IPv4 ranges only reachable from inside', () => {
@@ -84,5 +84,32 @@ describe('checkPublicUrl', () => {
 
   it('accepts a public IP literal over https', async () => {
     assert.equal(await checkPublicUrl('https://8.8.8.8/h', prod), null)
+  })
+})
+
+describe('isTrustedInternalUrl', () => {
+  const list = 'localhost:8080, AI-Knowledge:8080,router.lan'
+  const trusted = (u: string) => isTrustedInternalUrl(new URL(u), list)
+
+  it('trusts exactly the listed host:port pairs', () => {
+    assert.equal(trusted('http://localhost:8080/route'), true)
+    assert.equal(trusted('http://ai-knowledge:8080/route'), true)
+    assert.equal(trusted('http://localhost:5435/'), false)
+    assert.equal(trusted('http://127.0.0.1:8080/route'), false)
+  })
+
+  it('reads a host without a port as the default port only', () => {
+    assert.equal(trusted('http://router.lan/route'), true)
+    assert.equal(trusted('https://router.lan/route'), true)
+    assert.equal(trusted('http://router.lan:6379/'), false)
+  })
+
+  it('refuses credentials and other protocols', () => {
+    assert.equal(trusted('http://u:p@localhost:8080/route'), false)
+    assert.equal(trusted('ftp://localhost:8080/'), false)
+  })
+
+  it('trusts nothing when the list is empty', () => {
+    assert.equal(isTrustedInternalUrl(new URL('http://localhost:8080/route'), ''), false)
   })
 })

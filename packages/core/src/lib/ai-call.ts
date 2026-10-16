@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { buildAiRequest, parseHeaderLines, renderAnswer, type AiEndpointConfig, type AiVars } from '../ai.js'
 import type { RouteDestination } from '../flow/catalog.js'
 import type { RouteWireExample } from './route-examples.js'
-import { isLocalhostUrl, isPrivateAddress, publicOnlyLookup } from './public-url.js'
+import { isLocalhostUrl, isPrivateAddress, isTrustedInternalUrl, publicOnlyLookup } from './public-url.js'
 
 /**
  * Outbound HTTP for flows: the "Tanya AI" node and the "Panggil API" node.
@@ -24,9 +24,12 @@ const publicAgent = new Agent({ connect: { lookup: publicOnlyLookup as never } }
 
 const devLocalhost = (url: URL) => process.env.NODE_ENV !== 'production' && isLocalhostUrl(url)
 
+/** Called directly, without the public-only resolver: dev localhost or a host the admin trusts. */
+const direct = (url: URL) => devLocalhost(url) || isTrustedInternalUrl(url)
+
 /** Why a URL may not be called, or null if it may. */
 function refuse(url: URL): string | null {
-  if (devLocalhost(url)) return null
+  if (direct(url)) return null
   if (url.protocol !== 'https:') return 'URL harus https'
   const host = url.hostname.replace(/^\[|\]$/g, '')
   // An IP literal never goes through the resolver, so it is judged here.
@@ -62,7 +65,7 @@ export async function safeFetch(
       method: init.method,
       headers: init.headers,
       body: init.body,
-      dispatcher: devLocalhost(url) ? undefined : publicAgent,
+      dispatcher: direct(url) ? undefined : publicAgent,
       // A redirect could point anywhere, including inside our own network.
       redirect: 'manual',
       signal: AbortSignal.timeout(init.timeoutMs),

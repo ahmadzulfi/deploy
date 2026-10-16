@@ -8,6 +8,7 @@ import {
   checkPublicUrl,
   checkRouteConfig,
   encrypt,
+  isTrustedInternalUrl,
   routeExamplesFor,
   type AiEndpointConfig,
   type AiEndpointKind,
@@ -90,14 +91,15 @@ async function configFrom(
 
 /**
  * The worker calls this URL from inside our network, so it gets the same
- * treatment as an outgoing webhook: https, and never an internal address.
+ * treatment as an outgoing webhook: https, and never an internal address -
+ * unless the host is one INTERNAL_SERVICE_HOSTS names, as the worker allows.
  * Placeholders are swapped for a harmless value first - they are not part of
  * the host.
  */
 function checkUrl(url: string) {
-  return checkPublicUrl(url.replace(/\{\{\s*\w+\s*\}\}/g, 'x'), {
-    allowLocalhost: process.env.NODE_ENV !== 'production',
-  })
+  const raw = url.replace(/\{\{\s*\w+\s*\}\}/g, 'x')
+  if (URL.canParse(raw) && isTrustedInternalUrl(new URL(raw))) return null
+  return checkPublicUrl(raw, { allowLocalhost: process.env.NODE_ENV !== 'production' })
 }
 
 export async function saveAiEndpoint(_prev: AiFormState, formData: FormData): Promise<AiFormState> {

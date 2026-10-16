@@ -164,6 +164,50 @@ docker compose -f deploy/compose.yml exec -T postgres \
 Kalau database lama dipakai bersama aplikasi lain, tabel aplikasi itu ikut
 terbawa. Itu tidak merusak dan bisa dihapus belakangan.
 
+#### Percepat pencarian basis pengetahuan (disarankan)
+
+Di database lama, embedding dokumen SOP tersimpan sebagai array angka biasa
+(`double precision[]`). Layanan AI tetap jalan dengan data seperti itu, tetapi
+memakai mode array: setiap pencarian membandingkan pertanyaan dengan semua
+dokumen satu per satu. Di server baru pgvector sudah tersedia, jadi ubah
+kolomnya ke tipe `vector` supaya layanan memakai index HNSW yang jauh lebih
+cepat.
+
+Cek tipenya dulu:
+
+```bash
+docker compose -f deploy/compose.yml exec -T postgres psql -U wa wa_platform -c \
+  "SELECT table_name, column_name, udt_name FROM information_schema.columns
+   WHERE column_name IN ('embedding', 'query_embedding')"
+```
+
+Kalau `udt_name` berisi `_float8`, jalankan konversi berikut. Kalau sudah
+`vector`, lewati.
+
+```bash
+docker compose -f deploy/compose.yml exec -T postgres psql -v ON_ERROR_STOP=1 -U wa wa_platform <<'SQL'
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS vector;
+ALTER TABLE "docs-gemini-001" ALTER COLUMN embedding TYPE vector(768) USING embedding::vector(768);
+ALTER TABLE query_cache ALTER COLUMN query_embedding TYPE vector(768) USING query_embedding::vector(768);
+COMMIT;
+SQL
+```
+
+Catatan:
+
+- **Kedua tabel harus dikonversi bersamaan.** Layanan AI menentukan mode dari
+  tabel `docs-gemini-001`, lalu memakai mode yang sama untuk `query_cache`.
+  Kalau hanya satu yang diubah, pencarian akan gagal. Perintah di atas
+  berjalan dalam satu transaksi, jadi kalau ada yang gagal, keduanya batal.
+- **Konversi gagal kalau ada embedding yang ukurannya bukan 768 angka.**
+  Database tetap utuh, dan layanan tetap jalan dalam mode array.
+- **Index HNSW tidak perlu dibuat manual.** Layanan AI membuatnya sendiri saat
+  start di langkah 6. Di log `ai-knowledge` harus muncul
+  `Mode Aktif: pgvector Extension (HNSW Indexing)`.
+- **Router "Arahkan AI" tidak terpengaruh.** Tabel `route_embeddings` memang
+  memakai array, dan kemiripannya dihitung di aplikasi.
+
 ## 6. Build dan nyalakan
 
 ```bash

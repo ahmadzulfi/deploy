@@ -2,7 +2,7 @@
 
 Platform WhatsApp internal: multi-nomor WABA, shared inbox, flow builder drag-and-drop, broadcast.
 
-Fondasi, round-trip pesan, dashboard, flow builder, dan Public API sudah jalan. Sisa yang besar: campaign runner.
+Fondasi, round-trip pesan, dashboard, flow builder, broadcast, dan Public API sudah ada. Sisa yang besar: paket deploy produksi dan uji nyata fitur yang belum pernah mengirim sungguhan (lihat `BACKLOG.md`).
 
 ---
 
@@ -16,14 +16,17 @@ packages/core    ChannelProvider abstraction, CloudApiProvider, webhook
 apps/webhook     Fastify receiver — verifikasi signature, simpan raw, enqueue,
                  plus Public API /api/v1
 apps/worker      Inbound processor, outbound sender (queue per channel), flow
-                 engine, sweeper sesi, pengirim webhook keluar, CLI
-apps/web         Dashboard Next.js — inbox, nomor, flow builder, pengaturan
+                 engine, campaign runner, sweeper sesi, pengirim webhook
+                 keluar, CLI
+apps/web         Dashboard Next.js — inbox, nomor, kontak, template,
+                 broadcast, flow builder, AI, basis pengetahuan, pengaturan
 apps/docs        Referensi Public API (Fumadocs) — `pnpm dev:docs`, buka :5000
 apps/ai-knowledge  Layanan Go: dokumen SOP + pencarian semantik (pgvector,
                  Gemini) di balik node Tanya AI — `pnpm dev:ai`, butuh Go
 ```
 
-Yang belum: campaign runner, halaman Kontak dan Broadcast di dashboard.
+Yang belum: paket deploy produksi (Dockerfile, compose, nginx), dan uji nyata
+broadcast, Public API, serta webhook keluar. Rinciannya di `BACKLOG.md`.
 
 Referensi Public API — endpoint, contoh kode, dan playground — ada di `apps/docs`,
 di-generate dari `apps/docs/openapi.yaml`. Buka http://localhost:5000.
